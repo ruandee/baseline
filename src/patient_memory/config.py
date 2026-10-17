@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     jwt_public_key: str = ""
     jwt_issuer: str = "patient-memory-synthetic"
     jwt_audience: str = "patient-memory-api"
+    token_ttl_hours: int = Field(default=48, gt=0)
     object_endpoint: str = "http://localhost:59000"
     object_access_key: str = "synthetic-local"
     object_secret_key: str = "synthetic-local-secret"
@@ -22,8 +23,8 @@ class Settings(BaseSettings):
     max_evidence: int = 12
     provider: str = "stub"
     provider_url: str = ""
-    provider_key: str = ""
     provider_model: str = ""
+    provider_key: str = ""
     whisper_model: str = "base"
     keep_audio: bool = False
     z_threshold: float = Field(default=2.0, gt=0, allow_inf_nan=False)

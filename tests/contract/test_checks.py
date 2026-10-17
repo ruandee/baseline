@@ -85,8 +85,9 @@ def test_check_returns_features_for_every_browser_format(sandbox, recordings, ki
     assert len(body["words"]) == 27 and body["words"][0]["w"] == "one"
     assert len(body["pauses"]) >= 3
     assert {"normalize", "vad", "asr", "prosody"} <= set(body["timings_ms"])
-    # The change engine and verdict table (BL-08, BL-11) are not built yet.
-    assert body["change"] is None and body["assessment"] is None
+    assert body["change"]["status"] == "enrolling"
+    assert body["assessment"]["verdict"] == "enrolling"
+    assert body["assessment"]["suggested_action"] == "none"
     assert len(stored_checks(sandbox)) == 1
 
 

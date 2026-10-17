@@ -12,6 +12,9 @@ from patient_memory.baseline.verdict import (
     shift_bounds,
 )
 from patient_memory.config import Settings
+from patient_memory.errors import Problem
+from patient_memory.ingestion import lock_patient
+from patient_memory.storage import patient_access
 
 FEATURE_META = {
     "speech_rate_wpm": {"label": "Speech rate", "unit": "words/min"},
@@ -35,7 +38,9 @@ def _latest_assessment(conn, patient_id: UUID):
     return conn.execute(
         "SELECT a.*, v.ts AS check_ts FROM assessments a JOIN voice_checks v "
         "ON v.tenant_id=a.tenant_id AND v.patient_id=a.patient_id AND v.id=a.check_id "
-        "WHERE a.patient_id=%s ORDER BY v.ts DESC, a.created_at DESC LIMIT 1", (patient_id,)
+        "WHERE a.patient_id=%s AND COALESCE((a.params->>'invalidated')::boolean,false)=false "
+        "AND (a.params->>'source_revision')::bigint=(SELECT revision FROM patients WHERE id=%s) "
+        "ORDER BY v.ts DESC, a.created_at DESC LIMIT 1", (patient_id, patient_id)
     ).fetchone()
 
 
@@ -59,6 +64,10 @@ def _assessment_payload(row, tags, change_row_features) -> dict:
 def overview(conn, cfg: Settings, patient: dict, days: int, now: datetime | None = None) -> dict:
     now = now or datetime.now(UTC)
     pid = patient["id"]
+    lock_patient(conn, pid)
+    patient = patient_access(conn, pid)
+    if not conn.execute("SELECT pm_care(%s) AS ok", (pid,)).fetchone()["ok"]:
+        raise Problem(404, "not_found")
     tags = valid_tags(conn, pid, now)
     series = {name: {"daily": [], "checks": []} for name in FEATURES}
     for row in conn.execute(
@@ -102,9 +111,16 @@ def overview(conn, cfg: Settings, patient: dict, days: int, now: datetime | None
 def watchlist(conn, cfg: Settings, now: datetime | None = None) -> dict:
     now = now or datetime.now(UTC)
     start, end = shift_bounds(now, cfg.shift_timezone)
+    conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
+                 ("baseline-budget/" + str(conn.execute("SELECT pm_tenant() AS id").fetchone()["id"]),))
     residents = []
-    for patient in conn.execute("SELECT id, external_id FROM patients ORDER BY external_id"):
+    for patient in conn.execute("SELECT id, external_id FROM patients WHERE pm_care(id) ORDER BY id"):
         pid = patient["id"]
+        lock_patient(conn, pid)
+        # Assignment changes use the same patient lock. Recheck rows enumerated before waiting.
+        if not conn.execute("SELECT id FROM patients WHERE id=%s AND pm_care(id)",
+                            (pid,)).fetchone():
+            continue
         latest = _latest_assessment(conn, pid)
         last_check = conn.execute("SELECT max(ts) AS ts FROM voice_checks WHERE patient_id=%s",
                                   (pid,)).fetchone()["ts"]
