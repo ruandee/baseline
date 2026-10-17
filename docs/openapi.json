@@ -145,6 +145,77 @@
         }
       }
     },
+    "/v1/patients/{patient_id}/context": {
+      "post": {
+        "summary": "Add Context Tag",
+        "operationId": "add_context_tag_v1_patients__patient_id__context_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContextInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextTagOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/patients/{patient_id}/jobs/{job_id}": {
       "get": {
         "summary": "Job State",
@@ -580,6 +651,82 @@
                 "schema": {
                   "$ref": "#/components/schemas/CheckResult"
                 }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/watchlist": {
+      "get": {
+        "summary": "Watchlist",
+        "operationId": "watchlist_v1_watchlist_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/patients/{patient_id}/overview": {
+      "get": {
+        "summary": "Patient Overview",
+        "operationId": "patient_overview_v1_patients__patient_id__overview_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 90,
+              "minimum": 1,
+              "default": 30,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           },
@@ -1391,6 +1538,139 @@
           "evidence_ids"
         ],
         "title": "Conflict"
+      },
+      "ContextInput": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "explainer",
+              "amplifier"
+            ],
+            "title": "Kind"
+          },
+          "tag": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Tag"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Label"
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "tag",
+          "label",
+          "valid_from"
+        ],
+        "title": "ContextInput"
+      },
+      "ContextTagOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "explainer",
+              "amplifier"
+            ],
+            "title": "Kind"
+          },
+          "tag": {
+            "type": "string",
+            "title": "Tag"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "quote": {
+            "type": "string",
+            "title": "Quote"
+          },
+          "start_offset": {
+            "type": "integer",
+            "title": "Start Offset"
+          },
+          "end_offset": {
+            "type": "integer",
+            "title": "End Offset"
+          },
+          "source_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Source Id"
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "extracted_by": {
+            "type": "string",
+            "enum": [
+              "structured",
+              "gemini"
+            ],
+            "title": "Extracted By"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "tag",
+          "label",
+          "quote",
+          "start_offset",
+          "end_offset",
+          "source_id",
+          "valid_from",
+          "valid_to",
+          "extracted_by"
+        ],
+        "title": "ContextTagOut"
       },
       "Coverage": {
         "properties": {

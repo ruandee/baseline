@@ -99,3 +99,30 @@ def extract(source: SourceInput):
 
 def fact_id(source_id, candidate):
     return uuid5(NAMESPACE_URL, f"{source_id}/{candidate.start}/{candidate.end}/extract-v1")
+
+
+def store_facts(conn, tenant_id, patient_id, source_id, candidates):
+    """Publish deterministic evidence rows inside the caller's source transaction."""
+    for c in candidates:
+        conn.execute(
+            "INSERT INTO facts(id,tenant_id,patient_id,source_id,concept,value,unit,polarity,"
+            "experiencer,event_type,order_id,valid_from,valid_to,quote,start_offset,end_offset,embedding) "
+            "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::vector) ON CONFLICT DO NOTHING",
+            (fact_id(source_id, c), tenant_id, patient_id, source_id,
+             c.concept, c.value, c.unit, c.polarity, c.experiencer, c.event_type, c.order_id,
+             c.valid_from, c.valid_to, c.quote, c.start, c.end, vector_sql(embed(c.quote))),
+        )
+
+
+def store_relations(conn, patient_id):
+    # Structured contradictions only; do not guess semantic contradictions in free text.
+    conn.execute(
+        "INSERT INTO relations SELECT a.tenant_id,a.patient_id,a.id,b.id,'contradicts' "
+        "FROM facts a JOIN facts b ON a.tenant_id=b.tenant_id AND a.patient_id=b.patient_id "
+        "AND a.concept=b.concept AND a.id>b.id AND a.source_id<>b.source_id "
+        "WHERE a.patient_id=%s AND a.concept<>'source_assertion' AND a.order_id IS NULL "
+        "AND b.order_id IS NULL AND (a.value<>b.value OR a.polarity<>b.polarity) "
+        "AND (a.valid_to IS NULL OR b.valid_from IS NULL OR a.valid_to>=b.valid_from) "
+        "AND (b.valid_to IS NULL OR a.valid_from IS NULL OR b.valid_to>=a.valid_from) "
+        "ON CONFLICT DO NOTHING", (patient_id,),
+    )
