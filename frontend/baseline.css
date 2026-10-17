@@ -2,8 +2,8 @@
 :root{--v-escalate:#b3261e;--v-escalate-bg:#fde8e6;--v-watch:#8a5a00;--v-watch-bg:#fff1d0;--v-explained:#1e6b3a;--v-explained-bg:#dff3e5;--v-normal:#5b6560;--v-normal-bg:#e8ebe8;--chart-band:#d6e8ad;--chart-line:#236752;--chart-dot:#7a8783}
 body.baseline{padding-top:56px}
 .bl-nav{position:fixed;inset:0 0 auto 0;height:56px;display:flex;align-items:center;gap:20px;padding:0 24px;background:#f0f2eb;border-bottom:1px solid #e3e7dd;z-index:2}
-.bl-nav a{text-decoration:none;font-weight:600;font-size:15px;color:var(--ink);padding:6px 4px}
-.bl-nav a[aria-current=page]{border-bottom:2px solid var(--green)}
+.bl-nav a{text-decoration:none;font-weight:600;font-size:15px;color:var(--ink);padding:6px 4px;border-bottom:2px solid transparent}
+.bl-nav a[aria-current=page]{border-bottom-color:var(--green)}
 .bl-nav .brand-mark{font-size:34px;width:32px}
 .bl-nav-end{margin-left:auto;font-weight:400!important}
 .bl-main{max-width:1100px;margin:0 auto;padding:28px 24px}
