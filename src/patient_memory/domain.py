@@ -94,6 +94,13 @@ class ContextTagOut(Contract):
     extracted_by: Literal["structured", "gemini"]
 
 
+class NoteExtractionResult(Contract):
+    processed: int
+    tags_created: int
+    methods: list[Literal["keyword", "gemini"]]
+    batch_limit: int
+
+
 class Question(Contract):
     question: str = Field(min_length=1, max_length=4000)
     as_of: AwareDatetime | None = None
