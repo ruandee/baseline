@@ -1,6 +1,7 @@
 from datetime import timedelta
 from uuid import uuid4
 
+import jwt
 import pytest
 from pydantic import ValidationError
 
@@ -16,6 +17,14 @@ def test_identity_rejects_wrong_signer():
     assert decode_token(synthetic_token(identity, cfg), cfg) == identity
     with pytest.raises(Problem):
         decode_token(synthetic_token(identity, cfg), Settings(jwt_secret="different" * 8))
+
+
+def test_synthetic_token_uses_configured_ttl():
+    identity = Identity(uuid4(), uuid4())
+    cfg = Settings(token_ttl_hours=48)
+    token = synthetic_token(identity, cfg)
+    decoded = jwt.decode(token, cfg.jwt_secret, algorithms=["HS256"], options={"verify_aud": False})
+    assert decoded["exp"] - decoded["iat"] == 48 * 60 * 60
 
 
 def test_invalid_contracts():

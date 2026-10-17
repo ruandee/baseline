@@ -37,3 +37,11 @@ BL-17), verdict colour tokens and an API check (liveness plus a nurse-token pati
 (`PM_FRONTEND_HOSTS`, `PM_DEMO_TOKEN`) lets a phone reach it over HTTPS. See
 [decision 005](decisions/005-baseline-frontend-location.md). Contract tests were added in
 `tests/contract/test_frontend.py`; they need the database services.
+
+## BL-01 — Demo env hardening
+
+Added configurable token TTL (48-hour default), demo rate-limit and Gemini-compatible
+environment entries, plus `scripts/gemini_smoke.py` with strict schema validation.
+The smoke call is opt-in and requires a user-supplied key; no provider call ran in
+CI. Unit tests pass (44 passed, 2 skipped, 2 deselected) and lint passes. See
+[decision 006](decisions/006-demo-env-and-gemini-smoke.md).

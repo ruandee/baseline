@@ -30,5 +30,5 @@ def synthetic_token(identity: Identity, cfg: Settings) -> str:
     return jwt.encode(
         {"sub": str(identity.principal_id), "tenant": str(identity.tenant_id),
          "iss": cfg.jwt_issuer, "aud": cfg.jwt_audience, "iat": now(),
-         "exp": now() + timedelta(hours=8)}, cfg.jwt_secret, algorithm="HS256",
+         "exp": now() + timedelta(hours=cfg.token_ttl_hours)}, cfg.jwt_secret, algorithm="HS256",
     )
