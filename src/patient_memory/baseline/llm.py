@@ -1,6 +1,6 @@
 """Bounded schema requests. Callers validate output and own deterministic fallbacks."""
+import asyncio
 import json
-import time
 
 import httpx
 
@@ -10,6 +10,15 @@ TIMEOUT_S = 15
 
 
 def request_json(cfg, *, schema_name: str, schema: dict, system: str, user: str) -> dict:
+    """Synchronous entry point for sync routes/workers; cancellation closes network I/O."""
+    try:
+        return asyncio.run(_request_json(cfg, schema_name=schema_name, schema=schema,
+                                         system=system, user=user))
+    except TimeoutError as exc:
+        raise ValueError("provider_timeout") from exc
+
+
+async def _request_json(cfg, *, schema_name, schema, system, user):
     if cfg.provider not in {"compatible", "ollama"}:
         raise ValueError("provider_disabled")
     if len((system + user).encode("utf-8")) > MAX_INPUT_BYTES:
@@ -26,20 +35,18 @@ def request_json(cfg, *, schema_name: str, schema: dict, system: str, user: str)
                 "name": schema_name, "strict": True, "schema": schema}})
     headers = {"Authorization": "Bearer " + cfg.provider_key} if cfg.provider_key else {}
     endpoint = "/api/chat" if native else "/chat/completions"
-    started = time.monotonic()
-    with httpx.Client(timeout=httpx.Timeout(TIMEOUT_S, connect=3), follow_redirects=False,
-                      trust_env=False) as client:
-        with client.stream("POST", cfg.provider_url.rstrip("/") + endpoint,
-                           json=payload, headers=headers) as response:
-            if not 200 <= response.status_code < 300:
-                raise ValueError("provider_unavailable")
-            raw = bytearray()
-            for chunk in response.iter_bytes():
-                raw.extend(chunk)
-                if len(raw) > MAX_RESPONSE_BYTES:
-                    raise ValueError("provider_response_too_large")
-                if time.monotonic() - started > TIMEOUT_S:
-                    raise ValueError("provider_timeout")
+    async with asyncio.timeout(TIMEOUT_S):
+        async with httpx.AsyncClient(timeout=httpx.Timeout(TIMEOUT_S, connect=3),
+                                     follow_redirects=False, trust_env=False) as client:
+            async with client.stream("POST", cfg.provider_url.rstrip("/") + endpoint,
+                                     json=payload, headers=headers) as response:
+                if not 200 <= response.status_code < 300:
+                    raise ValueError("provider_unavailable")
+                raw = bytearray()
+                async for chunk in response.aiter_bytes():
+                    raw.extend(chunk)
+                    if len(raw) > MAX_RESPONSE_BYTES:
+                        raise ValueError("provider_response_too_large")
     try:
         body = json.loads(raw)
         content = body["message"]["content"] if native else body["choices"][0]["message"]["content"]

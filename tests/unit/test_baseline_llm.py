@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 import httpx
@@ -8,8 +9,8 @@ from patient_memory.config import Settings
 
 
 def run(monkeypatch, handler, provider="compatible", **changes):
-    original_client = httpx.Client
-    monkeypatch.setattr(httpx, "Client", lambda **kwargs: original_client(
+    original_client = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kwargs: original_client(
         transport=httpx.MockTransport(handler), **kwargs))
     cfg = Settings(provider=provider, provider_url="https://synthetic.invalid/v1",
                    provider_model="synthetic-model", provider_key="synthetic-key")
@@ -50,3 +51,41 @@ def test_input_bound_and_stub_never_call_network(monkeypatch):
         run(monkeypatch, forbidden, user="x" * (64 * 1024))
     with pytest.raises(ValueError, match="provider_disabled"):
         request_json(Settings(), schema_name="x", schema={}, system="", user="")
+
+
+def test_absolute_deadline_cancels_waiting_for_headers(monkeypatch):
+    cancelled = []
+    async def delayed(request):
+        try:
+            await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            cancelled.append(True)
+            raise
+        pytest.fail("deadline must cancel the provider operation")
+    monkeypatch.setattr("patient_memory.baseline.llm.TIMEOUT_S", 0.01)
+    with pytest.raises(ValueError, match="provider_timeout"):
+        run(monkeypatch, delayed)
+    assert cancelled == [True]
+
+
+def test_absolute_deadline_covers_headers_and_body_together(monkeypatch):
+    cancelled = []
+    closed = []
+    class DelayedBody(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            try:
+                await asyncio.sleep(0.04)
+            except asyncio.CancelledError:
+                cancelled.append(True)
+                raise
+            yield b'{}'
+        async def aclose(self):
+            closed.append(True)
+    async def delayed(request):
+        await asyncio.sleep(0.04)
+        return httpx.Response(200, stream=DelayedBody())
+    monkeypatch.setattr("patient_memory.baseline.llm.TIMEOUT_S", 0.06)
+    with pytest.raises(ValueError, match="provider_timeout"):
+        run(monkeypatch, delayed)
+    assert cancelled == [True]
+    assert closed == [True]

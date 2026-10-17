@@ -11,7 +11,7 @@ from patient_memory.baseline.context import TAXONOMY, ContextTag, default_valid_
 from patient_memory.domain import NoteExtractionResult, SourceInput
 from patient_memory.extraction import extract
 from patient_memory.ingestion import bump, lock_patient
-from patient_memory.storage import patient_access
+from patient_memory.storage import patient_access, transaction
 
 NoteTag = Literal["dentures", "hearing_aid", "poor_sleep", "poor_intake", "recent_fall",
                   "returned_from_hospital", "new_confusion_noted"]
@@ -50,8 +50,14 @@ KEYWORDS = {
 
 def affirmed_sentence(text):
     # These are note assertions, not diagnoses. Ambiguous attribution/negation abstains.
-    safe = re.sub(r"\bnot (?:her|his) (?:usual chatty self)|\bnot (?:herself|himself)|"
-                  r"\bdidn['’]t (?:finish|sleep)|\bdid not (?:finish|sleep)", "", text,
+    # Normalize contractions before masking a few *complete positive* negative idioms.
+    safe = re.sub(r"\b(?:is|was|were|are|has|have|had|do|does|did|could|should|would|must)n['’]t\b|"
+                  r"\bcan['’]t\b|\bwon['’]t\b|\bcannot\b", " not ", text,
+                  flags=re.IGNORECASE)
+    safe = " ".join(safe.split())
+    # Do not mask 'did not sleep poorly': that negates poor sleep, rather than affirming it.
+    safe = re.sub(r"\bnot (?:her|his) usual chatty self\b|\bnot (?:herself|himself)\b|"
+                  r"\b(?:did )?not finish\b|\b(?:did )?not sleep\b(?!\s+(?:poorly|badly))", "", safe,
                   flags=re.IGNORECASE)
     return not re.search(
         r"\b(no|not|denies?|denied|without|never|resolved|histor(?:y|ical)|previously|"
@@ -109,10 +115,8 @@ def publish_note_tags(conn, identity, patient_id, source_id, tags, method):
     return created
 
 
-def extract_pending_notes(conn, identity, patient_id, cfg, retry_fallback=False):
-    patient_access(conn, patient_id, write=True)
-    lock_patient(conn, patient_id)
-    rows = conn.execute(
+def pending_notes(conn, patient_id, retry_fallback):
+    return conn.execute(
         "SELECT s.* FROM sources s WHERE s.patient_id=%s AND s.published_at IS NOT NULL "
         "AND s.retracted_at IS NULL AND s.purged_at IS NULL AND NOT s.purge_requested "
         "AND NOT EXISTS(SELECT FROM sources amended WHERE amended.tenant_id=s.tenant_id "
@@ -122,25 +126,37 @@ def extract_pending_notes(conn, identity, patient_id, cfg, retry_fallback=False)
         "AND s.payload->>'kind'='nursing_note' AND NOT EXISTS(SELECT FROM note_context_runs r "
         "WHERE r.tenant_id=s.tenant_id AND r.patient_id=s.patient_id AND r.source_id=s.id "
         "AND (NOT %s OR r.method<>'keyword')) "
-        "ORDER BY s.ingested_at,s.id LIMIT 5", (patient_id, retry_fallback)).fetchall()
-    count, processed, methods = 0, 0, set()
-    for row in rows:
-        tags, method = note_tags(SourceInput.model_validate(row["payload"]), cfg)
-        # Authorization and lifecycle may change while the provider is working.
+        "ORDER BY s.ingested_at,s.id LIMIT 1", (patient_id, retry_fallback)).fetchall()
+
+
+def extract_pending_notes(cfg, identity, patient_id, retry_fallback=False):
+    """Read snapshot, compute without a DB transaction, then authorize and publish atomically."""
+    with transaction(cfg, identity) as conn:
         patient_access(conn, patient_id, write=True)
-        current = conn.execute("SELECT * FROM sources WHERE patient_id=%s AND id=%s FOR UPDATE",
-                               (patient_id, row["id"])).fetchone()
-        if (not current or current["retracted_at"] or current["purged_at"]
-                or current["purge_requested"] or current["payload_hash"] != row["payload_hash"]):
+        source_ids = [row["id"] for row in pending_notes(conn, patient_id, retry_fallback)]
+    count, processed, methods = 0, 0, set()
+    for source_id in source_ids:
+        with transaction(cfg, identity) as conn:
+            revision = patient_access(conn, patient_id, write=True)["revision"]
+            row = next((row for row in pending_notes(conn, patient_id, retry_fallback)
+                        if row["id"] == source_id), None)
+        if row is None:
             continue
-        if conn.execute("SELECT id FROM sources WHERE patient_id=%s AND supersedes=%s "
-                        "AND published_at IS NOT NULL AND retracted_at IS NULL "
-                        "AND purged_at IS NULL", (patient_id, row["id"])).fetchone():
-            continue
-        count += publish_note_tags(conn, identity, patient_id, row["id"], tags, method)
-        processed += 1
-        methods.add(method)
-    if processed:
-        bump(conn, patient_id)
+        # No open connection or patient lock during any provider work.
+        tags, method = note_tags(SourceInput.model_validate(row["payload"]), cfg)
+        with transaction(cfg, identity) as conn:
+            lock_patient(conn, patient_id)
+            if patient_access(conn, patient_id, write=True)["revision"] != revision:
+                continue
+            current = next((current for current in pending_notes(conn, patient_id, retry_fallback)
+                            if current["id"] == source_id), None)
+            if (current is None or current["payload_hash"] != row["payload_hash"]
+                    or current["visibility"] != row["visibility"]
+                    or current["published_at"] != row["published_at"]):
+                continue
+            count += publish_note_tags(conn, identity, patient_id, source_id, tags, method)
+            bump(conn, patient_id)
+            processed += 1
+            methods.add(method)
     return NoteExtractionResult(processed=processed, tags_created=count, methods=sorted(methods),
-                                batch_limit=5)
+                                batch_limit=1)

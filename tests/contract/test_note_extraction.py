@@ -11,7 +11,7 @@ def test_extract_route_is_assigned_importer_only(sandbox):
         f"/v1/patients/{uuid4()}/notes/extract").status_code == 404
     response = client_for(sandbox, "importer").post(root)
     assert response.status_code == 200, response.text
-    assert response.json() == {"processed": 0, "tags_created": 0, "methods": [], "batch_limit": 5}
+    assert response.json() == {"processed": 0, "tags_created": 0, "methods": [], "batch_limit": 1}
 
 
 def test_worker_processed_notes_are_idempotent_on_demand(sandbox):

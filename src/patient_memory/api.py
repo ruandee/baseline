@@ -211,8 +211,9 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
     @app.post("/v1/patients/{patient_id}/notes/extract", response_model=NoteExtractionResult)
     def extract_notes(patient_id: UUID, request: Request, retry_fallback: bool = Query(default=False),
                       actor=actor_dep):
+        result = extract_pending_notes(cfg, actor, patient_id, retry_fallback)
         with transaction(cfg, actor) as conn:
-            result = extract_pending_notes(conn, actor, patient_id, cfg, retry_fallback)
+            patient_access(conn, patient_id, write=True)
             audit(conn, actor, patient_id, "extract_note_context", request.state.request_id)
             return result
 

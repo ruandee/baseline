@@ -5,7 +5,9 @@ import pytest
 
 from patient_memory.baseline.notes import extract_pending_notes
 from patient_memory.domain import SourceInput, now
-from patient_memory.ingestion import submit
+from patient_memory.errors import Problem
+from patient_memory.ingestion import bump, lock_patient, submit
+from patient_memory.lifecycle import change_source
 from patient_memory.storage import transaction
 from patient_memory.worker import run_once
 from tests.integration.test_baseline_rls import add_source, make_tenant
@@ -41,7 +43,7 @@ def test_worker_publishes_model_tags_exact_spans_and_discards_fabricated_quote(s
         assert tag["extracted_by"] == "gemini"
     with transaction(cfg, actors["importer"]) as conn:
         before = conn.execute("SELECT revision FROM patients WHERE id=%s", (pid,)).fetchone()
-        assert extract_pending_notes(conn, actors["importer"], pid, cfg).processed == 0
+        assert extract_pending_notes(cfg, actors["importer"], pid).processed == 0
         assert conn.execute("SELECT revision FROM patients WHERE id=%s", (pid,)).fetchone() == before
 
 
@@ -51,7 +53,7 @@ def test_empty_note_is_processed_once_without_changing_earlier_evidence(sandbox)
     with transaction(cfg, actors["importer"]) as conn:
         assert conn.execute("SELECT method FROM note_context_runs WHERE source_id=%s",
                             (source_id,)).fetchone()["method"] == "keyword"
-        assert extract_pending_notes(conn, actors["importer"], pid, cfg).processed == 0
+        assert extract_pending_notes(cfg, actors["importer"], pid).processed == 0
         assert conn.execute("SELECT count(*) AS n FROM facts WHERE source_id=%s",
                             (source_id,)).fetchone()["n"] == 1
 
@@ -63,14 +65,12 @@ def test_on_demand_extracts_legacy_note_and_skips_retracted_source(sandbox):
     with psycopg.connect(cfg.admin_database_url) as admin:
         admin.execute("DELETE FROM context_tags WHERE source_id=%s", (source_id,))
         admin.execute("DELETE FROM note_context_runs WHERE source_id=%s", (source_id,))
-    with transaction(cfg, actors["importer"]) as conn:
-        result = extract_pending_notes(conn, actors["importer"], pid, cfg)
-        assert (result.processed, result.tags_created, result.methods) == (1, 1, ["keyword"])
+    result = extract_pending_notes(cfg, actors["importer"], pid)
+    assert (result.processed, result.tags_created, result.methods) == (1, 1, ["keyword"])
     with psycopg.connect(cfg.admin_database_url) as admin:
         admin.execute("DELETE FROM note_context_runs WHERE source_id=%s", (source_id,))
         admin.execute("UPDATE sources SET retracted_at=clock_timestamp() WHERE id=%s", (source_id,))
-    with transaction(cfg, actors["importer"]) as conn:
-        assert extract_pending_notes(conn, actors["importer"], pid, cfg).processed == 0
+    assert extract_pending_notes(cfg, actors["importer"], pid).processed == 0
 
 
 def test_explicit_retry_upgrades_keyword_marker_without_duplicating_or_removing_tags(sandbox, monkeypatch):
@@ -81,13 +81,13 @@ def test_explicit_retry_upgrades_keyword_marker_without_duplicating_or_removing_
     monkeypatch.setattr("patient_memory.baseline.llm.request_json", lambda *a, **kw: {"tags": [
         {"tag": "new_confusion_noted", "quote": "Not her usual chatty self."}]})
     with transaction(cfg, actors["importer"]) as conn:
-        assert extract_pending_notes(conn, actors["importer"], pid, configured,
+        assert extract_pending_notes(configured, actors["importer"], pid,
                                      retry_fallback=True).processed == 1
         assert conn.execute("SELECT method FROM note_context_runs WHERE source_id=%s",
                             (source_id,)).fetchone()["method"] == "gemini"
         assert conn.execute("SELECT count(*) AS n FROM context_tags WHERE source_id=%s",
                             (source_id,)).fetchone()["n"] == 1
-        assert extract_pending_notes(conn, actors["importer"], pid, configured,
+        assert extract_pending_notes(configured, actors["importer"], pid,
                                      retry_fallback=True).processed == 0
 
 
@@ -98,7 +98,7 @@ def test_purge_removes_quotes_and_never_reextracts(sandbox):
         admin.execute("UPDATE sources SET purge_requested=true,purge_after=now() WHERE id=%s", (source_id,))
     assert run_once(cfg, actors["importer"], objects)
     with transaction(cfg, actors["importer"]) as conn:
-        assert extract_pending_notes(conn, actors["importer"], pid, cfg).processed == 0
+        assert extract_pending_notes(cfg, actors["importer"], pid).processed == 0
         assert conn.execute("SELECT count(*) AS n FROM context_tags WHERE source_id=%s",
                             (source_id,)).fetchone()["n"] == 0
 
@@ -112,13 +112,50 @@ def test_provider_output_is_discarded_if_source_retracted_while_waiting(sandbox,
     configured = cfg.model_copy(update={"provider": "compatible",
         "provider_url": "https://synthetic.invalid", "provider_model": "synthetic"})
     def retract(*args, **kwargs):
-        with psycopg.connect(cfg.admin_database_url) as admin:
-            admin.execute("UPDATE sources SET retracted_at=clock_timestamp() WHERE id=%s", (source_id,))
+        # A normal source operation must acquire the patient lock *while* the model runs.
+        # If extraction held it, this fails quickly rather than hanging the test.
+        with transaction(cfg, actors["importer"]) as mutation:
+            mutation.execute("SET LOCAL lock_timeout='250ms'")
+            change_source(mutation, actors["importer"], pid, source_id, "retract", str(uuid4()),
+                          {"reason": "synthetic concurrent correction"}, uuid4())
         return {"tags": [{"tag": "new_confusion_noted", "quote": "Not her usual chatty self."}]}
     monkeypatch.setattr("patient_memory.baseline.llm.request_json", retract)
     with transaction(cfg, actors["importer"]) as conn:
-        assert extract_pending_notes(conn, actors["importer"], pid, configured).processed == 0
+        assert extract_pending_notes(configured, actors["importer"], pid).processed == 0
         assert conn.execute("SELECT count(*) AS n FROM context_tags WHERE source_id=%s",
+                            (source_id,)).fetchone()["n"] == 0
+
+
+@pytest.mark.parametrize("change", ["revision", "permission"])
+def test_provider_result_rechecks_revision_and_authorization_after_unlocked_work(sandbox, monkeypatch, change):
+    cfg, pid, actors, _ = sandbox
+    source_id = publish_note(sandbox)
+    with psycopg.connect(cfg.admin_database_url) as admin:
+        admin.execute("DELETE FROM context_tags WHERE source_id=%s", (source_id,))
+        admin.execute("DELETE FROM note_context_runs WHERE source_id=%s", (source_id,))
+    configured = cfg.model_copy(update={"provider": "compatible",
+        "provider_url": "https://synthetic.invalid", "provider_model": "synthetic"})
+    def mutate(*args, **kwargs):
+        with transaction(cfg, actors["importer"]) as mutation:
+            mutation.execute("SET LOCAL lock_timeout='250ms'")
+            lock_patient(mutation, pid)
+            bump(mutation, pid)
+        if change == "permission":
+            with psycopg.connect(cfg.admin_database_url) as admin:
+                admin.execute("UPDATE assignments SET active=false WHERE patient_id=%s "
+                              "AND principal_id=%s", (pid, actors["importer"].principal_id))
+        return {"tags": [{"tag": "new_confusion_noted", "quote": "Not her usual chatty self."}]}
+    monkeypatch.setattr("patient_memory.baseline.llm.request_json", mutate)
+    if change == "permission":
+        with pytest.raises(Problem) as denied:
+            extract_pending_notes(configured, actors["importer"], pid)
+        assert denied.value.status == 404
+    else:
+        assert extract_pending_notes(configured, actors["importer"], pid).processed == 0
+    with transaction(cfg, actors["nurse"]) as conn:
+        assert conn.execute("SELECT count(*) AS n FROM context_tags WHERE source_id=%s",
+                            (source_id,)).fetchone()["n"] == 0
+        assert conn.execute("SELECT count(*) AS n FROM note_context_runs WHERE source_id=%s",
                             (source_id,)).fetchone()["n"] == 0
 
 

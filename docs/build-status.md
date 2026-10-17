@@ -4,11 +4,14 @@
 
 Bounded schema provider client, exact-quote note tagging and deterministic keyword fallback
 now run atomically with worker publication. Importers can process legacy/unprocessed notes
-through `POST /v1/patients/{id}/notes/extract`, five per batch; optional `retry_fallback=true`
+through `POST /v1/patients/{id}/notes/extract`, one per batch; optional `retry_fallback=true`
 explicitly retries keyword results. Migration 005 adds forced-RLS completion markers so empty
 results are idempotent. Notes retain uncertain source attribution and existing fact IDs.
 OpenAPI is regenerated. See [decision 013](decisions/013-note-context-extraction.md).
-Local frozen sync/lint pass; unit tests 152 passed, 7 ffmpeg skips, 6 slow deselections.
+Provider work runs outside database transactions/locks, under a cancellable combined
+15-second HTTP deadline; publication rechecks authorization, source state and revision.
+Contracted negation and negated poor-sleep propositions abstain conservatively.
+Local frozen sync/lint pass; unit tests 182 passed with ffmpeg, no skips, 6 slow deselections.
 DB-backed migration/contract/integration tests and stub evaluation await CI; no live model
 calls were made. This is conservative engineering validation, not clinical validation.
 
