@@ -244,7 +244,9 @@ Returns `series` (daily `time_bucket` medians per feature plus raw checks), `bas
  "valid_from": "2026-10-18T12:00:00Z", "valid_to": "2026-10-18T18:00:00Z"}
 ```
 
-Creates an `observation` source through the existing ingestion path (record `concept: "context.exertion"`), then a `context_tags` row with `extracted_by: "structured"` pointing at that source's span. Returns 201 with the tag.
+Creates an `observation` source through the existing ingestion path (record `concept: "context.exertion"`), then a `context_tags` row with `extracted_by: "structured"` pointing at that source's span. Returns 201 with the tag (`id`, `kind`, `tag`, `label`, `quote`, `start_offset`, `end_offset`, `source_id`, `valid_from`, `valid_to`, `extracted_by`).
+
+`valid_from` is required and becomes the source's `recorded_at`; `valid_to` defaults to the taxonomy window (none for `exertion` and `language_change`). `tag` must be in the taxonomy and `kind` must match it, else 422 `invalid_request`. An optional `Idempotency-Key` header makes retries safe (same key and body replays the same tag; same key and different body is 409). Writing goes through ingestion, so only importer-assigned callers may post; anyone else, or another patient, gets 404.
 
 ## Speech pipeline
 
