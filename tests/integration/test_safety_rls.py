@@ -2,14 +2,15 @@
 session-scoped foreign keys, the public acknowledgement function and 24 h retention."""
 import hashlib
 from datetime import timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import psycopg
 import pytest
 from psycopg.types.json import Jsonb
 
 from patient_memory.auth import Identity
-from patient_memory.baseline.sessions import retire
+from patient_memory.baseline.sessions import arm, retire
+from patient_memory.domain import SessionArm
 from patient_memory.storage import transaction
 
 TABLES = ["safety_sessions", "safety_contacts", "escalation_events"]
@@ -46,8 +47,8 @@ def add_safety_tenant(admin):
 
 
 def add_session(admin, tenant, patient, status="escalating", created=-3600, ends=3600, episode=1,
-                ended=-1800, delete_after=86400):
-    """Offsets in seconds from the database clock."""
+                ended=-1800):
+    """Offsets in seconds from the database clock; deletion is always 24 h after the end."""
     t = clock(admin)
 
     def at(seconds):
@@ -66,7 +67,7 @@ def add_session(admin, tenant, patient, status="escalating", created=-3600, ends
          "missed_checkin" if status == "escalating" else None,
          t if status == "acknowledged" else None,
          at(ended) if status == "ended" else None, "user" if status == "ended" else None,
-         at(delete_after) if status == "ended" else None))
+         at(ended + 86400) if status == "ended" else None))
     admin.execute("INSERT INTO safety_contacts VALUES(%s,%s,%s,1,'Dee','+14165550101')",
                   (tenant, patient, sid))
     return sid
@@ -273,9 +274,19 @@ def test_retention_expires_then_deletes_only_the_callers_tenant(kaze_sandbox, ad
     tenant, service = k["tenant"], k["ids"]["service"]
     expiring, purged, recent = (add_person(admin, tenant, service.principal_id) for _ in range(3))
     expiring_sid = add_session(admin, tenant, expiring, status="active", created=-7200, ends=-60)
-    purged_sid = add_session(admin, tenant, purged, status="ended", created=-30 * 3600,
-                             ends=-29 * 3600, ended=-29 * 3600, delete_after=-5 * 3600)
-    recent_sid = add_session(admin, tenant, recent, status="ended", ended=-60, delete_after=3600)
+    # Armed through the idempotent API path, so an operations snapshot exists, then aged.
+    body = SessionArm(display_name="Sam", ends_at=clock(admin) + timedelta(hours=2),
+                      contacts=[{"name": "Dee", "phone_e164": "+14165550101"}])
+    with transaction(k["cfg"], Identity(purged, tenant)) as conn:
+        purged_sid = UUID(arm(conn, Identity(purged, tenant), purged, body, "arm-1", uuid4())["id"])
+    admin.execute(
+        "UPDATE safety_sessions SET status='ended',created_at=now()-interval '30 hours',"
+        "ends_at=now()-interval '29 hours',ended_at=now()-interval '29 hours',end_reason='user',"
+        "delete_after=now()-interval '5 hours' WHERE id=%s", (purged_sid,))
+    snapshot = ("SELECT count(*) FROM operations WHERE patient_id=%s AND operation='arm_session'",
+                (purged,))
+    assert admin.execute(*snapshot).fetchone()[0] == 1
+    recent_sid = add_session(admin, tenant, recent, status="ended", ended=-60)
     for sid, patient in [(purged_sid, purged), (recent_sid, recent)]:
         sql, params = check_sql(tenant, patient, sid, 43.6, -79.4)
         admin.execute(sql, params)
@@ -289,7 +300,7 @@ def test_retention_expires_then_deletes_only_the_callers_tenant(kaze_sandbox, ad
     other_tenant, other_service = add_safety_tenant(admin)
     other_person = add_person(admin, other_tenant, other_service.principal_id)
     other_sid = add_session(admin, other_tenant, other_person, status="ended", created=-30 * 3600,
-                            ends=-29 * 3600, ended=-29 * 3600, delete_after=-5 * 3600)
+                            ends=-29 * 3600, ended=-29 * 3600)
 
     assert retire(k["cfg"], service) == 1
 
@@ -306,6 +317,7 @@ def test_retention_expires_then_deletes_only_the_callers_tenant(kaze_sandbox, ad
         assert count(table, "session_id", purged_sid) == 0, table
         assert count(table, "session_id", recent_sid) == 1, table
     assert count("safety_sessions", "id", purged_sid) == 0
+    assert admin.execute(*snapshot).fetchone()[0] == 0  # idempotency snapshot deleted too
     assert count("assessments", "patient_id", purged) == 0
     assert count("assessments", "patient_id", recent) == 1
     assert count("voice_checks", "id", outside[1][2]) == 1
@@ -320,3 +332,47 @@ def test_retention_expires_then_deletes_only_the_callers_tenant(kaze_sandbox, ad
 def test_retention_refuses_an_unknown_identity(kaze_sandbox):
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         retire(kaze_sandbox["cfg"], Identity(uuid4(), kaze_sandbox["tenant"]))
+
+
+def test_ended_is_terminal_and_deletion_cannot_be_postponed(kaze_sandbox, admin):
+    k = kaze_sandbox
+    sid = add_session(admin, k["tenant"], k["patient"], status="ended")
+    for who in ["person", "service"]:
+        for statement in ["UPDATE safety_sessions SET status='active',ended_at=NULL,end_reason=NULL,"
+                          "delete_after=NULL,activated_at=now() WHERE id=%s",
+                          "UPDATE safety_sessions SET delete_after=delete_after+interval '1 day',"
+                          "ended_at=ended_at+interval '1 day' WHERE id=%s"]:
+            with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                with transaction(k["cfg"], k["ids"][who]) as conn:
+                    conn.execute(statement, (sid,))
+    # Even on an open session the deletion time is fixed at 24 h after the end.
+    open_sid = add_session(admin, k["tenant"], k["other_patient"], status="active")
+    with pytest.raises(psycopg.errors.CheckViolation):
+        with transaction(k["cfg"], k["ids"]["other"]) as conn:
+            conn.execute("UPDATE safety_sessions SET status='ended',ended_at=now(),end_reason='user',"
+                         "delete_after=now()+interval '30 days' WHERE id=%s", (open_sid,))
+
+
+def test_runtime_updates_are_limited_to_ladder_and_delivery_columns(kaze_sandbox, admin):
+    k = kaze_sandbox
+    sid = add_session(admin, k["tenant"], k["patient"])
+    eid = add_event(admin, k["tenant"], k["patient"], sid, token="t")
+    with transaction(k["cfg"], k["ids"]["service"]) as conn:
+        assert conn.execute("UPDATE escalation_events SET delivery='logged' WHERE id=%s",
+                            (eid,)).rowcount == 1
+        assert conn.execute("UPDATE safety_sessions SET ladder_level=3 WHERE id=%s",
+                            (sid,)).rowcount == 1
+    forbidden = [
+        ("UPDATE escalation_events SET ack_token_hash=%s WHERE id=%s", (sha("mine"), eid)),
+        ("UPDATE escalation_events SET ack_at=now() WHERE id=%s", (eid,)),
+        ("UPDATE escalation_events SET message='x' WHERE id=%s", (eid,)),
+        ("UPDATE escalation_events SET ack_expires_at=now()+interval '1 year' WHERE id=%s", (eid,)),
+        ("UPDATE safety_sessions SET ends_at=ends_at+interval '1 hour' WHERE id=%s", (sid,)),
+        ("UPDATE safety_sessions SET interval_min=180 WHERE id=%s", (sid,)),
+        ("UPDATE safety_sessions SET escalation_enabled=false WHERE id=%s", (sid,)),
+    ]
+    for who in ["person", "service"]:
+        for sql, params in forbidden:
+            with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                with transaction(k["cfg"], k["ids"][who]) as conn:
+                    conn.execute(sql, params)

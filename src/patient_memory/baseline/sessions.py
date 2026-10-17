@@ -41,9 +41,11 @@ def mask_phone(phone: str) -> str:
     return phone[:1] + "*" * (len(phone) - 5) + phone[-4:]
 
 
-def check_problem(status: str, mode: str, is_baseline: bool) -> Problem | None:
-    """Which check-ins a session accepts in each state."""
-    if status == "ended":
+def check_problem(status: str, mode: str, is_baseline: bool,
+                  past_end: bool = False) -> Problem | None:
+    """Which check-ins a session accepts in each state. A session past `ends_at` is over even
+    before the retention job marks it expired."""
+    if status == "ended" or past_end:
         return Problem(409, "session_ended")
     if mode != "live":
         return Problem(422, "invalid_request", "Session check-ins use mode live")
@@ -76,7 +78,8 @@ def reader_gate(conn, patient_id: UUID):
 
 
 def _row(conn, patient_id: UUID, session_id: UUID, lock=False):
-    row = conn.execute("SELECT * FROM safety_sessions WHERE patient_id=%s AND id=%s"
+    row = conn.execute("SELECT *,ends_at<=clock_timestamp() AS past_end FROM safety_sessions "
+                       "WHERE patient_id=%s AND id=%s"
                        + (" FOR UPDATE" if lock else ""), (patient_id, session_id)).fetchone()
     if not row:
         raise Problem(404, "not_found")
@@ -132,6 +135,11 @@ def arm(conn, identity, patient_id: UUID, body: SessionArm, key: str | None,
         problem = window_error(created_at, body.ends_at, body.interval_min)
         if problem:
             raise Problem(422, "invalid_request", problem)
+        # A previous session past its end is over even if retention has not run yet.
+        conn.execute(
+            "UPDATE safety_sessions SET status='ended',end_reason='expired',ended_at=ends_at,"
+            "delete_after=ends_at+%s,next_due_at=NULL WHERE patient_id=%s AND status<>'ended' "
+            "AND ends_at<=clock_timestamp()", (RETENTION, patient_id))
         if conn.execute("SELECT 1 FROM safety_sessions WHERE patient_id=%s AND status<>'ended'",
                         (patient_id,)).fetchone():
             raise Problem(409, "session_open")
@@ -192,7 +200,7 @@ def check_gate(conn, patient_id: UUID, session_id: UUID, mode: str, is_baseline:
     """Run before any audio work and again under lock before the insert."""
     owner_gate(conn, patient_id)
     row = _row(conn, patient_id, session_id, lock=lock)
-    problem = check_problem(row["status"], mode, is_baseline)
+    problem = check_problem(row["status"], mode, is_baseline, row["past_end"])
     if problem:
         raise problem
     return row

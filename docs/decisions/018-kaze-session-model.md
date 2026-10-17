@@ -133,7 +133,8 @@ Transitions:
 - `POST /v1/patients/{id}/sessions/{sid}/end` (importer) body `{}` → 200 ended session.
 - `POST /v1/patients/{id}/checks` adds optional form fields `session_id`, `lat`, `lon`,
   `accuracy_m`. With a session: mode must be `live`; `arming` takes only `is_baseline=true`, other
-  open states only `is_baseline=false` (422 `invalid_request`); `ended` is 409 `session_ended`;
+  open states only `is_baseline=false` (422 `invalid_request`); `ended` or past `ends_at` is 409
+  `session_ended`;
   unknown/foreign session is 404. Session checks are scored only against the same session's history
   (tonight's baseline), and checks outside a session never use session clips. Session check-ins
   never go to a model provider for SBAR drafting. The response gains
@@ -144,12 +145,37 @@ Transitions:
 
 `pm_retire_safety_sessions()` (SECURITY DEFINER, scoped to `pm_tenant()`, any active member) marks
 sessions past `ends_at` as `ended/expired`, then deletes every session whose `delete_after` passed,
-with its checks (and therefore locations), their assessments, contacts and events, writing one
-audit row per deleted session. The worker loop calls it at most once a minute. `voice_checks`
-stays append-only for the runtime role: no DELETE grant is added.
+with its checks (and therefore locations), their assessments, contacts, events and the arm
+idempotency snapshot (`operations` row `arm_session` whose result id is the session), writing one
+audit row per deleted session. The worker loop calls it at most once a minute. For `kaze-demo`,
+retention runs in the worker started as the `kaze-service` principal
+(`python -m patient_memory.worker --tenant <kaze-demo> --actor <kaze-service>`); a worker for a
+resident tenant never touches KAZE rows. `voice_checks` stays append-only for the runtime role: no
+DELETE grant is added.
+
+### Write restrictions (amended after review, before merge)
+
+- `ended` is terminal. A `BEFORE UPDATE` trigger rejects any update of an ended session (SQLSTATE
+  42501), and `delete_after` must equal `ended_at + 24 h`, so nobody can reopen a session or postpone
+  its deletion. Retention deletes ended rows; it never updates them.
+- The runtime role has column-level UPDATE only. `safety_sessions`: `status, activated_at,
+  next_due_at, last_checkin_at, ladder_level, episode, ladder_trigger, acknowledged_at, ended_at,
+  end_reason, delete_after`. `escalation_events`: `delivery, sent_at`. Everything else
+  (identity, `ends_at`, `interval_min`, contacts, `escalation_enabled`, `message`,
+  `ack_token_hash`, `ack_expires_at`, `ack_at`) is set on INSERT or only by the SECURITY DEFINER
+  functions. BL-27 therefore renders `message` and the token hash before inserting the event row,
+  and records the provider outcome by updating `delivery`/`sent_at`.
+- A session whose `ends_at` has passed is over even before retention marks it: check-ins get 409
+  `session_ended`, and arming again first closes it as `ended/expired`.
+- The SECURITY DEFINER functions bypass forced RLS only because their owner (the migration role)
+  is superuser or BYPASSRLS; migration 006 raises if it is not. Never move ownership of these
+  functions to `pm_runtime` or another RLS-bound role.
 
 ### Interfaces for dependent tickets
 
+- Session assessments are not gated by the PointClickCare shift escalation budget or
+  `PM_NO_ESCALATE_PATIENTS`: BL-26 must decide the speech-change trigger from the change status and
+  session explainers, never from `over_budget`, `no_escalate` or the care-home verdict.
 - BL-26 reads open sessions (`status IN ('active','escalating')`, `next_due_at`) as `kaze-service`
   and updates `ladder_level`, `ladder_trigger`, `episode`, `next_due_at`, `status` under row lock
   (`SELECT … FOR UPDATE`), taking the patient advisory lock (`lock_patient`) first, as check

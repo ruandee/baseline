@@ -162,6 +162,36 @@ def test_session_check_ins_are_rejected_before_audio_work(kaze_sandbox, who, fie
     assert admin_rows(k, "SELECT id FROM voice_checks WHERE patient_id=%s", (k["patient"],)) == []
 
 
+def add_past_end_session(k):
+    """An active session whose ends_at passed before the retention job ran."""
+    sid = uuid4()
+    with psycopg.connect(k["cfg"].admin_database_url) as admin:
+        admin.execute(
+            "INSERT INTO safety_sessions(tenant_id,patient_id,id,display_name,status,created_at,"
+            "activated_at,ends_at,next_due_at) VALUES(%s,%s,%s,'Sam','active',"
+            "now()-interval '2 hours',now()-interval '2 hours',now()-interval '1 minute',now())",
+            (k["tenant"], k["patient"], sid))
+    return sid
+
+
+def test_a_session_past_its_end_takes_no_check_ins(kaze_sandbox):
+    k = kaze_sandbox
+    sid = add_past_end_session(k)
+    response = client(k).post(f"/v1/patients/{k['patient']}/checks",
+                              data={"mode": "live", "device_id": "phone", "session_id": str(sid)},
+                              files={"audio": ("clip", b"x", "application/octet-stream")})
+    assert response.status_code == 409 and response.json()["error"]["code"] == "session_ended"
+
+
+def test_arming_again_closes_a_session_past_its_end(kaze_sandbox):
+    k = kaze_sandbox
+    old = add_past_end_session(k)
+    assert arm(k).status_code == 201
+    previous = client(k).get(f"/v1/patients/{k['patient']}/sessions/{old}").json()
+    assert previous["status"] == "ended" and previous["end_reason"] == "expired"
+    assert previous["ended_at"] == previous["ends_at"]
+
+
 def test_another_persons_session_id_is_404(kaze_sandbox):
     k = kaze_sandbox
     theirs = arm(k, "other", patient=k["other_patient"]).json()["id"]
