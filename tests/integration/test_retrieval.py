@@ -45,3 +45,14 @@ def test_patient_visibility_is_filtered_inside_database(sandbox):
         assert conn.execute("SELECT count(*) AS n FROM facts").fetchone()["n"] == 0
         facts, coverage = retrieve(conn, pid, now(), now(), "sleep")
         assert not facts and coverage["index_complete"]
+
+
+def test_documentation_boilerplate_does_not_establish_relevance(sandbox):
+    cfg, pid, actors, _ = sandbox
+    source = SourceInput(external_document_id="synthetic-intake", external_version_id="1",
+                         source_system="synthetic", kind="nursing_note", author_role="nurse",
+                         recorded_at=now(), text="Fluid intake was recorded.")
+    publish(sandbox, source)
+    with transaction(cfg, actors["nurse"]) as conn:
+        facts, _ = retrieve(conn, pid, now(), now(), "Have allergies been recorded?")
+        assert facts == []

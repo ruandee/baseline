@@ -10,7 +10,10 @@ from patient_memory.domain import SourceInput
 
 STOP_WORDS = {"the", "a", "an", "is", "was", "what", "how", "does", "do", "patient", "reports",
               "has", "have", "about", "of", "and", "in", "on", "to", "since", "documented",
-              "current", "currently", "any", "with", "for", "tell", "me", "are", "did", "it"}
+              "current", "currently", "any", "with", "for", "tell", "me", "are", "did", "it",
+              "recorded", "been", "record", "records", "notes", "note", "chart", "information",
+              "available", "mentioned", "evidence", "known", "find", "can", "you", "list",
+              "there", "say", "give", "describe", "supported", "regarding"}
 
 
 def terms(text):

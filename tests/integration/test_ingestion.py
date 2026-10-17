@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -36,5 +36,5 @@ def test_idempotency_and_cross_patient_amendment():
     assert err.value.status == 409
     with transaction(Settings(), identity) as conn, pytest.raises(Problem) as err:
         submit(conn, identity, uid("0/patient-1"), source.model_copy(
-            update={"supersedes_version_id": a["source_version_id"]}), str(uuid4()), objects)
+            update={"supersedes_version_id": UUID(a["source_version_id"])}), str(uuid4()), objects)
     assert err.value.code == "invalid_supersession"
