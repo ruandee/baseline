@@ -43,7 +43,7 @@ def run_once(cfg: Settings, identity: Identity, objects=None):
                      c.concept, c.value, c.unit, c.polarity, c.experiencer, c.event_type, c.order_id,
                      c.valid_from, c.valid_to, c.quote, c.start, c.end, vector_sql(embed(c.quote))),
                 )
-            conn.execute("UPDATE sources SET canonical_text=%s,published_at=clock_timestamp() WHERE id=%s",
+            conn.execute("UPDATE sources SET canonical_text=%s,published_at=coalesce(published_at,clock_timestamp()) WHERE id=%s",
                          (canonical, source["id"]))
             # Structured contradictions only; do not guess semantic contradictions in free text.
             conn.execute(

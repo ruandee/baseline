@@ -61,10 +61,11 @@ def retrieve(conn, patient_id, as_of, known_at, question, limit=12, summary=Fals
     ).fetchone()["n"]
     picked, budget = [], 0
     for candidate in candidates:
-        if len(picked) >= limit or budget + len(candidate["quote"]) > 24000:
+        size = len(candidate["quote"].encode("utf-8"))
+        if len(picked) >= limit or budget + size > 6000:
             break
         picked.append(candidate)
-        budget += len(candidate["quote"])
+        budget += size
     return picked, {"index_complete": pending == 0, "truncated": len(picked) < len(candidates),
                     "degraded_mode": "hash_embedding_baseline"}
 

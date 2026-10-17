@@ -1,3 +1,5 @@
+import logging
+import time
 from datetime import datetime
 from typing import Annotated
 from uuid import UUID, uuid4
@@ -59,6 +61,12 @@ class PayloadLimit:
                 return await response(scope, receive, send)
             if not message.get("more_body", False):
                 break
+        headers = dict(scope.get("headers", []))
+        if body and headers.get(b"content-type", b"").split(b";")[0] != b"application/json":
+            response = JSONResponse(status_code=415, content={"error": {
+                "code": "unsupported_content_type", "message": "Use application/json",
+                "request_id": str(uuid4()), "retryable": False}})
+            return await response(scope, receive, send)
         delivered = False
 
         async def replay():
@@ -82,9 +90,16 @@ def create_app(cfg=None, objects=None, generator=None):
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):
+        started = time.monotonic()
         request.state.request_id = uuid4()
         response = await call_next(request)
         response.headers["X-Request-ID"] = str(request.state.request_id)
+        route = request.scope.get("route")
+        logging.getLogger("patient_memory.requests").info(
+            "request method=%s route=%s status=%d duration_ms=%.1f",
+            request.method, getattr(route, "path", "unmatched"), response.status_code,
+            (time.monotonic() - started) * 1000,
+        )
         return response
 
     @app.exception_handler(Problem)

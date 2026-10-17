@@ -81,6 +81,7 @@ def test_E11_injected_note_has_no_instruction_authority(sandbox):
 def test_E12_expired_lease_recovery_and_E19_stable_ids(sandbox):
     imported = import_note(sandbox)
     cfg, pid, actors, objects = sandbox
+    cutoff = now().isoformat()
     first = ask(sandbox, "sleep").json()["evidence"][0]["evidence_id"]
     with transaction(cfg, actors["importer"]) as conn:
         conn.execute("UPDATE jobs SET status='processing',lease_until=now()-interval '1 second',lease_token=%s "
@@ -88,6 +89,7 @@ def test_E12_expired_lease_recovery_and_E19_stable_ids(sandbox):
     assert run_once(cfg, actors["importer"], objects)
     answer = ask(sandbox, "sleep").json()
     assert len(answer["evidence"]) == 1 and answer["evidence"][0]["evidence_id"] == first
+    assert ask(sandbox, "sleep", known_at=cutoff).json()["evidence"][0]["evidence_id"] == first
 
 
 def test_E13_fabricated_citation_is_rejected_after_bounded_retry(sandbox):
