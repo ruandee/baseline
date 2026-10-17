@@ -4,6 +4,8 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
+from patient_memory.auth import synthetic_token
+from patient_memory.errors import Problem
 from scripts.frontend import workspace_app
 from tests.contract.test_api import import_note, source_payload
 
@@ -54,7 +56,8 @@ def hosted_client(sandbox, **kwargs):
 
 
 def test_hosted_mode_allows_only_listed_hosts(sandbox):
-    client = hosted_client(sandbox, extra_hosts=('demo.example.com',), demo_token='fixed.demo.jwt')
+    client = hosted_client(sandbox, extra_hosts=('demo.example.com',),
+                           demo_token=synthetic_token(sandbox[2]['nurse'], sandbox[0]))
     ok = client.get('/demo/session', headers={'X-PM-Demo': '1',
                                               'Origin': 'https://demo.example.com'})
     assert ok.status_code == 200
@@ -70,16 +73,20 @@ def test_hosted_mode_allows_only_listed_hosts(sandbox):
 
 
 def test_hosted_mode_serves_configured_demo_token(sandbox):
-    client = hosted_client(sandbox, extra_hosts=('demo.example.com',), demo_token='fixed.demo.jwt')
-    session = client.get('/demo/session', headers={'X-PM-Demo': '1'}).json()
-    assert session['token'] == 'fixed.demo.jwt'
-    default = workspace_client(sandbox).get('/demo/session', headers={'X-PM-Demo': '1'}).json()
-    assert default['token'] != 'fixed.demo.jwt'
+    cfg, patient, actors, _ = sandbox
+    configured = synthetic_token(actors['nurse'], cfg)
+    client = hosted_client(sandbox, extra_hosts=('demo.example.com',), demo_token=configured)
+    token = client.get('/demo/session', headers={'X-PM-Demo': '1'}).json()['token']
+    assert token == configured
+    client.headers['Authorization'] = 'Bearer ' + token
+    assert client.get(f'/v1/patients/{patient}/timeline').status_code == 200
 
 
-def test_hosted_mode_requires_a_demo_token(sandbox):
+def test_hosted_mode_requires_a_valid_demo_token(sandbox):
     with pytest.raises(ValueError):
         hosted_client(sandbox, extra_hosts=('demo.example.com',))
+    with pytest.raises(Problem):
+        hosted_client(sandbox, extra_hosts=('demo.example.com',), demo_token='not.a.jwt')
 
 
 def test_baseline_pages_share_one_shell_with_mic_csp(sandbox):

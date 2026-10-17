@@ -47,7 +47,7 @@ for real data (see AGENTS.md invariants).
   hostnames) behind a TLS proxy such as Caddy. The Host header must match the list, and the
   `Origin` must match the request's own origin. The loopback-client check is dropped in
   this mode only, because behind a proxy the client address is the visitor's.
-- `PM_DEMO_TOKEN`: serve this token from `/demo/session`. Required whenever `PM_FRONTEND_HOSTS` is set; the app refuses to start otherwise.
+- `PM_DEMO_TOKEN`: serve this token from `/demo/session`. Required whenever `PM_FRONTEND_HOSTS` is set, and it must be a valid, unexpired token: the app refuses to start otherwise, so an expired token fails at launch instead of as 401s on every page.
 - Pages: `/unit`, `/resident/{id}`, `/check` all serve `frontend/baseline.html`, which loads
   `baseline.js` and `baseline.css` (verdict colour tokens). The Content-Security-Policy keeps
   `script-src 'self'` and adds `media-src 'self' blob:` for the recorder; no CDN scripts.

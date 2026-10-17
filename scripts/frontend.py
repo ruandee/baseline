@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 
 from evals.run import CORPUS, fixture_identity, load_profile
 from patient_memory.api import create_app
-from patient_memory.auth import Identity, synthetic_token
+from patient_memory.auth import Identity, decode_token, synthetic_token
 from patient_memory.config import Settings
 from patient_memory.objects import ObjectStore
 
@@ -60,6 +60,8 @@ def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None):
     app = create_app(cfg)
     if extra_hosts and not demo_token:
         raise ValueError("Hosted mode (PM_FRONTEND_HOSTS) requires PM_DEMO_TOKEN")
+    if demo_token:
+        decode_token(demo_token, cfg)  # fail at startup, not as 401s on every page
     allowed = LOOPBACK | {h.lower() for h in extra_hosts}
 
     @app.middleware("http")
