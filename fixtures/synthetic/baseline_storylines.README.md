@@ -6,11 +6,13 @@ Gaussian noise clipped at1.5 generating SDs; realized sample SD is consequently 
 changes multiply reference values exactly. `usable:true` is authored input, not an audio-quality
 claim. No runner/live profile, audio, transcript or credential is committed.
 
-The user approved policy#60 and separate Mr. T scenario#61. This intermediate loader branch
-uses accepted `multifeature-cusum-v2` but retains the original20% pause fixture until#61 adoption;
-Mr. T is its sole declared-snapshot mismatch. #61 explicitly changes BOTH pause ratio and mean
-pause to+35% on days26/27, retaining speech-rate-15%. It is a reviewed authored scenario, not an
-empirical claim about dentures. K/L/control inputs, notes, timestamps and seed do not change.
+The user explicitly approved policy#60 and Mr. T scenario#61, now adopted together here.
+Accepted `multifeature-cusum-v2` uses corroborating features and signed pitch streams. The authored
+Mr. T scenario changes BOTH pause ratio and mean pause from+20% to+35% on days26/27, retaining
+speech-rate-15%. This is a reviewed demo scenario, not an empirical claim about dentures.
+K/L/control inputs, notes, timestamps and seed are unchanged. Strict scenario-snapshot acceptance
+requires actual K escalate/4at_now, T explained/none, L watch/recheck_1h and nine within_normal
+controls; the loader never coerces results or hides mismatches.
 
 ## Run
 

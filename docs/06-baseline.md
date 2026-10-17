@@ -472,7 +472,7 @@ One loader builds the synthetic unit, one reset script restores it and mints fre
 | Patient | Script | Expected result |
 | --- | --- | --- |
 | Mrs. K | Day 24: `medication_event` ordered oxybutynin 5 mg. Days 26 and 27: speech rate −22%, pause ratio +40%, mean pause +35%. Day 27: note "Quiet at lunch, didn't finish her soup. Not her usual chatty self." Day 27: `temperature_c` 37.1 | `escalate`, `4at_now`; amplifiers: high-risk med, poor intake, new confusion; temperature shown as documented and normal |
-| Mr. T | Day 25: note "New upper denture fitted this morning, says it feels loose." Days 26 and 27: speech rate −15%, pauses +20% | `explained` (dentures) |
+| Mr. T | Day 25: note "New upper denture fitted this morning, says it feels loose." Days 26 and 27: speech rate −15%, pause ratio and mean pause +35% (explicitly approved scenario amendment, decision 008) | `explained` (dentures) |
 | Mrs. L | Day 29: one check with speech rate −30% and pause ratio +50%; no notes | `watch`, `recheck_1h` (provisional) |
 | 9 others | Stable | `within_normal` |
 | Runner (real) | Saturday: 5 rested clips with `is_baseline`, 2 clips right after stairs (backup, not baseline). Context: `exertion`, "Running the Toronto marathon", Sunday 08:00 to 14:00. Listed in `PM_NO_ESCALATE_PATIENTS`. `device_id = runner-phone` | Sunday race clips: `change` then `explained` |
