@@ -28,3 +28,12 @@ filters, cited questions, evidence inspection and UTC shift handovers. Launch wi
 use a read-only nurse account. No production API/schema changes. Full suite: 44
 passed; lint and JavaScript syntax checks pass. See
 [decision 003](decisions/003-local-patient-workspace.md) for boundaries and rationale.
+
+## BL-16 — Baseline frontend scaffold
+
+`frontend/baseline.html`, `baseline.js` and `baseline.css` give the Baseline pages a shared
+shell: routes `/unit`, `/resident/{id}` and `/check` (page bodies arrive with BL-18, BL-19 and
+BL-17), verdict colour tokens and an API check (liveness plus a nurse-token patient read; `/v1/health/ready` is administrator-only). Opt-in hosted mode
+(`PM_FRONTEND_HOSTS`, `PM_DEMO_TOKEN`) lets a phone reach it over HTTPS. See
+[decision 005](decisions/005-baseline-frontend-location.md). Contract tests were added in
+`tests/contract/test_frontend.py`; they need the database services.

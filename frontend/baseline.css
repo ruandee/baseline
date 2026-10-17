@@ -1,0 +1,19 @@
+/* Baseline tokens. Verdict colours are never the only signal: every chip also carries its label. */
+:root{--v-escalate:#b3261e;--v-escalate-bg:#fde8e6;--v-watch:#8a5a00;--v-watch-bg:#fff1d0;--v-explained:#1e6b3a;--v-explained-bg:#dff3e5;--v-normal:#5b6560;--v-normal-bg:#e8ebe8;--chart-band:#d6e8ad;--chart-line:#236752;--chart-dot:#7a8783}
+body.baseline{padding-top:56px}
+.bl-nav{position:fixed;inset:0 0 auto 0;height:56px;display:flex;align-items:center;gap:20px;padding:0 24px;background:#f0f2eb;border-bottom:1px solid #e3e7dd;z-index:2}
+.bl-nav a{text-decoration:none;font-weight:600;font-size:15px;color:var(--ink);padding:6px 4px;border-bottom:2px solid transparent}
+.bl-nav a[aria-current=page]{border-bottom-color:var(--green)}
+.bl-nav .brand-mark{font-size:34px;width:32px}
+.bl-nav-end{margin-left:auto;font-weight:400!important}
+.bl-main{max-width:1100px;margin:0 auto;padding:28px 24px}
+.bl-main h1{font-size:26px;margin:0 0 6px}
+.bl-chip{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.4px}
+.bl-chip[data-verdict=escalate]{color:var(--v-escalate);background:var(--v-escalate-bg)}
+.bl-chip[data-verdict=watch]{color:var(--v-watch);background:var(--v-watch-bg)}
+.bl-chip[data-verdict=explained]{color:var(--v-explained);background:var(--v-explained-bg)}
+.bl-chip[data-verdict=within_normal],.bl-chip[data-verdict=enrolling]{color:var(--v-normal);background:var(--v-normal-bg)}
+.bl-status{margin:16px 0;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--white)}
+.bl-status[data-state=ok]{border-color:var(--v-explained)}
+.bl-status[data-state=error]{border-color:var(--v-escalate)}
+@media (max-width:640px){.bl-nav{gap:12px;padding:0 12px}.bl-main{padding:20px 14px}.bl-nav .demo-badge{display:none}}

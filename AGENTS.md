@@ -6,6 +6,12 @@ Maintain the patient-memory backend described in `docs/01-product.md` through `d
 
 The Baseline hackathon build (voice checks, change engine, watch list, KAZE safety sessions) is specified in `docs/06-baseline.md` with product context in `docs/07-baseline-proposal.md`. Its work is tracked as GitHub issues BL-01 to BL-35 (ticket data in `docs/baseline-tickets.json`); for that work pick the ticket instead of the B-item sequence below, and read `docs/06-baseline.md` before changing code.
 
+### Baseline build: where the repo differs from `docs/06-baseline.md`
+
+- **Frontend lives in `frontend/`, not `web/`** ([decision 005](docs/decisions/005-baseline-frontend-location.md)). Baseline pages share `frontend/baseline.html` + `baseline.js` + `baseline.css`, served same-origin by `scripts/frontend.py`. Off-loopback hosting is opt-in via `PM_FRONTEND_HOSTS` and a pre-minted `PM_DEMO_TOKEN`; never serve the workspace publicly without them. Do not create `web/`.
+- **Multipart is blocked.** The body-limit middleware in `api.py` (the `PayloadLimit` middleware) returns 415 for any non-`application/json` body and 413 over its limit. BL-07 (`POST /checks`, 2 MB audio upload) must exempt that route (or raise its limit) and add `python-multipart`; keep the guard on every other route.
+- **Claiming and branches:** assign yourself on the GitHub issue first; branch `bl/bl-<nn>-<slug>`; commit subject starts with the ticket ID; PR body says `Closes #<n>`. Check blockers with the `gh api .../dependencies/blocked_by` call in `docs/agents/issue-tracker.md`.
+
 ## Execution
 
 1. Read the product, architecture, contracts, evaluation and build plan before code changes.

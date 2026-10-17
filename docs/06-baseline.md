@@ -41,7 +41,7 @@ Judge enrolment flow, continuous aggregates, Bayesian changepoint detection, ope
 - Run `uv run ruff check .` and the relevant test layers before marking a ticket done; report what ran and what was skipped.
 - Add decision records for scope changes: `docs/decisions/003-change-notifications.md` and `docs/decisions/004-timescale.md` (BL-02).
 - Regenerate `docs/openapi.json` (`uv run python -m scripts.export_openapi`) whenever an endpoint changes.
-- Frontend lives in `web/` (Next.js App Router, TypeScript). Generate the API client from `docs/openapi.json`.
+- Frontend lives in `frontend/` (buildless HTML/CSS/JS served by FastAPI, [decision 005](decisions/005-baseline-frontend-location.md)); the original `web/` Next.js plan is superseded. Follow the response shapes in this file by hand.
 
 ## System architecture
 
@@ -62,7 +62,7 @@ src/patient_memory/
 migrations/versions/ 003_baseline.py  003_baseline.sql
 scripts/             load_baseline_demo.py  demo_reset.py  gemini_smoke.py
 fixtures/synthetic/  baseline_storylines.json
-web/                 Next.js app (/unit, /resident/[id], /check, /api/pm proxy)
+frontend/            baseline.html/js/css (/unit, /resident/[id], /check), see decision 005
 tests/               unit/ integration/ contract/ e2e/ (files listed in the test plan)
 ```
 
@@ -402,7 +402,7 @@ Template fallback: S = "{name}'s speech differs from her usual: speech rate {x} 
 
 ## Frontend
 
-Three pages in `web/` (Next.js App Router, TypeScript, Tailwind, Recharts). The browser never holds a token: a Next route handler at `/api/pm/[...path]` proxies to the backend and adds `Authorization: Bearer $PM_DEMO_TOKEN` server-side, which also avoids CORS. Generate types with `openapi-typescript` from `docs/openapi.json`.
+Three pages in `frontend/` (buildless JS, hand-drawn SVG charts), served same-origin by the FastAPI app, so there is no proxy and no CORS. Per [decision 005](decisions/005-baseline-frontend-location.md), the page fetches the synthetic demo token from `/demo/session`; in hosted mode the server returns the pre-minted `PM_DEMO_TOKEN`. The original `web/` Next.js plan is superseded.
 
 **HTTPS is required:** browsers only allow microphone access on HTTPS (or localhost), so phones must use the HTTPS host, never a plain-HTTP LAN address.
 
@@ -456,7 +456,7 @@ One loader builds the synthetic unit, one reset script restores it and mints fre
 
 ### Reset (`scripts/demo_reset.py`)
 
-Deletes and reloads synthetic patients only (never the runner's real clips), mints 48-hour tokens, writes `web/.env.local` (`PM_DEMO_TOKEN`, patient ids) and prints the three demo URLs.
+Deletes and reloads synthetic patients only (never the runner's real clips), mints 48-hour tokens, writes the server env (`PM_DEMO_TOKEN`, patient ids) instead of `web/.env.local` and prints the three demo URLs.
 
 ### Config (`.env`)
 
@@ -644,7 +644,7 @@ A usable, normal check or an ack stops the ladder. SMS via Twilio (`PM_TWILIO_SI
 | BL-13 | Watch list and overview endpoints | Backend | `GET /watchlist`, `GET /patients/{id}/overview` with `time_bucket` series; regenerate OpenAPI | BL-11 | Each page's data in one call; OpenAPI updated | Not started |
 | BL-14 | Synthetic cohort loader | Data | `scripts/load_baseline_demo.py` + storylines JSON per the table; `--offline` flag | BL-03 (data), BL-11 (verdict check) | One command loads 12 residents; Mrs. K escalate, Mr. T explained, Mrs. L watch | Not started |
 | BL-15 | Runner baseline and context | Data | Record 5 rested baseline clips and 2 stairs clips on her phone via `/check?mode=runner`; add the marathon context record | BL-07, BL-17 | 5 usable baseline checks stored; stairs clips move speech rate down and pauses up | Not started |
-| BL-16 | Frontend scaffold | Frontend | `web/` Next.js app, `/api/pm` proxy route, `openapi-typescript` types, layout, colour tokens | — | Proxy reaches the API health endpoint with the demo token | Not started |
+| BL-16 | Frontend scaffold | Frontend | Baseline shell in `frontend/` (decision 005): routes, hosted-mode token path, layout, colour tokens | — | Shell reaches the API health endpoint with the demo token | Not started |
 | BL-17 | `/check` page | Frontend | Recording, upload with retries, speech decomposition result view, three modes | BL-07, BL-16 | Works on an iPhone and an Android phone over HTTPS on LTE | Not started |
 | BL-18 | `/unit` page | Frontend | Watch list table, escalation counter, sparklines, 10 s polling | BL-13, BL-16 | Sorted list matches API; polling stops when tab hidden | Not started |
 | BL-19 | `/resident/[id]` page | Frontend | Verdict card, 4 charts with baseline band, evidence chain with click-through, SBAR panel, "how this was decided" | BL-13, BL-16 | Every evidence chip opens its source quote; band and markers render for Mrs. K | Not started |
