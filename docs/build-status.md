@@ -99,3 +99,21 @@ metadata exists. Migration 004 lets purge delete tags so a purged source leaves 
 Not done here: Gemini free-text tags, and readers ignoring tags of retracted sources (verdict and
 overview tickets must do that join). Only importer-assigned callers can post context, because it
 goes through source ingestion.
+
+## BL-08 policy proposal ? not accepted or deployed
+
+The isolated `bl/bl-08-policy-proposal` branch implements a reviewed-change candidate, not an
+accepted correction to decision 011. Signed pitch CUSUM streams avoid pooling opposite-direction
+noise. CUSUM status requires two currently supported features; change additionally needs those
+same features and pitch direction on the preceding usable check within 24 h. Residual CUSUM
+without ongoing deviation remains diagnostic. Thresholds and baseline invariants are unchanged.
+See [proposal 019](decisions/019-multifeature-cusum-proposal.md) for the deliberate scope change,
+tradeoffs and required separate Mr. T scenario amendment (+35% for both pause features).
+
+All 360 draft rows were evaluated without modifying fixtures: Mrs. L becomes provisional and
+all nine controls have no flags across all 30 days, but original Mr. T no longer detects change.
+A copied in-memory 35% Mr. T override yields the intended statuses for all three storylines;
+this does not establish clinical validation or resolve the shared latest-snapshot decision.
+Local lint and unit tests pass with FFmpeg on PATH; slow/model tests and DB-backed full checks
+remain unrun locally because Docker is unavailable. Full CI and explicit proposal approval are
+required before adoption. This branch does not close an issue or claim BL-14 complete.
