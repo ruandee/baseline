@@ -1,6 +1,9 @@
 // Baseline shell: path router, shared demo-session bootstrap and API health check.
-// Page bodies for /unit, /resident/:id and /check land with BL-18, BL-19 and BL-17.
-const state = {session: null};
+// /unit lives here (BL-18); /resident/:id and /check land with BL-19 and BL-17.
+const POLL_MS = 10000;
+const VERDICT_LABELS = {escalate: 'Escalate', watch: 'Watch', explained: 'Explained',
+                        within_normal: 'Within normal', enrolling: 'Enrolling'};
+const state = {session: null, unitStop: null};
 
 async function api(path, options = {}) {
   const headers = {...(state.session ? {Authorization: `Bearer ${state.session.token}`} : {}),
@@ -30,8 +33,182 @@ function el(tag, text, attrs = {}) {
   return node;
 }
 
+function svgEl(tag, attrs) {
+  const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, v));
+  return node;
+}
+
+function sparkline(points) {
+  const values = points.map((p) => p.speech_rate_wpm).filter((v) => typeof v === 'number');
+  const [w, h] = [96, 28];
+  const svg = svgEl('svg', {viewBox: `0 0 ${w} ${h}`, width: w, height: h, class: 'bl-spark',
+                            role: 'img', 'aria-label': values.length
+                              ? `Speech rate, ${values.length} readings: ${values.map(Math.round).join(', ')} words per minute`
+                              : 'No speech-rate data yet'});
+  if (values.length < 2) return svg;
+  const [lo, hi] = [Math.min(...values), Math.max(...values)];
+  const span = hi - lo || 1;
+  const coords = values.map((v, i) => [2 + (i * (w - 4)) / (values.length - 1),
+                                       2 + (h - 4) * (1 - (v - lo) / span)]);
+  svg.append(svgEl('polyline', {points: coords.map((c) => c.join(',')).join(' '), fill: 'none',
+                                class: 'bl-spark-line'}));
+  const last = coords[coords.length - 1];
+  svg.append(svgEl('circle', {cx: last[0], cy: last[1], r: 2.5, class: 'bl-spark-end'}));
+  return svg;
+}
+
+function chip(text, verdict) {
+  return el('span', text, {class: 'bl-chip', 'data-verdict': verdict});
+}
+
+function verdictChip(resident) {
+  // Over-budget escalations are watch-list items, not interruptive (docs/06-baseline.md).
+  if (resident.latest_verdict === 'escalate' && resident.over_budget) {
+    return chip('Escalate (over budget)', 'watch');
+  }
+  return chip(VERDICT_LABELS[resident.latest_verdict] || resident.latest_verdict || 'No data',
+              resident.latest_verdict || 'within_normal');
+}
+
+function windowChip(window) {
+  return window && window.open
+    ? el('span', `Day ${window.day} of ${window.of}`, {class: 'bl-window', title: window.reason || ''})
+    : el('span', '—', {class: 'bl-muted', title: (window && window.reason) || 'No watch window open'});
+}
+
+function formatTime(iso) {
+  if (!iso) return 'No checks yet';
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? iso
+    : date.toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'});
+}
+
+function unitRow(resident) {
+  const row = document.createElement('tr');
+  const name = document.createElement('td');
+  const link = el('a', resident.display_name, {href: `/resident/${resident.patient_id}`,
+                                               class: 'bl-name'});
+  name.append(link);
+  if (resident.synthetic) name.append(' ', el('span', 'synthetic', {class: 'bl-synthetic'}));
+  const cell = (...children) => {
+    const td = document.createElement('td');
+    td.append(...children);
+    return td;
+  };
+  row.append(name, cell(verdictChip(resident)), cell(windowChip(resident.watch_window)),
+             cell(el('span', typeof resident.fused_z === 'number' ? resident.fused_z.toFixed(1) : '—')),
+             cell(sparkline(resident.sparkline || [])),
+             cell(el('span', formatTime(resident.last_check_ts))));
+  row.addEventListener('click', (event) => {
+    if (event.target !== link) link.click();
+  });
+  return row;
+}
+
+function unitHeader(shift) {
+  const fmt = (iso) => new Date(iso).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+  const valid = shift && !Number.isNaN(new Date(shift.start).getTime())
+    && !Number.isNaN(new Date(shift.end).getTime())
+    && Number.isInteger(shift.escalations_used) && Number.isInteger(shift.escalation_budget);
+  if (!valid) return 'Shift information unavailable';
+  return `Shift ${fmt(shift.start)}–${fmt(shift.end)} · ` +
+    `${shift.escalations_used} of ${shift.escalation_budget} escalations used this shift`;
+}
+
+function renderUnitData(body, data) {
+  const headerText = body.querySelector('[data-unit=shift]');
+  headerText.textContent = unitHeader(data.shift);
+  const rows = body.querySelector('tbody');
+  rows.replaceChildren(...data.residents.map(unitRow));
+  body.querySelector('[data-unit=empty]').hidden = data.residents.length > 0;
+}
+
+async function renderUnit(main) {
+  if (state.unitStop) state.unitStop();
+  main.replaceChildren();
+  const body = document.createElement('section');
+  const table = document.createElement('table');
+  table.className = 'bl-table';
+  const head = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  ['Resident', 'Verdict', 'Watch window', 'Fused z', 'Speech rate, 14 days', 'Last check']
+    .forEach((label) => headRow.append(el('th', label, {scope: 'col'})));
+  head.append(headRow);
+  table.append(head, document.createElement('tbody'));
+  const notice = el('div', '', {class: 'bl-status', 'data-state': 'error', 'data-unit': 'error', hidden: ''});
+  body.append(el('h1', 'Unit watch list'),
+              el('p', 'Loading…', {class: 'bl-shift', 'data-unit': 'shift'}),
+              notice, table,
+              el('p', 'No residents are visible to this account.', {'data-unit': 'empty', hidden: ''}));
+  main.append(body);
+
+  let timer = null;
+  let inFlight = false;
+  let stopped = false;
+  let loaded = false;
+  async function refresh() {
+    if (inFlight || stopped) return;
+    inFlight = true;
+    try {
+      let data;
+      try {
+        data = await api('/v1/watchlist');
+      } catch (error) {
+        if (!error.message.startsWith('401')) throw error;
+        await bootstrap();  // the demo token expired while the page stayed open
+        data = await api('/v1/watchlist');
+      }
+      if (stopped) return;
+      renderUnitData(body, data);
+      loaded = true;
+      notice.hidden = true;
+    } catch (error) {
+      notice.textContent = loaded
+        ? `Could not refresh the watch list (${error.message}). The rows shown may be out of date.`
+        : `Could not load the watch list (${error.message}).`;
+      notice.hidden = false;
+    } finally {
+      inFlight = false;
+    }
+  }
+  function stopTimer() {
+    clearInterval(timer);
+    timer = null;
+  }
+  function onVisibility() {
+    stopTimer();
+    if (document.visibilityState === 'visible') {
+      refresh();
+      timer = setInterval(refresh, POLL_MS);
+    }
+  }
+  document.addEventListener('visibilitychange', onVisibility);
+  state.unitStop = () => {
+    stopped = true;
+    stopTimer();
+    document.removeEventListener('visibilitychange', onVisibility);
+  };
+  refresh();  // load once even if the tab opened in the background
+  if (document.visibilityState === 'visible') timer = setInterval(refresh, POLL_MS);
+}
+
 async function render() {
   const current = route();
+  if (current.name === 'unit') {
+    document.querySelectorAll('[data-route]').forEach((a) => {
+      if (a.dataset.route === current.name) a.setAttribute('aria-current', 'page');
+    });
+    const main = document.getElementById('bl-main');
+    try {
+      await bootstrap();
+      await renderUnit(main);
+    } catch (error) {
+      main.replaceChildren(el('h1', current.title),
+        el('div', `API check failed: ${error.message}`, {class: 'bl-status', 'data-state': 'error'}));
+    }
+    return;
+  }
   document.querySelectorAll('[data-route]').forEach((a) => {
     if (a.dataset.route === current.name) a.setAttribute('aria-current', 'page');
   });
