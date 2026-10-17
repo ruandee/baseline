@@ -28,7 +28,7 @@ function checkParams() {
   const q = new URLSearchParams(location.search);
   const mode = CHECK_MODES.includes(q.get('mode')) ? q.get('mode') : 'resident';
   return {mode, patient: q.get('patient'), mock: q.get('mock') === '1',
-          fixture: q.get('fixture') || 'change'};
+          fixture: q.get('fixture') || 'change', lang: q.get('lang') || 'en'};
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -148,7 +148,9 @@ function timeline(result) {
 
 function changeOf(result) {
   const change = result.change || {};
-  return {status: change.status, count: change.baseline_count, perFeature: change.per_feature || {}};
+  const params = change.params || {};  // engine contract: params.baseline_checks / min_baseline
+  return {status: change.status, count: params.baseline_checks, of: params.min_baseline,
+          perFeature: change.per_feature || {}};
 }
 
 function featureCell(feature, result) {
@@ -166,7 +168,8 @@ function featureCell(feature, result) {
   } else {
     const n = change.count;
     cell.append(el('div', change.status === 'enrolling'
-      ? `building baseline${Number.isInteger(n) ? ` ${n} of 3` : ''}` : 'no baseline yet',
+      ? `building baseline${Number.isInteger(n) ? ` ${n} of ${change.of || 3}` : ''}`
+      : 'no baseline yet',
       {class: 'bl-delta bl-muted'}));
   }
   return cell;
@@ -208,6 +211,10 @@ function renderResult(host, result, blob) {
 
 async function renderCheck(main) {
   const params = checkParams();
+  if (params.mode === 'resident') {  // BL-31 resident and PSW experience, check-resident.js
+    if (params.patient) return renderResidentCheck(main, params, params.patient);
+    return renderResidentLanding(main, params);
+  }
   const patientId = params.patient || (state.session.patients[0] && state.session.patients[0].id);
   main.replaceChildren();
   const card = el('section', '', {class: 'bl-check-card'});

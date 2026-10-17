@@ -126,3 +126,29 @@ contracts now require the built assessment response and CI installs ffmpeg. See
 
 Local Windows/Python 3.14 with ffmpeg: lint passed; unit 150 passed, 6 slow deselected. Service-backed
 regressions require PostgreSQL/S3, unavailable locally; CI results are reported on the review PR.
+
+## BL-31 — Resident and PSW experience on `/check` (page only; stacked on BL-17 #50)
+
+`/check?mode=resident` without a patient is the PSW "Due now" landing: residents with no check
+since local midnight, never-checked first, one tap each. It is built from `/v1/watchlist` but
+projects only name and last-check time before rendering, so no verdict, z or feature value is
+shown (they still arrive in that response; a score-free `GET /v1/checks/due` is proposed).
+With `&patient=<id>` the resident view (`frontend/check-resident.js`) shows "Let's count
+together" in large type, an optional spoken prompt (`speechSynthesis`, rate 0.85), a visible
+pulsing listening state with countdown, Escape or Stop to end, "Skip today" always visible, the
+one-retry rule (second unusable clip is accepted, never looped) and "Thank you, {first name}".
+The resident view reads only `usable` from the check result; mic denial, upload failures and
+server errors show "please ask a staff member", with details in the console and a "Send again"
+for the kept clip. `live` mode now reads `change.params.baseline_checks` / `min_baseline`
+(the real engine contract) instead of the assumed `baseline_count`. `?mock=1&fixture=a,b` picks
+a fixture per attempt.
+
+Not done, pending agreement on [decision 017](decisions/017-resident-experience-consent-language.md)
+(proposal; migration 007 reserved but not written): server-side consent enforcement (the page
+does not claim consent is recorded), per-resident language (only English is offered because
+`count20-days-v1` is the only prompt version), skip logging, and "Your observation helped"
+(needs source-submitter attribution; never shown today). Tests: `tests/js/check_resident.test.js`
+(node:test with a fake DOM, run by `tests/unit/test_check_resident_page.py`) covers skip/refusal,
+one retry, mic denial, server errors, keyboard controls and zero score leakage. It does not
+cover real-browser rendering, phone acceptance or a non-technical tester run, which are still
+open gates.

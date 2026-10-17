@@ -50,3 +50,32 @@ body.baseline{padding-top:56px}
 .bl-verdict{margin-bottom:12px;font-size:18px}
 .bl-timings{font-size:12px}
 .bl-tick{font-size:9px;fill:var(--muted)}
+/* BL-31 resident and PSW experience (check-resident.js). Large type, big targets, no scores. */
+[data-mode=resident] :focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.bl-check-card[data-mode=resident]{max-width:640px}
+.bl-check-card[data-mode=resident] h1{font-size:clamp(30px,7vw,40px)}
+.bl-check-card[data-mode=resident] .bl-prompt{font-size:clamp(26px,6.5vw,36px);font-weight:600}
+.bl-resident-actions{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:center}
+.bl-check-card[data-mode=resident] .bl-record{min-width:220px;min-height:88px;font-size:30px}
+.bl-check-card[data-mode=resident][data-state=listening] .bl-record{background:var(--v-escalate)}
+.bl-skip,.bl-hear,.bl-back{font-size:20px;min-height:56px;padding:10px 22px;border-radius:999px;border:2px solid var(--line);background:var(--white);color:var(--ink);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.bl-hear{margin:0 0 18px}
+.bl-back{margin-top:20px}
+.bl-lang-label{display:block;margin:0 0 18px;font-size:18px}
+.bl-lang{font-size:18px;min-height:44px}
+.bl-listening{display:flex;gap:12px;justify-content:center;align-items:center;margin-top:18px;font-size:26px;font-weight:700;color:var(--v-escalate)}
+.bl-listening[hidden],.bl-check-card [hidden]{display:none}
+.bl-listening-dot{width:22px;height:22px;border-radius:50%;background:var(--v-escalate);animation:bl-pulse 1.2s ease-in-out infinite}
+@keyframes bl-pulse{0%,100%{transform:scale(.7);opacity:.6}50%{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.bl-listening-dot{animation:none}}
+.bl-resident-message{margin-top:20px;font-size:clamp(24px,6vw,32px);line-height:1.35}
+.bl-resident-message p{margin:6px 0}
+.bl-due{max-width:640px;margin:0 auto}
+.bl-due h1{font-size:clamp(28px,6vw,36px)}
+.bl-due-status{font-size:20px}
+.bl-consent-note{font-size:15px}
+.bl-due-list{list-style:none;margin:0 0 24px;padding:0;display:grid;gap:12px}
+.bl-due-item{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;min-height:64px;padding:14px 18px;font-size:24px;font-weight:700;text-decoration:none;color:var(--ink);background:var(--white);border:2px solid var(--line);border-radius:12px}
+.bl-due-item:hover{background:var(--pale)}
+.bl-helped{font-size:15px;font-weight:600;color:var(--v-explained);background:var(--v-explained-bg);border-radius:999px;padding:3px 10px}
+@media (max-width:640px){.bl-resident-actions{flex-direction:column;align-items:stretch}.bl-check-card[data-mode=resident] .bl-record,.bl-skip,.bl-back{width:100%;min-width:0}}
