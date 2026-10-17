@@ -86,7 +86,7 @@ def build_answer(generator, question, facts, coverage, patient_id, revision, as_
     conflicts = conflicts_for(facts)
     unknowns = []
     if not claims:
-        unknowns.append(Unknown(topic=question, reason="not_documented"))
+        unknowns.append(Unknown(topic=question, reason="selection_abstained" if facts else "not_documented"))
     if any(f["valid_from"] is None for f in facts):
         unknowns.append(Unknown(topic="evidence_effective_time", reason="unknown_time"))
     if not coverage["index_complete"]:

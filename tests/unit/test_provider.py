@@ -72,3 +72,13 @@ def test_provider_http_errors_and_bad_json():
     assert err.value.status == 503
     with pytest.raises(ValueError):
         selector(lambda r: httpx.Response(200, content=b"not-json")).generate("sleep", [sample_fact()], now())
+
+
+def test_model_abstention_does_not_claim_documentation_is_missing():
+    model = selector(lambda r: httpx.Response(200, json={"choices": [{"message": {
+        "content": '{"evidence_ids": []}'}}]}))
+    answer = build_answer(model, "sleep", [sample_fact()],
+                          {"index_complete": True, "truncated": False}, uuid4(), 1, now(), now())
+    assert answer.status == "insufficient_evidence"
+    assert answer.unknowns[0].reason == "selection_abstained"
+    assert answer.evidence

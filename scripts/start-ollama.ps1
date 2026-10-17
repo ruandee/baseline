@@ -1,6 +1,7 @@
 param(
     [ValidateSet('arm64','amd64')][string]$Architecture = 'arm64',
-    [string]$Model = 'qwen3.5:0.8b'
+    [string]$Model = 'qwen3.5:0.8b',
+    [switch]$TextOnly
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
@@ -33,6 +34,33 @@ catch {
         catch { Start-Sleep -Seconds 1 }
     }
 }
-& $ollamaExe pull $Model
-if ($LASTEXITCODE -ne 0) { throw 'Model download failed; rerun to resume' }
+if ($TextOnly) {
+    # Pinned primary Q8_0 weights from the official qwen3.5:0.8b manifest.
+    $modelHash = '889ea3b9143cdc32146c7d530ce5f3d452ec18069086f6f4167ce9ae72a9691f'
+    $modelBlob = Join-Path $env:OLLAMA_MODELS "blobs/sha256-$modelHash"
+    New-Item -ItemType Directory -Force (Split-Path $modelBlob -Parent) | Out-Null
+    if (!(Test-Path $modelBlob)) {
+        Invoke-WebRequest "https://registry.ollama.ai/v2/library/qwen3.5/blobs/sha256:$modelHash" -OutFile "$modelBlob.download"
+        if ((Get-FileHash "$modelBlob.download" -Algorithm SHA256).Hash -ne $modelHash) { throw 'Model checksum mismatch' }
+        Move-Item -LiteralPath "$modelBlob.download" -Destination $modelBlob
+    }
+    if ((Get-FileHash $modelBlob -Algorithm SHA256).Hash -ne $modelHash) { throw 'Model checksum mismatch' }
+    $licenseHash = '50cbab8a892c5f2993b8c7351a99182507472def3b1374558308605d99b86b32'
+    $licenseFile = Join-Path $toolRoot 'model-license.txt'
+    Invoke-WebRequest "https://registry.ollama.ai/v2/library/qwen3.5/blobs/sha256:$licenseHash" -OutFile $licenseFile
+    if ((Get-FileHash $licenseFile -Algorithm SHA256).Hash -ne $licenseHash) { throw 'License checksum mismatch' }
+    $licenseText = [IO.File]::ReadAllText($licenseFile)
+    $modelDefinition = "FROM `"$modelBlob`"`nPARAMETER num_ctx 8192`nLICENSE `"`"`"`n$licenseText`n`"`"`"`n"
+    $modelDefinitionPath = Join-Path $toolRoot 'Modelfile-text-only'
+    [IO.File]::WriteAllText($modelDefinitionPath, $modelDefinition)
+    $created = Start-Process -FilePath $ollamaExe -ArgumentList @('create','patient-memory-qwen35:0.8b','-f',('"'+$modelDefinitionPath+'"')) `
+        -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput (Join-Path $toolRoot 'create.log') `
+        -RedirectStandardError (Join-Path $toolRoot 'create-error.log')
+    if ($created.ExitCode -ne 0) { throw 'Text-only model import failed; inspect .tools/ollama/create-error.log' }
+    Write-Output 'Use PM_PROVIDER_MODEL=patient-memory-qwen35:0.8b for the text-only import.'
+    return
+}
+$pulled = Start-Process -FilePath $ollamaExe -ArgumentList @('pull',$Model) -WindowStyle Hidden -Wait -PassThru `
+    -RedirectStandardOutput (Join-Path $toolRoot 'pull.log') -RedirectStandardError (Join-Path $toolRoot 'pull-error.log')
+if ($pulled.ExitCode -ne 0) { throw 'Model download failed; inspect .tools/ollama/pull-error.log and rerun to resume' }
 Write-Output "Ollama is serving $Model on loopback port 11434. Model files are under .models/."

@@ -85,6 +85,8 @@ def evaluate(cfg=None, output="artifacts/eval.json", split="all", max_questions=
     generator = generator_for(cfg)
     generator.version()
     for i, profile in enumerate(corpus["profiles"]):
+        if max_questions and len(outcomes) >= max_questions:
+            break
         if split != "all" and profile["split"] != split:
             continue
         identity = identities[i % 2]
@@ -111,16 +113,21 @@ def evaluate(cfg=None, output="artifacts/eval.json", split="all", max_questions=
                 continue
             generation_ms = (time.perf_counter() - model_started) * 1000
             expected = sources[gold] if gold else None
-            matched = expected in {str(e.source_version_id) for e in answer.evidence} if expected else not answer.claims
+            retrieved_gold = expected in {str(e.source_version_id) for e in answer.evidence} if expected else True
+            cited_ids = {eid for claim in answer.claims for eid in claim.evidence_ids}
+            selected_gold = any(str(f["source_id"]) == expected and f["id"] in cited_ids for f in facts) if expected else not answer.claims
+            matched = retrieved_gold and selected_gold
             valid = all(f["patient_id"] == patient and f["tenant_id"] == identity.tenant_id for f in facts)
             outcomes.append({"profile": profile["id"], "split": profile["split"], "question": question,
                              "gold_topic": gold, "gold_source_id": expected, "passed": matched,
+                             "retrieved_gold": retrieved_gold, "selected_gold": selected_gold,
                              "isolation_passed": valid, "claims": len(answer.claims), "generation_ms": generation_ms,
                              "status": answer.status, "retrieved_source_ids": [str(e.source_version_id) for e in answer.evidence]})
     known_cases = [o for o in outcomes if o["gold_topic"]]
     unknown_cases = [o for o in outcomes if not o["gold_topic"]]
     metrics = {
-        "gold_source_recall_at_12": {"numerator": sum(o["passed"] for o in known_cases), "denominator": len(known_cases)},
+        "gold_source_recall_at_12": {"numerator": sum(o.get("retrieved_gold", False) for o in known_cases), "denominator": len(known_cases)},
+        "selected_gold_source": {"numerator": sum(o.get("selected_gold", False) for o in known_cases), "denominator": len(known_cases)},
         "appropriate_abstention": {"numerator": sum(o["passed"] for o in unknown_cases), "denominator": len(unknown_cases)},
         "patient_scope": {"numerator": sum(o["isolation_passed"] for o in outcomes), "denominator": len(outcomes)},
         "retrieval_latency_ms": {"median": statistics.median(latencies), "p95": sorted(latencies)[int(0.95 * (len(latencies)-1))]},
