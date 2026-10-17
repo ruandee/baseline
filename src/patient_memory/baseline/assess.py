@@ -5,12 +5,12 @@ from uuid import UUID, uuid4
 from psycopg.types.json import Jsonb
 
 from patient_memory.baseline.engine import FEATURES, MIN_BASELINE, Check, evaluate
+from patient_memory.baseline.sbar import sbar_template
 from patient_memory.baseline.verdict import (
     ACTION_LABELS,
     TAG_LABELS,
     apply_profile,
     decide,
-    sbar_template,
     shift_bounds,
 )
 from patient_memory.config import Settings
@@ -106,11 +106,11 @@ def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_i
         decision, escalations_used=escalations_used(conn, ts, cfg),
         budget=cfg.escalation_budget, no_escalate=no_escalate)
     change = change_payload(result, mode)
-    sbar = sbar_template(display_name, result.status, decision, str(check_id),
-                         change["per_feature"], tags)
     reasons = [t for t in tags if t["kind"] == "amplifier"] if decision.verdict in (
         "escalate", "watch") and any(t["kind"] == "amplifier" for t in tags) else (
         tags if decision.verdict == "explained" else [])
+    sbar = sbar_template(display_name, result.status, decision, str(check_id),
+                         change["per_feature"], reasons)
     source_revision = conn.execute("SELECT revision FROM patients WHERE id=%s",
                                    (patient_id,)).fetchone()["revision"]
     assessment_id = uuid4()

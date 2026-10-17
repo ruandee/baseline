@@ -217,6 +217,11 @@ Response 200:
 
 Unusable clip: 200 with `usable: false`, `quality.reasons` (e.g. `too_short`, `too_noisy`, `clipped`), no `change` or `assessment`. Wrong patient or a caller outside the care team: 404. Request body over 2 MB: 413 (the `PayloadLimit` middleware, before the route runs). Audio ffmpeg cannot decode, or longer than 30 s: 422 `invalid_audio`. Invalid form field: 422 `invalid_request`.
 
+Configured SBAR drafting starts after the check, deterministic assessment and template commit.
+The provider runs outside database locks. Draft publication rechecks authorization and source
+revision; a concurrent source change returns 409 `memory_changed`, while revoked access returns
+404. The original check remains stored on these post-commit errors (decision 014).
+
 ### `GET /v1/watchlist`
 
 ```json

@@ -32,7 +32,8 @@ Order of checks, each one stopping the request:
 4. Analysis and storage through the same `store_check` as `POST /checks`, which re-runs the care
    gate after processing, takes the shared `lock_assessment` order (tenant budget, then patient)
    and runs the shared assessment pipeline. Success writes `create_check` and `vox_encounter/ok`
-   audit rows.
+   audit rows. After that transaction commits, the same `enrich_assessment_sbar` step as
+   `POST /checks` runs (decision 014; a no-op with the stub provider).
 
 The response is `VoxEncounterResult`: `usable`, `reasons`, `resident_speech_s`, `analyzed_s`,
 `truncated`, per-speaker segment counts and the full `check` (same shape as `POST /checks`).

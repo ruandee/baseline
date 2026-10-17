@@ -1,5 +1,21 @@
 # Implementation review handoff
 
+## BL-10 — Note context extraction
+
+Bounded schema provider client, exact-quote note tagging and deterministic keyword fallback
+now run atomically with worker publication. Importers can process legacy/unprocessed notes
+through `POST /v1/patients/{id}/notes/extract`, one per batch; optional `retry_fallback=true`
+explicitly retries keyword results. Migration 005 adds forced-RLS completion markers so empty
+results are idempotent. Notes retain uncertain source attribution and existing fact IDs.
+OpenAPI is regenerated. See [decision 013](decisions/013-note-context-extraction.md).
+Provider work runs outside database transactions/locks, under a cancellable combined
+15-second HTTP deadline; publication rechecks authorization, source state and revision.
+Contracted negation and negated poor-sleep propositions abstain conservatively.
+After integrating reviewed BL-11/13 changes, local frozen sync/lint pass; unit tests
+222 passed with ffmpeg, no skips, 6 slow deselections.
+DB-backed migration/contract/integration tests and stub evaluation await CI; no live model
+calls were made. This is conservative engineering validation, not clinical validation.
+
 Implemented on `build/backend-mvp` with separate commits. Read this alongside the original target specification; implementation does not imply all research/pilot gates are met.
 
 | Milestone | Implemented behavior | Remaining scope or gate |
@@ -127,6 +143,38 @@ contracts now require the built assessment response and CI installs ffmpeg. See
 Local Windows/Python 3.14 with ffmpeg: lint passed; unit 150 passed, 6 slow deselected. Service-backed
 regressions require PostgreSQL/S3, unavailable locally; CI results are reported on the review PR.
 
+## BL-12 ? Validated SBAR drafts (integration pending)
+
+Watch/escalate checks now draft through `baseline.sbar` after deterministic verdict selection.
+Configured providers receive only rounded feature values and selected context; all S/B/A/R
+sections, allowed IDs/numbers, banned phrases and the fixed action label are validated. Provider
+or validation failure uses the template, and stub mode never calls a provider. Canonical check/tag
+IDs are validated before mapping to the existing UI check/fact citation convention. See
+[decision 014](decisions/014-validated-sbar-drafts.md).
+
+Local Windows/Python 3.14 verification: frozen sync and lint pass; 169 unit tests pass with FFmpeg
+on PATH, 6 slow tests deselected. DB persistence/authorization tests were added but not run locally
+because Docker is unavailable. Migrations, DB-backed suites and stub evaluation await CI. No live
+model call or real-audio validation was performed. This branch depends on BL-10's shared client
+and BL-11/13 review integration, including stored evidence invalidation on lifecycle changes;
+BL-12 remains open until those dependencies and full CI pass.
+
+BL-12 semantic review hardening: model output must exactly match server-constructed supported
+sentence/evidence pairs, and R must be the fixed standard action sentence with no extra advice.
+This closes the unsupported-negative and appended-treatment gaps left by IDs/numbers-only
+validation. Tests reject invented absence/presence, swapped numbers, wrong tag attribution and
+additional action clauses. This is constrained sentence assembly, not unrestricted prose generation;
+ADR 014 records the design change and remaining clinical/evidence validity limits.
+
+
+
+BL-12 integration follow-up: the check transaction commits its deterministic verdict, budget slot
+and template before provider drafting. Enrichment runs outside database transactions, then
+publishes only after care-team, source-revision and check-eligibility rechecks. Source changes
+return 409 `memory_changed` with the original check preserved; revoked access returns 404. See
+ADR 014. Local lint and ffmpeg-enabled unit suite: 250 passed, 6 slow deselected. New concurrency
+and lifecycle regressions require the service-backed CI run.
+
 ## BL-32 — Mock Vox encounter adapter
 
 `POST /v1/integrations/vox/encounters` (multipart, the second and last multipart route) is a
@@ -136,12 +184,13 @@ non-care roles, before consent or audio work), consent must be the literal `true
 `consent_required` with a committed `vox_encounter/consent_refused` audit row and nothing stored.
 Resident segments, minus any staff/other overlap, are cut from one bounded decode (encounter at
 most 120 s, analysis at most 60 s) and stored through `store_check` as `mode=resident`,
-`prompt_version=free-conversation-v1`, `device_id=vox-mock`. Under 8 s of resident speech gives
-`too_little_resident_speech` without transcription. Free conversation skips only the on-script
-quality reason and is scored with `PM_Z_THRESHOLD_FREE` (2.5) against its own prompt's history.
-The overview charts the latest assessment's prompt (`baseline.prompt_version`) and the watch-list
-sparkline the counting prompt. Fixture: `fixtures/synthetic/vox_encounter_mrs_k.json` (no audio).
-See [decision 016](decisions/016-vox-mock-encounter-adapter.md).
+`prompt_version=free-conversation-v1`, `device_id=vox-mock`, followed by the same post-commit SBAR
+drafting as `POST /checks`. Under 8 s of resident speech gives `too_little_resident_speech`
+without transcription. Free conversation skips only the on-script quality reason and is scored
+with `PM_Z_THRESHOLD_FREE` (2.5) against its own prompt's history. The overview charts the latest
+assessment's prompt (`baseline.prompt_version`) and the watch-list sparkline the counting prompt.
+Fixture: `fixtures/synthetic/vox_encounter_mrs_k.json` (no audio). See
+[decision 016](decisions/016-vox-mock-encounter-adapter.md).
 
 Not done: any Vox UI or mock label on a page, real-speech validation (recordings on hold; tests use
 synthetic tones on the fixture timeline), and the BL-33 note export. No migration.
