@@ -15,7 +15,7 @@ from patient_memory.config import Settings
 
 FEATURE_META = {
     "speech_rate_wpm": {"label": "Speech rate", "unit": "words/min"},
-    "pause_ratio": {"label": "Pause ratio", "unit": "fraction of speech time"},
+    "pause_ratio": {"label": "Pause ratio", "unit": "share of time"},
     "mean_pause_s": {"label": "Mean pause", "unit": "s"},
     "f0_median_hz": {"label": "Pitch (F0)", "unit": "Hz"},
 }

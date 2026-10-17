@@ -132,3 +132,15 @@ def test_other_patients_and_unassigned_callers_see_nothing(sandbox):
 @pytest.mark.parametrize("days", [0, 91])
 def test_overview_days_are_bounded(sandbox, days):
     assert client_for(sandbox).get(f"/v1/patients/{sandbox[1]}/overview?days={days}").status_code == 422
+
+
+def test_old_escalations_do_not_use_up_todays_budget(sandbox):
+    from patient_memory.baseline.assess import escalations_used
+    cfg, pid, actors, _ = sandbox
+    seed_checks(sandbox, 6, days_ago_start=40)  # all well before this shift
+    body = {"kind": "amplifier", "tag": "high_risk_med_new", "label": "med",
+            "valid_from": (datetime.now(UTC) - timedelta(days=45)).isoformat()}
+    assert post_context(sandbox, body).status_code == 201
+    store(sandbox, SLOW)
+    with transaction(cfg, actors["nurse"]) as conn:
+        assert escalations_used(conn, datetime.now(UTC) - timedelta(days=30), cfg) == 0

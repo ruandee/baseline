@@ -38,10 +38,12 @@ def valid_tags(conn, patient_id: UUID, at: datetime) -> list[dict]:
 
 def escalations_used(conn, now: datetime, cfg: Settings) -> int:
     start, end = shift_bounds(now, cfg.shift_timezone)
+    # Counted by when the clip was recorded, so history loaded in bulk never uses today's budget.
     return conn.execute(
-        "SELECT count(*) AS n FROM assessments WHERE verdict='escalate' AND created_at>=%s "
-        "AND created_at<%s AND COALESCE((params->>'over_budget')::boolean,false)=false "
-        "AND COALESCE((params->>'no_escalate')::boolean,false)=false", (start, end)
+        "SELECT count(*) AS n FROM assessments a JOIN voice_checks v ON v.tenant_id=a.tenant_id "
+        "AND v.patient_id=a.patient_id AND v.id=a.check_id WHERE a.verdict='escalate' "
+        "AND v.ts>=%s AND v.ts<%s AND COALESCE((a.params->>'over_budget')::boolean,false)=false "
+        "AND COALESCE((a.params->>'no_escalate')::boolean,false)=false", (start, end)
     ).fetchone()["n"]
 
 
