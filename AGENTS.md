@@ -26,3 +26,40 @@ Maintain the patient-memory backend described in `docs/01-product.md` through `d
 ## Handoff
 
 Each completion report includes milestone ID, commit SHA, behavior changed, tests run/results, unrun checks, and remaining decisions. Add no real-data integration until source permissions, hosting, provider handling and clinical ownership are decided.
+
+## Commands
+
+Python 3.12–3.14, uv 0.13.1, Docker Compose. All commands run from the repo root.
+
+```sh
+uv sync --frozen
+docker compose up -d --wait db object-store     # Postgres 17+pgvector on :55432, LocalStack S3 on :59000
+uv run alembic upgrade head
+uv run uvicorn patient_memory.api:app --host 127.0.0.1 --port 8000 --no-access-log
+uv run python -m scripts.demo                    # end-to-end demo against the running API
+
+uv run ruff check .                              # lint (line length 100, rules E4/E7/E9/F/I)
+uv run pytest tests/unit                         # no services needed
+uv run pytest tests/integration tests/contract tests/e2e   # need db + object-store up and migrated
+uv run pytest tests/unit/test_config.py::test_name         # single test
+uv run python -m evals.run --suite synthetic --provider stub --output artifacts/eval.json
+```
+
+CI (`.github/workflows/checks.yml`) runs exactly: ruff, unit tests, compose up, alembic, the three DB-backed test dirs, then the stub evaluation. Mirror that order before reporting a milestone done.
+
+Other entry points: `python -m scripts.load_fixtures` (12 synthetic patients, two tenants, prints short-lived tokens), `python -m patient_memory.worker --tenant <uuid> --actor <uuid>` (processes API-submitted imports; `--once` for a single pass), `python -m scripts.export_openapi` (regenerates the committed `docs/openapi.json`; update it when API contracts change), `scripts/maintenance.py` (requeue, orphan reconciliation).
+
+Config is `PM_*` env vars via `.env` (see `.env.example`). `Settings` refuses to start unless `PM_ENVIRONMENT=synthetic`, and non-loopback provider URLs must be HTTPS. Tests force `PM_PROVIDER=stub` (autouse fixture in `tests/conftest.py`), so they never call a model. Live-model evals use `--provider configured` and are never part of CI.
+
+## Architecture
+
+FastAPI + Pydantic, PostgreSQL (source of truth for metadata, jobs and derived memory), S3-style immutable source objects, and a leased-job worker, all in one package at `src/patient_memory/`. Full design is in `docs/02-architecture.md`; the flow that spans files:
+
+- **Request scope:** `api.py` authenticates a bearer JWT (`auth.py`) into an `Identity`, then every DB call goes through `storage.transaction()`, which sets `pm.tenant`/`pm.actor` with `SET LOCAL`. Those settings drive row-level security. The runtime connects as the non-owner `pm_runtime` role; `PM_ADMIN_DATABASE_URL` (superuser) is for migrations and test setup only. `patient_access()` is the per-patient authorization gate and returns 404, not 403, on denial.
+- **Ingestion:** `ingestion.py` handles idempotency keys (same key + same hash returns the original job, different hash is 409), stages bytes in the object store (`objects.py`), and enqueues a job. `worker.py` claims jobs with leases and retries, runs `extraction.py` (schema-constrained facts with exact Unicode-span evidence), and publishes facts and a bumped per-patient memory revision in one transaction.
+- **Read path:** `retrieval.py` fuses full-text and hash-vector candidates under tenant/patient/visibility scope and two cutoffs, `as_of` (event time) and `known_at` (knowledge time). `generation.py` and `providers.py` select evidence via a stub, a compatible HTTP provider, or native Ollama, and `validate_claims` drops any claim whose citation fails. `lifecycle.py` covers answer caching, rate limits, audit, retraction, visibility change and purge, and rechecks authorization on every cache read.
+- **Contracts:** `domain.py` holds the Pydantic request/response models (`extra="forbid"`); `errors.py` has the `Problem` error envelope.
+
+Schema lives in `migrations/versions/` as paired `NNN_name.py` + `NNN_name.sql` files. When adding a migration, keep the pair and make sure RLS/forced-RLS and the composite tenant/patient foreign keys cover any new patient-owned table.
+
+Tests are layered `unit` / `integration` (real Postgres and S3, including `test_rls.py` against the runtime role) / `contract` (API) / `e2e` (`test_safety_cases.py`). The `sandbox` fixture in `tests/conftest.py` creates an isolated tenant, patient and four role identities through the admin connection.
