@@ -60,7 +60,7 @@ Opt-in `compose.demo.yaml` adds the ffmpeg image, seeded tenant-0 worker, same-o
 and Caddy HTTPS proxy. Hosted startup requires explicit hostnames, a deployment signing secret
 and a valid seeded nurse token. Only Caddy publishes public ports. Explicit migration/bootstrap
 commands precede startup; the six-patient seed is empty until BL-14/21 cohort/reset integration.
-See [deployment recipe](demo-hosting.md) and [decision 007](decisions/007-demo-hosting.md).
+See [deployment recipe](demo-hosting.md) and [decision 010](decisions/010-demo-hosting.md).
 No public host was provisioned. Container/service validation, phone LTE recording/result and
 latency gates remain outstanding; issue #22 must stay open.
 

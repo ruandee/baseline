@@ -1,4 +1,4 @@
-# 007: Opt-in container demo behind Caddy
+# 010: Opt-in container demo behind Caddy
 
 Status: proposed (BL-20, issue #22; HTTPS/LTE acceptance pending).
 
