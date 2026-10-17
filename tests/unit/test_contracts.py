@@ -24,6 +24,8 @@ def test_invalid_contracts():
     with pytest.raises(ValidationError):
         Record(concept="drug", value="x", event_type="stopped")
     with pytest.raises(ValidationError):
+        Record(concept="synthetic-observation", value=float("nan"))
+    with pytest.raises(ValidationError):
         Summary(shift_start=now(), shift_end=now() - timedelta(hours=1))
     with pytest.raises(ValidationError):
         SourceInput(external_document_id="x", external_version_id="x", source_system="test",

@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, FiniteFloat, model_validator
 
 
 def now():
@@ -19,7 +19,7 @@ class PatientInput(Contract):
 
 class Record(Contract):
     concept: str = Field(min_length=1, max_length=128)
-    value: str | float | bool
+    value: str | FiniteFloat | bool
     unit: str | None = None
     polarity: Literal["present", "absent", "uncertain"] = "present"
     effective_from: AwareDatetime | None = None
