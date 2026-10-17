@@ -38,6 +38,14 @@ BL-17), verdict colour tokens and an API check (liveness plus a nurse-token pati
 [decision 005](decisions/005-baseline-frontend-location.md). Contract tests were added in
 `tests/contract/test_frontend.py`; they need the database services.
 
+## BL-01 — Demo env hardening
+
+Added configurable token TTL (48-hour default), demo rate-limit and Gemini-compatible
+environment entries, plus `scripts/gemini_smoke.py` with strict schema validation.
+The smoke call is opt-in and requires a user-supplied key; no provider call ran in
+CI. Unit tests pass (44 passed, 2 skipped, 2 deselected) and lint passes. See
+[decision 009](decisions/009-demo-env-and-gemini-smoke.md).
+
 ## BL-08 — Pure change engine
 
 `baseline.engine.evaluate` computes enrolled/rolling baseline scores, EWMA, CUSUM
@@ -66,6 +74,14 @@ Not done here: `change` and `assessment` are `null` and `timings_ms` has no `eng
 keys until the change engine (BL-08) and the verdict table (BL-11) exist. Clips over 30 s are
 refused (the prompt stops at 15 s) so a crafted upload cannot hold Whisper for minutes. The
 p95 under 5 s target has not been measured on the demo host.
+
+
+BL-01 takeover update: main conflicts resolved; token TTL tested at 1, 7, 48 and
+72 hours with expired-token rejection; provider error/schema/model-discovery tests
+added. Local lint and frozen sync pass; unit suite 68 passed, 7 ffmpeg-dependent
+skips and 2 slow deselections. Previous live Gemini request returned HTTP 404;
+no saved key is available for a retry, so provider acceptance remains open.
+See decision 009 for recovery commands and the explicit unrun service checks.
 
 ## BL-09 — Structured context and `POST /context`
 
