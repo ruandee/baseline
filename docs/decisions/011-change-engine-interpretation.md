@@ -11,3 +11,11 @@
 - **Unusable checks are refused.** `evaluate` raises `ValueError` for a new check with `usable = false`; unusable history is dropped. If no feature has 3 baseline values the status is `enrolling`, never `none`, so a missing baseline is not read as a negative finding.
 - **Mode is chosen by the caller** (enrolled for patients with `is_baseline` checks, rolling otherwise); the engine does not infer it.
 - **Out of scope here:** the `PM_Z_THRESHOLD_FREE` (2.5) rule for `free-conversation-v1` belongs to BL-32. Until then every prompt version uses `PM_Z_THRESHOLD`.
+
+## Review hardening
+
+Engine settings now fail startup on nonfinite or out-of-range values: z thresholds and
+CUSUM alarm height must be positive, CUSUM allowance nonnegative, EWMA lambda in
+`(0, 1]`, and required feature count between 1 and the four available speech features.
+This prevents invalid environment overrides from producing automatic alarms or disabling
+confirmation. Defaults and the documented single-clip CUSUM behavior are unchanged.

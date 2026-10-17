@@ -1,21 +1,30 @@
 import logging
+import re
+import shutil
+import tempfile
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 from typing import Annotated
 from uuid import UUID, uuid4
 
 import psycopg
 from botocore.exceptions import BotoCoreError, ClientError
-from fastapi import Depends, FastAPI, Header, Query, Request
+from fastapi import Depends, FastAPI, Form, Header, Query, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import AwareDatetime
 
 from patient_memory.auth import decode_token
+from patient_memory.checks import care_gate, store_check
 from patient_memory.config import Settings
 from patient_memory.domain import (
     Answer,
     AssignmentInput,
+    CheckMode,
+    CheckResult,
     PatientInput,
     Question,
     Reason,
@@ -38,7 +47,12 @@ from patient_memory.lifecycle import (
 from patient_memory.objects import ObjectStore
 from patient_memory.providers import generator_for
 from patient_memory.retrieval import evidence, retrieve
+from patient_memory.speech import asr
+from patient_memory.speech.pipeline import DecoderUnavailable, InvalidAudio, analyze
 from patient_memory.storage import audit, patient_access, require_member, transaction
+
+# Voice-check uploads are the one multipart route; every other route stays JSON only.
+CHECK_UPLOAD = re.compile(r"^/v1/patients/[^/]+/checks$")
 
 
 class PayloadLimit:
@@ -62,9 +76,11 @@ class PayloadLimit:
             if not message.get("more_body", False):
                 break
         headers = dict(scope.get("headers", []))
-        if body and headers.get(b"content-type", b"").split(b";")[0] != b"application/json":
+        upload = scope["method"] == "POST" and CHECK_UPLOAD.match(scope["path"])
+        expected = "multipart/form-data" if upload else "application/json"
+        if body and headers.get(b"content-type", b"").split(b";")[0] != expected.encode():
             response = JSONResponse(status_code=415, content={"error": {
-                "code": "unsupported_content_type", "message": "Use application/json",
+                "code": "unsupported_content_type", "message": f"Use {expected}",
                 "request_id": str(uuid4()), "retryable": False}})
             return await response(scope, receive, send)
         delivered = False
@@ -79,12 +95,24 @@ class PayloadLimit:
         return await self.app(scope, replay, send)
 
 
-def create_app(cfg=None, objects=None, generator=None):
+def create_app(cfg=None, objects=None, generator=None, transcriber=None):
     cfg = cfg or Settings()
-    app = FastAPI(title="Patient Memory — synthetic prototype", version="0.1.0")
+
+    @asynccontextmanager
+    async def lifespan(app):
+        if app.state.transcriber is asr.transcribe:
+            try:
+                asr.model()  # load Whisper once, so the first check does not pay for it
+            except Exception:
+                logging.getLogger("patient_memory.requests").exception(
+                    "Whisper failed to load; voice checks retry on first use")
+        yield
+
+    app = FastAPI(title="Patient Memory — synthetic prototype", version="0.1.0", lifespan=lifespan)
     app.state.cfg = cfg
     app.state.objects = objects or ObjectStore(cfg)
     app.state.generator = generator or generator_for(cfg)
+    app.state.transcriber = transcriber or asr.transcribe
     app.add_middleware(PayloadLimit, limit=cfg.max_payload_bytes)
     bearer = HTTPBearer(auto_error=False)
 
@@ -276,6 +304,32 @@ def create_app(cfg=None, objects=None, generator=None):
         with transaction(cfg, actor) as conn:
             return change_source(conn, actor, patient_id, source_id, "visibility", idempotency_key,
                                  body.model_dump(), request.state.request_id)
+
+    @app.post("/v1/patients/{patient_id}/checks")
+    def create_check(patient_id: UUID, audio: UploadFile, mode: Annotated[CheckMode, Form()],
+                     device_id: Annotated[str, Form(min_length=1, max_length=128)],
+                     request: Request, actor=actor_dep,
+                     device_ts: Annotated[AwareDatetime | None, Form()] = None,
+                     is_baseline: Annotated[bool, Form()] = False) -> CheckResult:
+        with transaction(cfg, actor) as conn:
+            care_gate(conn, patient_id)
+        work = Path(tempfile.mkdtemp(prefix="check-"))
+        try:
+            upload = work / "upload"
+            with upload.open("wb") as out:
+                shutil.copyfileobj(audio.file, out)
+            try:
+                analysis = analyze(upload, work, app.state.transcriber)
+            except InvalidAudio as exc:
+                raise Problem(422, "invalid_audio") from exc
+            except DecoderUnavailable as exc:
+                raise Problem(503, "dependency_unavailable") from exc
+        finally:
+            if not cfg.keep_audio:
+                shutil.rmtree(work, ignore_errors=True)
+        with transaction(cfg, actor) as conn:
+            return store_check(conn, actor, patient_id, request.state.request_id, analysis,
+                               mode, device_id, device_ts, is_baseline)
 
     @app.post("/v1/patients/{patient_id}/questions", response_model=Answer)
     def question(patient_id: UUID, body: Question, request: Request, actor=actor_dep):

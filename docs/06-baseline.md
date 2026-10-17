@@ -215,7 +215,7 @@ Response 200:
 }
 ```
 
-Unusable clip: 200 with `usable: false`, `quality.reasons` (e.g. `too_short`, `too_noisy`, `clipped`), no `change` or `assessment`. Wrong patient: 404. Over 2 MB or bad format: 422.
+Unusable clip: 200 with `usable: false`, `quality.reasons` (e.g. `too_short`, `too_noisy`, `clipped`), no `change` or `assessment`. Wrong patient or a caller outside the care team: 404. Request body over 2 MB: 413 (the `PayloadLimit` middleware, before the route runs). Audio ffmpeg cannot decode, or longer than 30 s: 422 `invalid_audio`. Invalid form field: 422 `invalid_request`.
 
 ### `GET /v1/watchlist`
 
