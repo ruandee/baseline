@@ -997,8 +997,8 @@
           "usable": true,
           "features": {
             "speech_rate_wpm": 118.06048,
-            "pause_ratio": 0.28387,
-            "mean_pause_s": 0.491431,
+            "pause_ratio": 0.319353,
+            "mean_pause_s": 0.55286,
             "f0_median_hz": 162.425686
           }
         },
@@ -1013,8 +1013,8 @@
           "usable": true,
           "features": {
             "speech_rate_wpm": 118.06048,
-            "pause_ratio": 0.28387,
-            "mean_pause_s": 0.491431,
+            "pause_ratio": 0.319353,
+            "mean_pause_s": 0.55286,
             "f0_median_hz": 165.886038
           }
         },

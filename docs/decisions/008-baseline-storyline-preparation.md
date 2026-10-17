@@ -1,6 +1,7 @@
 # 008: Prepare BL-14 inputs before the verdict/loader gate
 
-Status: accepted for partial preparation, 2026-10-17.
+Status: accepted. Initial preparation and later explicit user approval of policy #60 and
+Mr. T scenario #61 are recorded below, 2026-10-17. The accepted adoption supersedes earlier gates.
 
 BL-14 depends on BL-11 for demonstrated verdicts, but docs/06 explicitly allows
 storyline JSON preparation in parallel. Commit a reproducible, synthetic-only
@@ -63,3 +64,23 @@ intermediate state, actual replay gives K escalate, L watch/recheck_1h and nine 
 but original Mr. T within_normal: strict report correctly remains false rather than coercing
 his verdict. The DB test identifies that specific remaining mismatch; #61 will require all
 actual canonical labels once its approved fixture lands. This preserves a reviewable transition.
+
+## Accepted Mr. T amendment and strict loader adoption
+
+The user explicitly approved BOTH policy PR #60 and scenario PR #61 after reviewable alternatives
+and their tradeoffs. Adopt +35% for BOTH Mr. T pause ratio and mean pause on days26/27, preserving
+speech-rate-15%, all source documents/timestamps, seed and every other resident. This changes the
+original authored +20% input, not engine thresholds or a measured clinical effect of dentures.
+Generator, regenerated fixture and exact-delta tests agree. The four feature scalars are the only
+fixture-value changes; scenario metadata and expected verdict/action remain unchanged.
+
+The combined loader uses accepted multifeature-cusum-v2 and actual shared structured/offline note
+context. Its DB acceptance now REQUIRES all12 declared snapshots to match: K escalate/4at_now,
+T explained/none, L watch/recheck_1h and allnine controls within_normal. It still returns nonzero
+on any actual mismatch. Intermediate original-input strict failure remains recorded in history;
+no result is manually overwritten to achieve this acceptance.
+
+Retrospective scenario-snapshots loads353 prefixes with different per-resident cutoffs, while
+all-history loads360 and reports historical snapshot acceptance separately from latest recovery.
+Neither is a current-date reset or prior knowledge snapshot. Public-host/roster wiring, current-time
+presentation, normal-temperature readback and real-audio/runner checks remain separate gates.
