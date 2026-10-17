@@ -17,8 +17,9 @@ COPY fixtures/synthetic ./fixtures/synthetic
 COPY migrations ./migrations
 COPY alembic.ini ./
 COPY frontend ./frontend
-RUN uv sync --frozen --no-dev && mkdir -p /home/demo/.cache/huggingface \
-    && chown -R demo:demo /home/demo
+# artifacts/ is the BL-14 loader's report/session output; the rest of /app stays root-owned.
+RUN uv sync --frozen --no-dev && mkdir -p /home/demo/.cache/huggingface /app/artifacts \
+    && chown -R demo:demo /home/demo /app/artifacts
 ENV PATH="/app/.venv/bin:$PATH" HF_HOME=/home/demo/.cache/huggingface
 # Fail the build, not the demo, if the decoder or a speech dependency is missing.
 RUN ffmpeg -hide_banner -version >/dev/null \

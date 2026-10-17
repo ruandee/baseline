@@ -7,9 +7,11 @@ on:
       - compose.yaml
       - compose.demo.yaml
       - deploy/**
-      - scripts/hosted_demo.py
-      - scripts/frontend.py
-      - scripts/seed.py
+      - scripts/**
+      - src/**
+      - frontend/**
+      - evals/**
+      - fixtures/synthetic/**
       - pyproject.toml
       - uv.lock
       - migrations/**

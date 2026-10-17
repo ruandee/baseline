@@ -1,11 +1,11 @@
 # BL-20 synthetic demo host
 
 This is a deployment recipe, not evidence of a running deployment. Bootstrap seeds six empty
-synthetic residents in tenant 0. The 12-resident roster comes from BL-14's loader (PR #53,
-`scripts/load_baseline_demo.py`), which reuses the same tenant-0 nurse and patient UUIDs
-(`uid("0/patient-N")`) and renames them; BL-21 owns reset. Neither is integrated here yet, and no
-second cohort is defined for hosting. The API reads the roster the seeded nurse can see (runtime
-role, RLS) at startup, so recreate `api` after loading or resetting.
+synthetic residents in tenant 0. The optional `load` step runs BL-14's merged loader
+(`scripts/load_baseline_demo.py`, decision 008), which reuses the same tenant-0 nurse and patient
+UUIDs (`uid("0/patient-N")`) and provisions the 12 fictional residents. No second hosting cohort
+exists. The API reads the roster the seeded nurse can see (runtime role, RLS) at startup, so
+recreate `api` after loading. BL-21 owns current-time reset; it is not integrated here.
 
 Use a dedicated Linux VM with Docker Compose, a DNS hostname pointed at it, and inbound TCP
 80/443 (UDP 443 optional). The spec suggests 4 vCPU/8 GB. Anyone with the URL receives the nurse
@@ -24,7 +24,17 @@ docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml build
 docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d --wait db object-store
 docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml run --rm migrate
 docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml run --rm bootstrap
+# Optional: BL-14's 12 residents (offline, no provider calls; set PM_DEMO_PRESENTATION).
+docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml run --rm load
 ```
+
+`load` is the only step besides `migrate`/`bootstrap` that receives the admin database URL. It
+runs offline (keyword note extraction, template SBARs) and exits nonzero if any declared snapshot
+mismatches. Its report and a loader-minted nurse token go to the `demo_artifacts` volume
+(`/app/artifacts/baseline-demo`), never stdout; the hosted session still serves bootstrap's
+`PM_DEMO_TOKEN`. `PM_DEMO_PRESENTATION` picks `all-history` (default) or `scenario-snapshots`;
+both are retrospective event-time replays, not a current-date demo (decision 008). Loading after
+the API is up needs `up -d --wait --force-recreate api` to refresh the roster.
 
 Bootstrap prints a nurse token. Paste it into `PM_DEMO_TOKEN` in `.env.demo` before startup.
 It expires after `PM_TOKEN_TTL_HOURS` (default 48, decision 009). Refresh by running bootstrap,
@@ -35,7 +45,8 @@ until API is recreated.
 `serve` and `worker` refuse to start if `PM_ADMIN_DATABASE_URL` is non-empty (the overlay blanks
 it); only `migrate` and `bootstrap` get the superuser URL. `serve` also refuses missing or
 wildcard/port/scheme `PM_FRONTEND_HOSTS`, the local signing secret, and any `PM_DEMO_TOKEN` that
-is not a valid, unexpired tenant-0 nurse token, and an empty roster (bootstrap not run).
+is not a valid, unexpired tenant-0 nurse token, and an empty roster (bootstrap not run). It
+logs a warning at startup when the token expires within 24 hours.
 
 ```sh
 docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d --wait api worker caddy
@@ -47,8 +58,8 @@ issuance. The API healthcheck is `python -m scripts.hosted_demo check`: runtime 
 bootstrapped nurse principal, the bucket, ffmpeg and liveness. Whisper loads before uvicorn
 accepts connections, so a passing check also means the model load was attempted; a failed load
 is logged and retried on the first check. Caddy starts only after this passes. Wait for warmup
-and send a synthetic clip before timing. On main `/check` is still the scaffold; recording comes
-with BL-17 (PR #50). Never publish API port 8001: forwarded-header trust assumes Compose-only
+and send a synthetic clip before timing. The `/check` recorder (BL-17, #50) is merged; the
+`/resident/{id}` page (BL-19, #55) is not yet. Never publish API port 8001: forwarded-header trust assumes Compose-only
 access. Database and LocalStack retain loopback development ports and synthetic passwords.
 
 Record acceptance in #22 before closing:
@@ -59,7 +70,7 @@ Record acceptance in #22 before closing:
 - Phone with Wi-Fi disabled: HTTPS microphone permission, ten-second synthetic counting clip,
   result including unusable/error states; actual Safari/mp4 and Chrome/webm verification.
 - Warm upload-to-result latency: BL-07 target is p95 below five seconds.
-- `/unit` and `/resident/{id}` when their tickets land; main currently has only scaffold pages.
+- `/unit` against the loaded roster, and `/resident/{id}` once BL-19 (#55) lands.
 
 Stop public access after demo:
 
@@ -69,14 +80,16 @@ docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml stop ca
 
 Preserve volumes until a deliberate synthetic reset. Revoke signing secret/unpublish DNS when
 retiring. Do not use `down -v` if teammate clips or non-fixture data might exist. A laptop tunnel
-is the fallback: keep backend loopback (`serve` binds 127.0.0.1 unless `PM_BIND_HOST` is set), configure its exact public hostname/token and verify
-forwarded scheme/Host. The tunnel route has not been tested.
+is the fallback: keep backend loopback (`serve` binds 127.0.0.1 unless `PM_BIND_HOST` is
+set), configure its exact public hostname/token and verify forwarded scheme/Host. The tunnel route has not been tested.
 
 CI (`.github/workflows/demo-image.yml`, `deploy/ci-smoke.sh`) builds the image and runs this
-sequence against `localhost` with Caddy's internal CA and Whisper `tiny`: guards, readiness,
+sequence against `localhost` with Caddy's internal CA and Whisper `tiny`: guard refusals with
+their messages (admin URL, wildcard host, missing token, default signing secret), readiness,
 unpublished API port, same-origin page/assets/session, Host/Origin/bearer/unassigned-patient
-rejections, a tone upload through Caddy (decode/VAD/Whisper/storage plumbing, not speech
-validation) and a running worker. It does not prove public DNS, ACME certificates, phone
+rejections, a tone upload through Caddy that must report ASR timing (decode/VAD/Whisper/storage
+plumbing, not speech validation), the six-resident bootstrap roster, the loader followed by an
+API recreate showing 12 residents, and a running worker. It does not prove public DNS, ACME certificates, phone
 browsers, LTE or latency.
 
 References: [Compose startup ordering](https://docs.docker.com/compose/how-tos/startup-order/),

@@ -82,3 +82,28 @@ def test_serve_and_worker_refuse_admin_database_url():
         runtime_only(cfg)
     blank = Settings(jwt_secret="deployment-only-test-secret-32-characters", admin_database_url="")
     assert runtime_only(blank) is blank
+
+
+def test_serve_warns_when_demo_token_expires_within_a_day(monkeypatch, caplog):
+    for ttl, warned in ((1, True), (48, False)):
+        cfg = Settings(jwt_secret="deployment-only-test-secret-32-characters", token_ttl_hours=ttl)
+        token = synthetic_token(Identity(uid("0/nurse"), uid("tenant-0")), cfg)
+        monkeypatch.setenv("PM_FRONTEND_HOSTS", "demo.example.com")
+        monkeypatch.setenv("PM_DEMO_TOKEN", token)
+        caplog.clear()
+        with caplog.at_level("WARNING", logger="patient_memory.hosted_demo"):
+            app_for(cfg)
+        assert ("expires in" in caplog.text) is warned
+
+
+def test_frontend_hosted_mode_refuses_default_secret_before_fixture_writes(monkeypatch):
+    import scripts.frontend as frontend
+
+    def no_writes(cfg):
+        raise AssertionError("prepare_demo must not run with the public default secret")
+
+    monkeypatch.setattr(frontend, "prepare_demo", no_writes)
+    monkeypatch.setenv("PM_FRONTEND_HOSTS", "demo.example.com")
+    monkeypatch.setenv("PM_JWT_SECRET", frontend.LOCAL_JWT_SECRET)
+    with pytest.raises(ValueError, match="deployment-only"):
+        frontend.main()

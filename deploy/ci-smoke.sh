@@ -29,14 +29,18 @@ status() { curl -sk -o /dev/null -w '%{http_code}' "$@"; }
 TOKEN=$("${C[@]}" run --rm -T bootstrap | tail -n1)
 [ -n "$TOKEN" ] || fail "bootstrap printed no token"
 
-# Guards: long-running processes refuse admin credentials, wildcard hosts and missing tokens.
-if "${C[@]}" run --rm -T -e PM_DEMO_TOKEN="$TOKEN" \
-     -e PM_ADMIN_DATABASE_URL=postgresql://postgres:synthetic-admin@db:5432/patient_memory \
-     api python -m scripts.hosted_demo serve; then fail "serve started with admin URL"; fi
-if "${C[@]}" run --rm -T -e PM_DEMO_TOKEN="$TOKEN" -e PM_FRONTEND_HOSTS='*' \
-     api python -m scripts.hosted_demo serve; then fail "serve started with wildcard host"; fi
-if "${C[@]}" run --rm -T api python -m scripts.hosted_demo serve; then
-  fail "serve started without PM_DEMO_TOKEN"; fi
+# Guards: each refusal must exit nonzero within 60 s AND name the reason on its output.
+refuse() {
+  local expect=$1 out; shift
+  if out=$(timeout 60 "${C[@]}" run --rm -T "$@" 2>&1); then fail "guard did not refuse: $expect"; fi
+  grep -qF -- "$expect" <<<"$out" || { tail -n 20 <<<"$out" >&2; fail "guard output lacked: $expect"; }
+  echo "guard ok: $expect"
+}
+SERVE=(api python -m scripts.hosted_demo serve)
+refuse "admin credentials" -e PM_DEMO_TOKEN="$TOKEN"   -e PM_ADMIN_DATABASE_URL=postgresql://postgres:synthetic-admin@db:5432/patient_memory "${SERVE[@]}"
+refuse "explicit hostnames" -e PM_DEMO_TOKEN="$TOKEN" -e PM_FRONTEND_HOSTS='*' "${SERVE[@]}"
+refuse "PM_DEMO_TOKEN must be" "${SERVE[@]}"
+refuse "deployment-only PM_JWT_SECRET" -e PM_DEMO_TOKEN="$TOKEN"   -e PM_JWT_SECRET=synthetic-local-only-change-before-any-deployment "${SERVE[@]}"
 
 sed -i "s|^PM_DEMO_TOKEN=.*|PM_DEMO_TOKEN=$TOKEN|" "$ENV_FILE"
 "${C[@]}" up -d --wait --wait-timeout 600 api worker caddy
@@ -49,7 +53,8 @@ if curl -s --max-time 3 http://127.0.0.1:8001/v1/health/live; then fail "API por
 [ "$(status "$BASE/assets/baseline.js")" = 200 ] || fail "frontend assets not same-origin"
 SESSION=$(curl -fsSk -H 'X-PM-Demo: 1' -H "Origin: $BASE" "$BASE/demo/session")
 [ "$(jq -r .token <<<"$SESSION")" = "$TOKEN" ] || fail "session did not serve the pre-minted token"
-echo "roster size: $(jq '.patients | length' <<<"$SESSION")"
+roster() { curl -fsSk -H 'X-PM-Demo: 1' -H "Origin: $BASE" "$BASE/demo/session" | jq '.patients | length'; }
+[ "$(roster)" = 6 ] || fail "bootstrap roster is not the six seeded residents"
 PID=$(jq -r '.patients[0].id' <<<"$SESSION")
 
 # Scheme comes from Caddy's X-Forwarded-Proto: an http Origin must be rejected.
@@ -84,6 +89,13 @@ CODE=$(curl -sk -o "$TMP/check.json" -w '%{http_code}' \
   "$BASE/v1/patients/$PID/checks")
 echo "upload status $CODE: $(head -c 600 "$TMP/check.json")"
 [ "$CODE" = 200 ] || fail "check upload through Caddy failed"
+jq -e '.timings_ms.asr | numbers' "$TMP/check.json" >/dev/null || fail "upload did not run ASR"
+
+# BL-14 loader in the image: one-off admin step, then recreate api to pick up the roster.
+timeout 900 "${C[@]}" run --rm -T load
+"${C[@]}" up -d --wait --wait-timeout 600 --force-recreate api
+[ "$(roster)" = 12 ] || fail "hosted roster is not the 12 loaded residents"
+echo "roster after load: 12"
 
 sleep 3
 [ -n "$("${C[@]}" ps --status running -q worker)" ] || fail "worker not running"

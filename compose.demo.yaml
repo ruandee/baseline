@@ -30,6 +30,15 @@ services:
     <<: *demo
     command: ["python", "-m", "scripts.hosted_demo", "bootstrap"]
     profiles: ["setup"]
+  # BL-14 12-resident roster (admin URL for this one-off step only). Offline: keyword note
+  # extraction and template SBARs, no provider calls. Report and a loader-minted nurse token go
+  # to the demo_artifacts volume, never stdout. Recreate api afterwards to pick up the roster.
+  load:
+    <<: *demo
+    command: ["python", "-m", "scripts.load_baseline_demo", "--offline",
+              "--presentation", "${PM_DEMO_PRESENTATION:-all-history}"]
+    profiles: ["setup"]
+    volumes: ["demo_artifacts:/app/artifacts"]
   api:
     <<: *demo
     restart: unless-stopped
@@ -57,7 +66,7 @@ services:
       PM_ADMIN_DATABASE_URL: ""
     command: ["python", "-m", "scripts.hosted_demo", "worker"]
   caddy:
-    image: caddy:2.10.2-alpine
+    image: caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
     restart: unless-stopped
     environment:
       PM_DEMO_DOMAIN: ${PM_DEMO_DOMAIN:?Set PM_DEMO_DOMAIN in .env.demo}
@@ -70,6 +79,7 @@ services:
       api:
         condition: service_healthy
 volumes:
+  demo_artifacts:
   whisper:
   caddy_data:
   caddy_config:

@@ -58,6 +58,8 @@ def require_deployment_secret(cfg):
         raise ValueError("Hosted mode needs a deployment-only PM_JWT_SECRET of at least "
                          "32 characters, not the local default")
     return cfg
+
+
 SHELL_ROUTES = ("/unit", "/check", "/resident/{patient_id}")
 PAGE_ROUTES = {"/", "/demo/session", *SHELL_ROUTES}
 PAGE_CSP = (
@@ -68,11 +70,11 @@ PAGE_CSP = (
 
 
 def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None):
-    app = create_app(cfg)
     if extra_hosts and not demo_token:
         raise ValueError("Hosted mode (PM_FRONTEND_HOSTS) requires PM_DEMO_TOKEN")
     if extra_hosts:
         require_deployment_secret(cfg)
+    app = create_app(cfg)
     if demo_token:
         decode_token(demo_token, cfg)  # fail at startup, not as 401s on every page
     allowed = LOOPBACK | {h.lower() for h in extra_hosts}
@@ -120,10 +122,13 @@ def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None):
 
 def main():
     cfg = Settings(provider="stub")
-    # Fixture bootstrap is explicit CLI work, never an unauthenticated API write.
-    reader, patients = prepare_demo(cfg)
     hosts = tuple(h.strip() for h in os.environ.get("PM_FRONTEND_HOSTS", "").split(",")
                   if h.strip())
+    if hosts:
+        # Refuse before any fixture write, not after loading the corpus.
+        require_deployment_secret(cfg)
+    # Fixture bootstrap is explicit CLI work, never an unauthenticated API write.
+    reader, patients = prepare_demo(cfg)
     app = workspace_app(cfg, reader, patients, hosts, os.environ.get("PM_DEMO_TOKEN") or None)
     uvicorn.run(app, host="127.0.0.1", port=8001, access_log=False,
                 proxy_headers=bool(hosts), forwarded_allow_ips="127.0.0.1")

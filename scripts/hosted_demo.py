@@ -9,18 +9,25 @@ seeded nurse can see from the database at startup.
 admin database URL in their environment. `check` is the container readiness probe.
 """
 import argparse
+import logging
 import os
 import shutil
 import time
 import urllib.request
+from datetime import timedelta
+
+import jwt
 
 from patient_memory.auth import Identity, decode_token
 from patient_memory.config import Settings
+from patient_memory.domain import now
 from patient_memory.objects import ObjectStore
 from patient_memory.storage import require_member, transaction
 from scripts.seed import seed, uid
 
 PORT = 8001
+TOKEN_WARNING = timedelta(hours=24)
+log = logging.getLogger("patient_memory.hosted_demo")
 
 
 def nurse():
@@ -64,9 +71,21 @@ def hosted_app(cfg, patients=None):
     reader = nurse()
     if not token or decode_token(token, cfg) != reader:
         raise ValueError("PM_DEMO_TOKEN must be the seeded tenant-0 nurse token")
+    warn_if_expiring(token)
     if patients is None:
         patients = roster(cfg, reader)
     return workspace_app(cfg, reader, patients, hosts, token)
+
+
+def warn_if_expiring(token):
+    """The running app keeps serving this token; say so before it turns into 401s."""
+    # Signature and expiry were already verified by decode_token; only exp is read here.
+    claims = jwt.decode(token, options={"verify_signature": False})
+    left = claims["exp"] - now().timestamp()
+    if left < TOKEN_WARNING.total_seconds():
+        log.warning("PM_DEMO_TOKEN expires in %.1f h: rerun bootstrap, update .env.demo and "
+                    "recreate api before it lapses", left / 3600)
+    return left
 
 
 def readiness(cfg):
