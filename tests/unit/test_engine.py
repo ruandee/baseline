@@ -304,3 +304,27 @@ def test_cusum_confirmation_window_includes_exactly_24_hours(hours, status):
     history = exact_baseline() + [drifted(h, dz=1.8) for h in (40, 38, 36, 34, 30)]
     previous = drifted(hours, dz=1.8)
     assert evaluate(drifted(dz=1.8), history + [previous], "enrolled", CFG).status == status
+
+
+def test_instantaneous_confirmation_requires_the_same_feature_pair():
+    cfg = Settings(cusum_h=1000)  # isolate instantaneous confirmation from CUSUM
+    previous = check(2, wpm=122.5, f0=168.75)  # rate/pitch at dz 2.5
+    current = check(wpm=122.5, pause=0.25)  # rate/pause at dz 2.5; only rate corresponds
+    assert evaluate(current, exact_baseline() + [previous], "enrolled", cfg).status == "none"
+
+
+def test_instantaneous_confirmation_requires_the_same_pitch_direction():
+    cfg = Settings(cusum_h=1000)
+    previous = check(2, wpm=122.5, f0=168.75)
+    current = check(wpm=122.5, f0=131.25)  # same feature pair, opposite pitch direction
+    assert evaluate(current, exact_baseline() + [previous], "enrolled", cfg).status == "none"
+
+
+def test_instantaneous_consistent_pair_and_pitch_direction_still_confirm():
+    cfg = Settings(cusum_h=1000)
+    previous = check(2, wpm=122.5, f0=168.75)
+    current = check(wpm=122.5, f0=168.75)
+    result = evaluate(current, exact_baseline() + [previous], "enrolled", cfg)
+    assert result.status == "change"
+    assert result.params["instantaneous_requires_same_features"] is True
+    assert result.params["instantaneous_requires_same_pitch_direction"] is True

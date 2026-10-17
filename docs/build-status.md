@@ -105,7 +105,9 @@ goes through source ingestion.
 The isolated `bl/bl-08-policy-proposal` branch implements a reviewed-change candidate, not an
 accepted correction to decision 011. Signed pitch CUSUM streams avoid pooling opposite-direction
 noise. CUSUM status requires two currently supported features; change additionally needs those
-same features and pitch direction on the preceding usable check within 24 h. Residual CUSUM
+same features and pitch direction on the preceding usable check within 24 h. Instantaneous
+confirmation now also requires corresponding features and pitch direction, a second explicit
+change to the original policy. Residual CUSUM
 without ongoing deviation remains diagnostic. Thresholds and baseline invariants are unchanged.
 See [proposal 019](decisions/019-multifeature-cusum-proposal.md) for the deliberate scope change,
 tradeoffs and required separate Mr. T scenario amendment (+35% for both pause features).

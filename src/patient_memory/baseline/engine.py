@@ -107,11 +107,13 @@ def evaluate(check: Check, history: Sequence[Check], mode: Mode, cfg: Settings) 
         "cusum_confirmation_hours": CONSECUTIVE_WITHIN.total_seconds() / 3600,
         "cusum_requires_ongoing_deviation": True,
         "pitch_cusum": "separate_signed_streams",
+        "instantaneous_requires_same_features": True,
+        "instantaneous_requires_same_pitch_direction": True,
     }
     if len(baseline) < MIN_BASELINE:
         return Assessment("enrolling", {}, None, (), params)
     sequence = _prefer_device(check, usable)[-(SEQUENCE - 1):] + [check]
-    scores, previous_dz = {}, {}
+    scores, previous_dz, previous_direction = {}, {}, {}
     supported, previous_supported = {}, {}
     for name in FEATURES:
         values = [c.features[name] for c in baseline if c.features.get(name) is not None]
@@ -145,6 +147,7 @@ def evaluate(check: Check, history: Sequence[Check], mode: Mode, cfg: Settings) 
                     supported[name] = direction
             elif c.ts >= check.ts - CONSECUTIVE_WITHIN and c is sequence[-2]:
                 previous_dz[name] = dz
+                previous_direction[name] = direction
                 if ongoing:
                     previous_supported[name] = direction
     if not scores:  # no feature has enough baseline values: still enrolling, not a negative
@@ -156,8 +159,10 @@ def evaluate(check: Check, history: Sequence[Check], mode: Mode, cfg: Settings) 
     alarm = len(supported) >= CUSUM_MIN_FEATURES
     sustained = sum(previous_supported.get(name) == direction
                     for name, direction in supported.items()) >= CUSUM_MIN_FEATURES
-    confirmed = (_over(cfg.z_threshold, dzs, cfg.min_features)
-                 and _over(cfg.z_threshold, previous_dz.values(), cfg.min_features))
+    confirmed = sum(
+        s.dz > cfg.z_threshold and previous_dz.get(name, float("-inf")) > cfg.z_threshold
+        and (FEATURES[name][0] != 0 or previous_direction.get(name) == (1 if s.z > 0 else -1))
+        for name, s in scores.items()) >= cfg.min_features
     if sustained or confirmed:
         status = "change"
     elif alarm or _over(cfg.provisional_z, dzs, cfg.min_features):

@@ -17,8 +17,10 @@ No threshold is adjusted and no clinical sensitivity/specificity is established.
 
 ## Proposed status policy
 
-- Preserve the existing instantaneous confirmation: at least `PM_MIN_FEATURES` features
-  above `PM_Z_THRESHOLD` on current and previous usable checks within 24 hours gives change.
+- Tighten instantaneous confirmation too: at least `PM_MIN_FEATURES` of the **same feature names**
+  must exceed `PM_Z_THRESHOLD` on current and previous usable checks within 24 hours. If pitch is
+  one of those features, its signed direction must match. This deliberately changes the original
+  count-only instantaneous rule; switching feature pairs or reversing pitch cannot confirm.
 - Pitch uses separate signed streams: `C+ = max(0, C+ + z - k)` and
   `C- = max(0, C- - z - k)`. The displayed CUSUM is `max(C+, C-)`.
 - A supported feature has the relevant directional CUSUM at least H and current directional
@@ -34,11 +36,14 @@ All baseline, prompt, temporal, device preference, feature scale and 20-check se
 remain unchanged. The current baseline is still used to reconstruct the entire scored sequence;
 previous-score reconstruction is not the previous assessment's original historical snapshot.
 Every result echoes `policy_version=multifeature-cusum-v2-proposal`, CUSUM minimum features,
-confirmation hours, ongoing-deviation requirement and signed-pitch mode in `params`.
+confirmation hours, ongoing-deviation requirement, signed-pitch mode and instantaneous feature/
+direction correspondence in `params`.
 
 ## Deliberate tradeoffs and required fixture amendment
 
-The original ability to flag a single accumulated feature is removed. Two-feature mild drift
+The original ability to flag a single accumulated feature is removed. Instantaneous confirmation
+also loses its original ability to combine disjoint feature pairs or opposite pitch directions
+across the two readings; this is an additional proposed policy change, not a spec-preserving fix. Two-feature mild drift
 can still accumulate below the instantaneous threshold, first provisional then change on a
 supported repeat within 24 hours. A daily check delayed beyond 24 hours will not confirm; changing
 that window is a separate decision. Alternating-sign pitch still affects two-sided z/EWMA/fused
@@ -72,3 +77,22 @@ single-alarm change test now explicitly expects provisional under this proposed 
 The inconsistent latest snapshot chronology is a separate BL-14 decision; historical day-27
 Mrs. K/Mr. T labels do not automatically become current day-30 results. Approval requires engine,
 fixture/spec and loader snapshot decisions to be reviewed together, followed by full CI.
+
+
+## Correspondence review follow-up
+
+The initial draft tightened only CUSUM confirmation while preserving instantaneous count-only
+confirmation. Independent synthetic examples showed that rate/pitch followed by rate/pause, or a
+pitch reversal plus persistent rate drift, could still report change through the instantaneous
+path. Both confirmation paths now require corresponding feature names and pitch direction.
+Thresholds, minimum-feature settings and the inclusive 24-hour boundary are unchanged. Regression
+cases isolate instantaneous scoring with a high CUSUM threshold and cover both rejected cases
+plus a consistent-pair positive control. This remains a proposal awaiting explicit acceptance.
+
+
+Re-evaluating every original draft row and the separate in-memory 35% copy after this follow-up
+produced identical statuses to the first draft on both 360-row datasets: original totals remain
+36 enrolling / 321 none / 2 provisional / 1 change; copied-amendment totals remain
+36 enrolling / 319 none / 3 provisional / 2 change. The fixture file hash was checked unchanged.
+Local full unit suite: 154 passed, 6 slow deselected; 39 engine cases passed. No fixture edit,
+accepted policy/spec change or main-branch merge occurred.
