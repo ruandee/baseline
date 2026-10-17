@@ -57,6 +57,30 @@ stop at startup when the database clock is more than 10 ms ahead. Set it slightl
 colima ssh -- sudo date -u -s "@$(python3 -c 'import time;print("%.3f"%(time.time()+0.3))')"
 ```
 
+## Golden clips (BL-06)
+
+`tests/unit/test_golden_clips.py` runs four real recordings of the fixed prompt through the production
+pipeline with real Whisper: `normal`, `slow`, `pausey` and `stairs`. The audio stays out of Git
+(`data/raw/` is ignored), and CI skips the tests because they are marked `slow`. Until all four
+exist the module skips and says which are missing.
+
+```sh
+mkdir -p data/raw/golden
+ffmpeg -hide_banner -f avfoundation -list_devices true -i "" 2>&1 | grep -A9 "audio devices"
+ffmpeg -hide_banner -y -f avfoundation -i ":<mic index>" -t 25 -ac 1 data/raw/golden/normal.wav
+uv run pytest -m slow tests/unit/test_golden_clips.py -v
+```
+
+Use the same microphone for all four, and pick it from the list: on this Mac index 0 is "Microsoft
+Teams Audio", not the microphone. Say "Count from one to twenty, then say the days of the week,
+starting with Monday." each time: `slow` at about two thirds of the normal pace, `pausey` with a
+stop of about a second after every fourth number and between the days, `stairs` straight after
+climbing stairs. Press `q` when you finish the days: the command allows up to 25 s because a slow or
+pausey take runs well past the 15 s the product records, and the pipeline refuses anything over 30 s.
+Keep one file per name (the test fails with a clear message on a stale second take). If a real clip fails the quality gate
+or the direction check, the test prints the measured features: report them rather than loosening
+the thresholds.
+
 ## Current limits
 
 - Free-text notes remain attributed source assertions with uncertain status. No validated clinical entity extraction or free-text contradiction classifier is implemented.
