@@ -137,3 +137,24 @@ contracts now require the built assessment response and CI installs ffmpeg. See
 
 Local Windows/Python 3.14 with ffmpeg: lint passed; unit 150 passed, 6 slow deselected. Service-backed
 regressions require PostgreSQL/S3, unavailable locally; CI results are reported on the review PR.
+
+## BL-14 ? Scoped loader (acceptance still incomplete)
+
+`scripts.load_baseline_demo` provisions twelve known synthetic residents, publishes immutable
+SourceInput records and shared BL-10 note context before scoring through the actual runtime-role
+assessment service. It verifies exact source/fact/tag spans and reports expected versus actual
+snapshot/latest outcomes without coercing any verdict. Authored feature checks are flagged
+synthetic with explicit non-audio provenance; no recording/transcript is fabricated. Unchanged
+reruns reuse checks and source-revision/signature-matching assessments. Nurse token and roster
+are written only to ignored artifacts, never stdout or Git.
+
+Explicit `--presentation all-history` loads 360 rows. `scenario-snapshots` loads 353 prefixes
+ending at different historical cutoffs and rejects destructive truncation of fuller histories.
+The original fixture and engine policy remain unchanged; expected mismatches give nonzero exit.
+This does not approve #60 or the separate #61 Mr. T +35% proposal, resolve a current-date demo
+presentation/reset, or replace real audio/runner acceptance. See decision 008 and fixture README.
+
+Local lint and unit suite: 187 passed with FFmpeg, 6 slow deselected. Three real DB/S3 loader,
+idempotency, evidence and RLS tests are added; Docker is unavailable locally. BL-10's approved
+publication/backfill interface must integrate before CI acceptance. Migrations, database-backed
+suites and stub evaluation remain unrun locally; no live provider calls performed. BL-14 stays open.
