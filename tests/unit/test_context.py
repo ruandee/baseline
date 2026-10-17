@@ -91,6 +91,12 @@ def test_unknown_context_tag_makes_no_tag():
     assert tags_for("observation", {"concept": "context.astrology", "value": "x"})[1] == []
 
 
+def test_language_change_cannot_create_a_resident_wide_explainer():
+    for window in ({}, {"effective_to": (RECORDED + timedelta(hours=1)).isoformat()}):
+        assert tags_for("observation", {
+            "concept": "context.language_change", "value": "French prompt", **window})[1] == []
+
+
 def test_temperature_below_threshold_or_not_a_number_makes_no_tag():
     assert tags_for("observation", temperature(37.7))[1] == []
     assert tags_for("observation", temperature("37.9 approx"))[1] == []

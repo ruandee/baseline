@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 import psycopg
+import pytest
 
 from patient_memory.storage import transaction
 from patient_memory.worker import run_once
@@ -23,7 +24,6 @@ def test_context_record_creates_structured_tag_pointing_at_its_source_span(sandb
         "explainer", "exertion", "Running the Toronto marathon", "structured")
     assert (tag["valid_from"], tag["valid_to"]) == ("2026-10-18T12:00:00Z", "2026-10-18T18:00:00Z")
     cfg, pid, actors, objects = sandbox
-    assert run_once(cfg, actors["importer"], objects)
     with transaction(cfg, actors["nurse"]) as conn:
         source = conn.execute("SELECT * FROM sources WHERE id=%s", (tag["source_id"],)).fetchone()
         rows = conn.execute("SELECT * FROM context_tags WHERE patient_id=%s", (pid,)).fetchall()
@@ -31,6 +31,12 @@ def test_context_record_creates_structured_tag_pointing_at_its_source_span(sandb
     assert source["canonical_text"][row["start_offset"]:row["end_offset"]] == row["quote"] == tag["quote"]
     assert "Toronto marathon" in tag["quote"]
     assert (tag["start_offset"], tag["end_offset"]) == (row["start_offset"], row["end_offset"])
+    assert source["published_at"] is not None
+    evidence = client_for(sandbox, "nurse").get(f"/v1/patients/{pid}/evidence/{row['fact_id']}")
+    assert evidence.status_code == 200, evidence.text
+    assert evidence.json()["quote"] == tag["quote"]
+    # The synchronous endpoint completes the job, so no worker pass is necessary.
+    assert not run_once(cfg, actors["importer"], objects)
 
 
 def test_omitted_valid_to_takes_the_taxonomy_window(sandbox):
@@ -47,6 +53,8 @@ def test_same_idempotency_key_replays_without_a_second_tag(sandbox):
     assert post(sandbox, {**BODY, "label": "Different"}, key=key).status_code == 409
     with transaction(sandbox[0], sandbox[2]["nurse"]) as conn:
         assert conn.execute("SELECT count(*) AS n FROM context_tags").fetchone()["n"] == 1
+        assert conn.execute("SELECT revision FROM patients WHERE id=%s",
+                            (sandbox[1],)).fetchone()["revision"] == 1
 
 
 def test_replaying_after_purge_does_not_bring_the_quote_back(sandbox):
@@ -63,6 +71,7 @@ def test_replaying_after_purge_does_not_bring_the_quote_back(sandbox):
 
 def test_invalid_context_is_rejected(sandbox):
     assert post(sandbox, {**BODY, "tag": "astrology"}).status_code == 422
+    assert post(sandbox, {**BODY, "tag": "language_change"}).status_code == 422
     assert post(sandbox, {**BODY, "kind": "amplifier"}).status_code == 422
     assert post(sandbox, {**BODY, "valid_to": "2026-10-18T11:00:00Z"}).status_code == 422
     assert post(sandbox, {**BODY, "extra": 1}).status_code == 422
@@ -74,3 +83,17 @@ def test_only_writers_assigned_to_the_patient_can_add_context(sandbox):
     assert post(sandbox, role="patient").status_code == 404
     response = client_for(sandbox, "importer").post(f"/v1/patients/{uuid4()}/context", json=BODY)
     assert response.status_code == 404
+
+
+def test_publication_failure_rolls_back_source_fact_tag_and_revision(sandbox, monkeypatch):
+    def fail_tags(*args):
+        raise RuntimeError("synthetic tag storage failure")
+
+    monkeypatch.setattr("patient_memory.baseline.context.store_tags", fail_tags)
+    with pytest.raises(RuntimeError, match="synthetic tag storage failure"):
+        post(sandbox)
+    with transaction(sandbox[0], sandbox[2]["nurse"]) as conn:
+        for table in ("sources", "facts", "context_tags", "jobs"):
+            assert conn.execute(f"SELECT count(*) AS n FROM {table}").fetchone()["n"] == 0
+        assert conn.execute("SELECT revision FROM patients WHERE id=%s",
+                            (sandbox[1],)).fetchone()["revision"] == 0

@@ -8,8 +8,8 @@ from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 from patient_memory.domain import ContextInput, ContextTagOut, Record, SourceInput
 from patient_memory.errors import Problem
-from patient_memory.extraction import Candidate, extract, fact_id
-from patient_memory.ingestion import submit
+from patient_memory.extraction import Candidate, extract, fact_id, store_facts, store_relations
+from patient_memory.ingestion import bump, submit
 
 HIGH_RISK_MEDICATIONS = ("oxybutynin", "diphenhydramine", "hydroxyzine", "lorazepam", "oxycodone",
                          "hydromorphone", "quetiapine", "haloperidol")
@@ -73,7 +73,9 @@ def matching_tag(source: SourceInput, c):
         if is_fever(c):
             return "fever_documented"
         tag = c.concept.removeprefix(CONTEXT_PREFIX)
-        if c.concept.startswith(CONTEXT_PREFIX) and tag in TAXONOMY:
+        # Language mismatch is evidence about one check, never a resident-wide interval.
+        # Generic sources have no check identity; leave this for check metadata handling.
+        if c.concept.startswith(CONTEXT_PREFIX) and tag in TAXONOMY and tag != "language_change":
             return tag
     return None
 
@@ -93,7 +95,8 @@ def structured_tags(source: SourceInput, candidates):
 
 def add_context(conn, identity, patient_id, body: ContextInput, key, objects):
     """POST /context: an observation source through normal ingestion plus its structured tag."""
-    if body.tag not in TAXONOMY or TAXONOMY[body.tag][0] != body.kind:
+    if (body.tag not in TAXONOMY or TAXONOMY[body.tag][0] != body.kind
+            or body.tag == "language_change"):
         raise Problem(422, "invalid_request")
     key = key or str(uuid4())
     source = SourceInput(
@@ -105,13 +108,25 @@ def add_context(conn, identity, patient_id, body: ContextInput, key, objects):
     submitted = submit(conn, identity, patient_id, source, key, objects)
     source_id = UUID(submitted["source_version_id"])
     # A replayed key returns the original result even after the source is gone.
-    state = conn.execute("SELECT retracted_at,purged_at FROM sources WHERE id=%s",
+    state = conn.execute("SELECT retracted_at,purged_at,published_at FROM sources WHERE id=%s",
                          (source_id,)).fetchone()
     if state["purged_at"] or state["retracted_at"]:
         raise Problem(409, "source_purged" if state["purged_at"] else "source_retracted")
-    _, candidates = extract(source)
+    canonical, candidates = extract(source)
     (tag,) = structured_tags(source, candidates)
-    store_tags(conn, identity.tenant_id, patient_id, source_id, [tag])
+    if state["published_at"] is None:
+        # submit holds the patient lock through commit. Publish evidence and its tag together,
+        # and complete the queued job so a worker cannot publish or bump this source twice.
+        store_facts(conn, identity.tenant_id, patient_id, source_id, candidates)
+        conn.execute(
+            "UPDATE sources SET canonical_text=%s,published_at=clock_timestamp() WHERE id=%s",
+            (canonical, source_id))
+        store_tags(conn, identity.tenant_id, patient_id, source_id, [tag])
+        store_relations(conn, patient_id)
+        conn.execute(
+            "UPDATE jobs SET status='completed',stage='published',lease_until=NULL,error_code=NULL "
+            "WHERE source_id=%s", (source_id,))
+        bump(conn, patient_id)
     return ContextTagOut(
         id=tag_id(source_id, tag), kind=tag.kind, tag=tag.tag, label=body.label, quote=tag.quote,
         start_offset=tag.start, end_offset=tag.end, source_id=source_id,
