@@ -97,3 +97,16 @@ Not done: Gemini note extraction and SBAR drafting (BL-10, BL-12), the cohort lo
 the "temperature documented normal" reader. The ffmpeg-dependent contract tests in
 `tests/contract/test_checks.py` skip where ffmpeg is not installed, so the audio path into
 `store_check` is covered only by `tests/integration/test_assessments.py`, which calls it directly.
+
+
+## BL-11/BL-13 review corrections
+
+A review branch adds source revision/provenance to assessments, atomically scrubs copied quotes/SBAR
+on source revision bumps, and withholds stale assessments on both read endpoints. Active context
+excludes superseded sources. History selection preserves enrolled clips and prompt scope, and
+advisory locks serialize concurrent budget/history decisions with access rechecks. Browser upload
+contracts now require the built assessment response and CI installs ffmpeg. See
+[decision 015](decisions/015-assessment-evidence-lifecycle.md).
+
+Local Windows/Python 3.14 with ffmpeg: lint passed; unit 150 passed, 6 slow deselected. Service-backed
+regressions require PostgreSQL/S3, unavailable locally; CI results are reported on the review PR.
