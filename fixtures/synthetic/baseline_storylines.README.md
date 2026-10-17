@@ -1,4 +1,4 @@
-# BL-14 storyline inputs (partial preparation)
+# BL-14 Mr. T scenario amendment ? PROPOSAL ONLY
 
 `baseline_storylines.json` contains 12 fictional residents and 360 authored feature
 rows, with fixed UTC event times, one row per resident per day. These values are
@@ -48,3 +48,20 @@ cannot use day 30 as a shared latest-check snapshot and promise all three labels
   deltas and settle the engine policy explicitly instead of tuning away this gate.
 - Run real PostgreSQL/S3 loader, RLS, historical-cutoff, offline-context and verdict
   end-to-end checks. No loader or backend behavior is changed by this preparation.
+
+## Proposed amendment (not accepted)
+
+This isolated branch changes only Mr. T's authored day-26/day-27 pause ratio and mean-pause
+multipliers from +20% to +35%; the -15% speech-rate change is preserved. Generator and fixture
+invariants are changed together. Other residents, source notes, dates, random seed and expected
+outcomes remain unchanged. This is a deliberately authored demo scenario, not an empirical
+claim about the effect of dentures.
+
+The amendment is proposed together with engine policy PR #60, which requires corroborating
+features for CUSUM alerts. Original +20% pause changes provide only one sufficiently strong
+feature and no longer yield the intended explained result under that policy. A copied +35%
+experiment produces provisional day 26 and change day 27, explained by the documented denture
+context, and recovery thereafter. Do not merge this amendment or claim BL-14 accepted until
+both the policy and scenario are explicitly reviewed. The loader branch retains the original
+fixture and strict mismatch report. Shared historical/latest snapshot presentation remains a
+separate decision; changing these multipliers does not move day 27 to the current day.
