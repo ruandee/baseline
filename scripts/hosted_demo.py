@@ -28,10 +28,9 @@ def nurse():
 
 
 def deployment_settings():
-    cfg = Settings()
-    if len(cfg.jwt_secret) < 32 or cfg.jwt_secret == Settings.model_fields["jwt_secret"].default:
-        raise ValueError("Set a deployment-only PM_JWT_SECRET of at least 32 characters")
-    return cfg
+    from scripts.frontend import require_deployment_secret
+
+    return require_deployment_secret(Settings())
 
 
 def runtime_only(cfg):

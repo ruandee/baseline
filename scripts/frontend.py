@@ -49,6 +49,15 @@ def prepare_demo(cfg):
 
 
 LOOPBACK = {"localhost", "127.0.0.1", "::1"}
+LOCAL_JWT_SECRET = Settings.model_fields["jwt_secret"].default
+
+
+def require_deployment_secret(cfg):
+    """The default signing secret is public in the repo: anyone could mint tokens with it."""
+    if len(cfg.jwt_secret) < 32 or cfg.jwt_secret == LOCAL_JWT_SECRET:
+        raise ValueError("Hosted mode needs a deployment-only PM_JWT_SECRET of at least "
+                         "32 characters, not the local default")
+    return cfg
 SHELL_ROUTES = ("/unit", "/check", "/resident/{patient_id}")
 PAGE_ROUTES = {"/", "/demo/session", *SHELL_ROUTES}
 PAGE_CSP = (
@@ -62,6 +71,8 @@ def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None):
     app = create_app(cfg)
     if extra_hosts and not demo_token:
         raise ValueError("Hosted mode (PM_FRONTEND_HOSTS) requires PM_DEMO_TOKEN")
+    if extra_hosts:
+        require_deployment_secret(cfg)
     if demo_token:
         decode_token(demo_token, cfg)  # fail at startup, not as 401s on every page
     allowed = LOOPBACK | {h.lower() for h in extra_hosts}

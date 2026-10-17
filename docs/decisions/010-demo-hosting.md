@@ -8,7 +8,8 @@ no `web/` service (decision 005). Caddy is the only publicly published service; 
 object-store ports remain bound to host loopback. Compose waits for healthy storage services;
 migrations and identity bootstrap are explicit one-off CLI operations.
 
-Hosted startup rejects the local signing secret, missing hosts/token, expired token and any
+Hosted startup (both `scripts.hosted_demo serve` and `scripts.frontend` with `PM_FRONTEND_HOSTS`)
+rejects the local signing secret, missing hosts/token, expired token and any
 token other than the seeded tenant-0 nurse. Bootstrap prints only that nurse token; it does not
 reset data. Normal API/worker processes receive no admin database URL and refuse to start with
 one. The six-patient seed is an empty roster, not BL-14's story cohort. The hosted session lists
