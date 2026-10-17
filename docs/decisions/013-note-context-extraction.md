@@ -49,7 +49,8 @@ spans network work. Each note's tags, marker and revision publish atomically; pu
 also invalidates prior assessments when the BL-11/13 freshness integration is present.
 
 Validation: frozen sync and lint pass. After installing ffmpeg, the Windows unit suite:
-182 passed, no skips, 6 slow tests deselected. Added deterministic mocked provider, Unicode,
+222 passed after BL-11/13 integration, no skips, 6 slow tests deselected.
+Added deterministic mocked provider, Unicode,
 fabrication, negation, fallback, lifecycle/idempotency, authorization and RLS tests. Docker
 is unavailable locally; migrations, DB-backed tests and stub evaluation run through CI.
 New regressions exercise contracted/embedded negation, unlocked concurrent source changes,

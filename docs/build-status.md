@@ -11,7 +11,8 @@ OpenAPI is regenerated. See [decision 013](decisions/013-note-context-extraction
 Provider work runs outside database transactions/locks, under a cancellable combined
 15-second HTTP deadline; publication rechecks authorization, source state and revision.
 Contracted negation and negated poor-sleep propositions abstain conservatively.
-Local frozen sync/lint pass; unit tests 182 passed with ffmpeg, no skips, 6 slow deselections.
+After integrating reviewed BL-11/13 changes, local frozen sync/lint pass; unit tests
+222 passed with ffmpeg, no skips, 6 slow deselections.
 DB-backed migration/contract/integration tests and stub evaluation await CI; no live model
 calls were made. This is conservative engineering validation, not clinical validation.
 
@@ -114,3 +115,30 @@ metadata exists. Migration 004 lets purge delete tags so a purged source leaves 
 Not done here: Gemini free-text tags, and readers ignoring tags of retracted sources (verdict and
 overview tickets must do that join). Only importer-assigned callers can post context, because it
 goes through source ingestion.
+
+## Verdicts, assessments and the two read endpoints (BL-11, BL-13)
+
+Every usable check is scored when it is stored and gets an `assessments` row, returned as `change`
+and `assessment` by `POST /checks`. `baseline/verdict.py` is the pure verdict table plus the shift
+escalation budget (`PM_ESCALATION_BUDGET`, default 3 per 8-hour shift), the no-escalate list
+(`PM_NO_ESCALATE_PATIENTS`) and the template SBAR. `GET /v1/watchlist` and
+`GET /v1/patients/{id}/overview?days=30` read the stored rows; both are care-team only and apply
+RLS. See [decision 012](decisions/012-verdict-assessments-and-overview.md).
+
+Not done: Gemini note extraction and SBAR drafting (BL-10, BL-12), the cohort loader (BL-14), and
+the "temperature documented normal" reader. The ffmpeg-dependent contract tests in
+`tests/contract/test_checks.py` skip where ffmpeg is not installed, so the audio path into
+`store_check` is covered only by `tests/integration/test_assessments.py`, which calls it directly.
+
+
+## BL-11/BL-13 review corrections
+
+A review branch adds source revision/provenance to assessments, atomically scrubs copied quotes/SBAR
+on source revision bumps, and withholds stale assessments on both read endpoints. Active context
+excludes superseded sources. History selection preserves enrolled clips and prompt scope, and
+advisory locks serialize concurrent budget/history decisions with access rechecks. Browser upload
+contracts now require the built assessment response and CI installs ffmpeg. See
+[decision 015](decisions/015-assessment-evidence-lifecycle.md).
+
+Local Windows/Python 3.14 with ffmpeg: lint passed; unit 150 passed, 6 slow deselected. Service-backed
+regressions require PostgreSQL/S3, unavailable locally; CI results are reported on the review PR.
