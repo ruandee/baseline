@@ -3,11 +3,16 @@ import json
 import re
 from collections.abc import Callable
 from typing import Literal
+from uuid import uuid4
 
+from psycopg.types.json import Jsonb
 from pydantic import BaseModel, ConfigDict, Field
 
 from patient_memory.baseline.verdict import ACTION_LABELS, Decision
 from patient_memory.config import Settings
+from patient_memory.errors import Problem
+from patient_memory.ingestion import lock_patient
+from patient_memory.storage import audit, patient_access, transaction
 
 NUMBER = re.compile(r"\d+(?:\.\d+)?")
 BANNED = re.compile(r"diagnos|has delirium|is septic|prescribe|administer", re.IGNORECASE)
@@ -141,3 +146,47 @@ def generate_sbar(cfg: Settings, name: str, status: str, decision: Decision, che
         # Provider failure must not change the verdict or lose the stored check. Do not log
         # provider exception text: it may contain the request, response or credentials.
         return fallback
+
+
+def _draft_snapshot(conn, patient_id, assessment_id, *, for_update=False):
+    patient_access(conn, patient_id)
+    if not conn.execute("SELECT pm_care(%s) AS ok", (patient_id,)).fetchone()["ok"]:
+        raise Problem(404, "not_found")
+    row = conn.execute(
+        "SELECT a.*,p.external_id,p.revision FROM assessments a "
+        "JOIN patients p ON p.tenant_id=a.tenant_id AND p.id=a.patient_id "
+        "JOIN voice_checks v ON v.tenant_id=a.tenant_id AND v.patient_id=a.patient_id "
+        "AND v.id=a.check_id WHERE a.patient_id=%s AND a.id=%s AND v.usable "
+        + ("FOR UPDATE OF a" if for_update else ""), (patient_id, assessment_id)).fetchone()
+    if (not row or row["params"].get("invalidated")
+            or row["params"].get("source_revision") != row["revision"]):
+        raise Problem(409, "memory_changed")
+    return row
+
+
+def enrich_assessment_sbar(cfg, identity, patient_id, assessment_id):
+    """Draft after deterministic admission commits; no DB connection during provider I/O.
+
+    The original check and safe template survive provider failures. A concurrent source or
+    permission change discards the draft and prevents an obsolete assessment response.
+    """
+    if cfg.provider == "stub":
+        return
+    with transaction(cfg, identity) as conn:
+        snapshot = _draft_snapshot(conn, patient_id, assessment_id)
+    if snapshot["verdict"] not in ("escalate", "watch"):
+        return
+    draft = generate_sbar(
+        cfg, snapshot["external_id"], snapshot["change_status"],
+        Decision(snapshot["verdict"], snapshot["suggested_action"]),
+        str(snapshot["check_id"]), snapshot["features"], snapshot["reasons"])
+    with transaction(cfg, identity) as conn:
+        lock_patient(conn, patient_id)
+        current = _draft_snapshot(conn, patient_id, assessment_id, for_update=True)
+        fields = ("check_id", "revision", "change_status", "verdict", "suggested_action",
+                  "features", "reasons", "params")
+        if any(current[field] != snapshot[field] for field in fields):
+            raise Problem(409, "memory_changed")
+        conn.execute("UPDATE assessments SET sbar=%s WHERE patient_id=%s AND id=%s",
+                     (Jsonb(draft), patient_id, assessment_id))
+        audit(conn, identity, patient_id, "draft_sbar", uuid4())

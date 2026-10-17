@@ -166,3 +166,11 @@ validation. Tests reject invented absence/presence, swapped numbers, wrong tag a
 additional action clauses. This is constrained sentence assembly, not unrestricted prose generation;
 ADR 014 records the design change and remaining clinical/evidence validity limits.
 
+
+
+BL-12 integration follow-up: the check transaction commits its deterministic verdict, budget slot
+and template before provider drafting. Enrichment runs outside database transactions, then
+publishes only after care-team, source-revision and check-eligibility rechecks. Source changes
+return 409 `memory_changed` with the original check preserved; revoked access returns 404. See
+ADR 014. Local lint and ffmpeg-enabled unit suite: 250 passed, 6 slow deselected. New concurrency
+and lifecycle regressions require the service-backed CI run.

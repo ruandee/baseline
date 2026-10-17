@@ -45,3 +45,27 @@ failures, unsupported negative/positive claims, appended action advice, attribut
 stub behavior. DB tests exercise saved drafts and scoped evidence reads
 with mocked provider calls. Full CI, BL-10 client integration and the BL-11 lifecycle fix must
 pass before BL-12 is complete. Live Gemini generation has not been run by this change.
+
+
+## Post-commit drafting and concurrency
+
+Deterministic scoring, shift-budget reservation and the safe template commit together under the
+existing tenant-then-patient locks. The synchronous upload route then calls
+`enrich_assessment_sbar` after that transaction closes. It takes a short authorized snapshot,
+runs the bounded provider with no database connection or advisory lock held, then opens a short
+patient-locked transaction to recheck care-team access, source revision, check usability and
+unchanged assessment inputs before replacing only `sbar`. Publishing a draft does not consume
+another budget slot or bump the source revision.
+
+Provider/schema/grounding failure preserves the already committed check and template. A source
+revision or assessment-eligibility change discards the generated prose and returns 409
+`memory_changed`; revoked access returns 404. The original check remains stored, so these errors
+must not be treated as evidence that upload storage rolled back. This prevents the response from
+returning copied evidence that was withdrawn during model latency. Direct fixture callers may
+store the deterministic assessment and explicitly invoke enrichment after committing.
+
+Regressions check that an independent connection can acquire both tenant and patient locks and
+read the committed template while the provider runs. Concurrent source retraction, purge, revision
+change and assignment revocation discard the draft; check and budget audit records survive. No
+provider I/O runs inside the budget critical section, avoiding a 15-second provider wait making
+other uploads/watchlist requests hit the 10-second database statement timeout.

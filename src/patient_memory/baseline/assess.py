@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 from psycopg.types.json import Jsonb
 
 from patient_memory.baseline.engine import FEATURES, MIN_BASELINE, Check, evaluate
-from patient_memory.baseline.sbar import generate_sbar
+from patient_memory.baseline.sbar import sbar_template
 from patient_memory.baseline.verdict import (
     ACTION_LABELS,
     TAG_LABELS,
@@ -99,7 +99,7 @@ def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_i
     reasons = [t for t in tags if t["kind"] == "amplifier"] if decision.verdict in (
         "escalate", "watch") and any(t["kind"] == "amplifier" for t in tags) else (
         tags if decision.verdict == "explained" else [])
-    sbar = generate_sbar(cfg, display_name, result.status, decision, str(check_id),
+    sbar = sbar_template(display_name, result.status, decision, str(check_id),
                          change["per_feature"], reasons)
     source_revision = conn.execute("SELECT revision FROM patients WHERE id=%s",
                                    (patient_id,)).fetchone()["revision"]
