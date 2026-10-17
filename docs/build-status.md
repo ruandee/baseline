@@ -231,9 +231,10 @@ replay from a shared/current-time unit. Fuller histories cannot be destructively
 Expected/actual snapshot and latest results are reported strictly; mismatches return nonzero.
 The nurse token/roster are written only to ignored artifacts, never stdout or Git.
 
-Approved policy#60 is integrated; original +20% Mr. T fixture remains here until separately
-reviewable approved scenario#61 adoption. Mr. T is the sole remaining declared-snapshot mismatch;
-K escalates, L watches/rechecks1h and controls remain quiet. Configured loader scoring deliberately
+Approved policy#60 and scenario#61 are adopted: Mr. T pause ratio AND mean pause increase35%
+on days26/27, preserving all other inputs. Strict DB acceptance requires all12 declared snapshots
+to match K escalate, T explained, L watch/recheck1h and nine quiet controls. The loader never
+coerces a verdict; mismatches still fail. Configured loader scoring deliberately
 stores the service template instead of issuing hundreds of historical SBAR model calls. Offline
 mode uses no provider calls. See decision008 and the fixture README for commands/integration.
 
@@ -241,5 +242,5 @@ Latest integrated local lint/unit:289 passed withFFmpeg,6 slow deselected. Previ
 head2023ec7 passed242 unit/119 DB cases withzero skips; new combined-head fullCI is pending.
 Six loader DB cases cover idempotency, publication/evidence support, prefix/full history,
 RLS/revocation and injected context. Local Docker/DB/migrations/eval remain unrun. BL-14 remains
-open for accepted scenario adoption, final strict DB acceptance and current-time/readback wiring.
+open for final strict DB acceptance and current-time/readback wiring.
 Real-audio/runner, hosting/reset and normal-temperature display are separate outstanding gates.
