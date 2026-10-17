@@ -4,6 +4,8 @@
 
 Maintain the patient-memory backend described in `docs/01-product.md` through `docs/05-build-plan.md`. Read `docs/build-status.md` for implemented behavior and outstanding gates before selecting work. The original specification is a target; keep runtime status accurate and record substantive changes in `docs/decisions/` with rationale and affected contracts.
 
+The Baseline hackathon build (voice checks, change engine, watch list, KAZE safety sessions) is specified in `docs/06-baseline.md` with product context in `docs/07-baseline-proposal.md`. Its work is tracked as GitHub issues BL-01 to BL-35 (ticket data in `docs/baseline-tickets.json`); for that work pick the ticket instead of the B-item sequence below, and read `docs/06-baseline.md` before changing code.
+
 ## Execution
 
 1. Read the product, architecture, contracts, evaluation and build plan before code changes.

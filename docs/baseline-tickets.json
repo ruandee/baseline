@@ -1,0 +1,462 @@
+[
+  {
+    "id": "BL-01",
+    "title": "Demo env hardening",
+    "area": "ops",
+    "tier": "mvp",
+    "description": "Add PM_TOKEN_TTL_HOURS to Settings and use it in auth.synthetic_token (demo value 48). Set PM_RATE_LIMIT=600 in the demo env. Add Gemini env vars (PM_PROVIDER=compatible, PM_PROVIDER_URL=https://generativelanguage.googleapis.com/v1beta/openai, PM_PROVIDER_MODEL, PM_PROVIDER_KEY). Add scripts/gemini_smoke.py that calls Gemini with a JSON schema.",
+    "depends_on": [],
+    "done_when": "Token valid 48 h; smoke test returns schema-valid JSON. If the OpenAI-compatible endpoint rejects response_format json_schema, note it and plan a native call in llm.py.",
+    "spec_section": "Demo data, config and deployment",
+    "owner_lane": "context-ops"
+  },
+  {
+    "id": "BL-02",
+    "title": "Docs and decision records",
+    "area": "backend",
+    "tier": "mvp",
+    "description": "Commit the technical spec as docs/06-baseline.md. Write docs/decisions/003-change-notifications.md (MVP banned care-driving alerts; Baseline adds decision-support notifications with a budget; diagnosis/treatment/autonomous action stay banned) and docs/decisions/004-timescale.md. Link 06 from AGENTS.md.",
+    "depends_on": [],
+    "done_when": "Files merged; AGENTS.md links to 06.",
+    "spec_section": "Scope, invariants and agent instructions",
+    "owner_lane": "core"
+  },
+  {
+    "id": "BL-03",
+    "title": "Migration 003 and Timescale image",
+    "area": "backend",
+    "tier": "mvp",
+    "description": "Switch the db image to timescale/timescaledb-ha:pg17 (confirm pgvector is present, else install). Add migration pair 003_baseline.py/.sql: voice_checks hypertable, context_tags, assessments, RLS enabled+forced, policies using pm_care(), grants to pm_runtime.",
+    "depends_on": [
+      "BL-02"
+    ],
+    "done_when": "Migration runs from an empty DB; RLS test as pm_runtime passes on all 3 tables; all existing tests still pass. If RLS doesn't apply to hypertable chunks, fall back to a plain table and record it.",
+    "spec_section": "Data model",
+    "owner_lane": "core"
+  },
+  {
+    "id": "BL-04",
+    "title": "Audio normalize, VAD, ASR, timing features",
+    "area": "speech",
+    "tier": "mvp",
+    "description": "speech/audio.py (ffmpeg to 16 kHz mono wav, highpass 80 Hz), speech/vad.py (webrtcvad-wheels, aggressiveness 2, 30 ms frames, pauses >= 250 ms inside speech span), speech/asr.py (faster-whisper base int8 singleton, word_timestamps), speech/features.py (speech_rate_wpm, pause_ratio, mean_pause_s). Pure functions.",
+    "depends_on": [],
+    "done_when": "Unit test on synthetic audio with known silences: pause count and pause ratio within 5% of constructed values.",
+    "spec_section": "Speech pipeline",
+    "owner_lane": "speech"
+  },
+  {
+    "id": "BL-05",
+    "title": "Prosody and quality gate",
+    "area": "speech",
+    "tier": "mvp",
+    "description": "speech/prosody.py (parselmouth to_pitch_ac 75-500 Hz, median voiced F0). speech/quality.py with reason codes too_short, too_little_speech, too_few_words, too_noisy, clipped, off_script.",
+    "depends_on": [
+      "BL-04"
+    ],
+    "done_when": "Short, noisy, clipped and off-script fixtures each return the right reason code.",
+    "spec_section": "Speech pipeline",
+    "owner_lane": "speech"
+  },
+  {
+    "id": "BL-06",
+    "title": "Golden clips",
+    "area": "speech",
+    "tier": "mvp",
+    "description": "Record 4 clips with the fixed prompt: normal, deliberately slow, deliberately pausey, right after climbing stairs. Keep audio out of Git. Add tests marked slow.",
+    "depends_on": [
+      "BL-05"
+    ],
+    "done_when": "Each clip moves its feature in the expected direction (slow: speech rate down; pausey: pause ratio up; stairs: pitch up).",
+    "spec_section": "Test plan and demo-day checklist",
+    "owner_lane": "speech"
+  },
+  {
+    "id": "BL-07",
+    "title": "POST /v1/patients/{id}/checks",
+    "area": "backend",
+    "tier": "mvp",
+    "description": "Synchronous multipart upload (audio, mode, device_id, device_ts, is_baseline). Run the pipeline, insert into voice_checks, return features/words/pauses/change/assessment/timings_ms per the contract. Delete temp audio unless PM_KEEP_AUDIO=true. NOTE: the PayloadLimit middleware in src/patient_memory/api.py returns 415 for any body that is not application/json and 413 above max_payload_bytes (2 MB). Allow multipart/form-data for this route before anything else works. A 15 s 44.1 kHz stereo WAV is ~2.6 MB, so only webm/mp4 from MediaRecorder fit under the limit.",
+    "depends_on": [
+      "BL-03",
+      "BL-05"
+    ],
+    "done_when": "Contract tests: webm, mp4, wav -> 200 with features; short clip -> usable:false; other patient -> 404; >2 MB -> 413 (middleware). p95 under 5 s on the demo host.",
+    "spec_section": "API contracts",
+    "owner_lane": "speech"
+  },
+  {
+    "id": "BL-08",
+    "title": "Change engine",
+    "area": "backend",
+    "tier": "mvp",
+    "description": "baseline/engine.py: stateless; rolling and enrolled baseline modes; same device_id preferred; robust z with MAD floor and abs floors; direction-aware dz; fused score; EWMA (0.3) and CUSUM (k 0.5, h 4); statuses enrolling/none/provisional/change; params echoed. Baselines only use checks with the same prompt_version.",
+    "depends_on": [],
+    "done_when": "Unit tests: stable -> none; drift -> change on 2nd check; 3 fresh baseline clips work in enrolled mode; 1 strong clip -> provisional.",
+    "spec_section": "Change engine",
+    "owner_lane": "core"
+  },
+  {
+    "id": "BL-09",
+    "title": "Structured context and POST /context",
+    "area": "backend",
+    "tier": "mvp",
+    "description": "baseline/context.py rules: high-risk medication lookup -> high_risk_med_new; temperature_c >= 37.8 -> fever_documented; context.* observations -> matching tag. POST /v1/patients/{id}/context creates an observation source via existing ingestion plus a context_tags row.",
+    "depends_on": [
+      "BL-03"
+    ],
+    "done_when": "An oxybutynin order creates a high_risk_med_new tag with a valid quote span.",
+    "spec_section": "Context, verdict and SBAR",
+    "owner_lane": "context-ops"
+  },
+  {
+    "id": "BL-10",
+    "title": "Gemini context extraction from notes",
+    "area": "backend",
+    "tier": "mvp",
+    "description": "baseline/llm.py client reusing provider settings. Extract explainer/amplifier tags from nursing notes with the spec's system prompt and strict schema; validate each quote as an exact substring and compute offsets; drop misses. Offline keyword fallback when provider is stub or errors. Hook after the worker publishes a note; POST /notes/extract on demand.",
+    "depends_on": [
+      "BL-01",
+      "BL-09"
+    ],
+    "done_when": "'Not her usual chatty self' is tagged with valid offsets; a fabricated quote is dropped; offline mode produces the same tags.",
+    "spec_section": "Context, verdict and SBAR",
+    "owner_lane": "context-ops"
+  },
+  {
+    "id": "BL-11",
+    "title": "Verdict table and assessments",
+    "area": "backend",
+    "tier": "mvp",
+    "description": "baseline/verdict.py lookup table per spec; write assessments rows; shift escalation budget (PM_ESCALATION_BUDGET=3, shifts at 07/15/23 local, over_budget flag); PM_NO_ESCALATE_PATIENTS for the runner.",
+    "depends_on": [
+      "BL-08",
+      "BL-09"
+    ],
+    "done_when": "Every status x context combination maps to exactly one verdict in tests; amplifier wins over explainer; runner never escalates.",
+    "spec_section": "Context, verdict and SBAR",
+    "owner_lane": "core"
+  },
+  {
+    "id": "BL-12",
+    "title": "SBAR draft with validator",
+    "area": "backend",
+    "tier": "mvp",
+    "description": "baseline/sbar.py: Gemini draft for escalate/watch with the 5-rule validator (sections present, IDs allowed, numbers match, banned phrases, R names the action); template fallback; store source gemini|template.",
+    "depends_on": [
+      "BL-10",
+      "BL-11"
+    ],
+    "done_when": "Wrong number or unknown ID falls back to the template; a valid draft is stored with source gemini.",
+    "spec_section": "Context, verdict and SBAR",
+    "owner_lane": "context-ops"
+  },
+  {
+    "id": "BL-13",
+    "title": "Watch list and overview endpoints",
+    "area": "backend",
+    "tier": "mvp",
+    "description": "GET /v1/watchlist (sorted, escalation counter, watch window, sparkline) and GET /v1/patients/{id}/overview (time_bucket series, baseline band, latest assessment with SBAR, context tags, watch window). Regenerate docs/openapi.json.",
+    "depends_on": [
+      "BL-11"
+    ],
+    "done_when": "Each page's data in one call; OpenAPI updated.",
+    "spec_section": "API contracts",
+    "owner_lane": "core"
+  },
+  {
+    "id": "BL-14",
+    "title": "Synthetic cohort loader",
+    "area": "data",
+    "tier": "mvp",
+    "description": "scripts/load_baseline_demo.py + fixtures/synthetic/baseline_storylines.json: 12 residents x 30 days, fixed seed; Mrs. K, Mr. T, Mrs. L storylines; notes/meds/vitals via existing ingestion; --offline flag.",
+    "depends_on": [
+      "BL-03",
+      "BL-11"
+    ],
+    "done_when": "One command loads the unit; Mrs. K escalate, Mr. T explained, Mrs. L watch, others within normal.",
+    "spec_section": "Demo data, config and deployment",
+    "owner_lane": "core"
+  },
+  {
+    "id": "BL-15",
+    "title": "Runner baseline and context",
+    "area": "data",
+    "tier": "mvp",
+    "description": "Runner records 5 rested baseline clips and 2 after-stairs clips via /check?mode=runner (is_baseline on rested only). Add context record exertion 'Running the Toronto marathon' Sunday 08:00-14:00. Add runner to PM_NO_ESCALATE_PATIENTS.",
+    "depends_on": [
+      "BL-07",
+      "BL-17"
+    ],
+    "done_when": "5 usable baseline checks stored; stairs clips move speech rate down and pauses up.",
+    "spec_section": "Demo data, config and deployment",
+    "owner_lane": "speech"
+  },
+  {
+    "id": "BL-16",
+    "title": "Frontend scaffold",
+    "area": "frontend",
+    "tier": "mvp",
+    "description": "web/ Next.js App Router + TypeScript + Tailwind + Recharts. /api/pm/[...path] proxy route adding the demo token server-side. Types via openapi-typescript from docs/openapi.json. Layout and verdict colour tokens.",
+    "depends_on": [],
+    "done_when": "Proxy reaches the API health endpoint with the demo token.",
+    "spec_section": "Frontend",
+    "owner_lane": "frontend"
+  },
+  {
+    "id": "BL-17",
+    "title": "/check page",
+    "area": "frontend",
+    "tier": "mvp",
+    "description": "Prompt card, record button with 15 s auto-stop, MediaRecorder (webm or mp4 on iOS), upload with 3 retries, speech decomposition result view (waveform, word timeline, shaded pauses, 4 numbers vs baseline, verdict), modes resident/runner/live.",
+    "depends_on": [
+      "BL-07",
+      "BL-16"
+    ],
+    "done_when": "Works on an iPhone and an Android phone over HTTPS on LTE.",
+    "spec_section": "Frontend",
+    "owner_lane": "frontend"
+  },
+  {
+    "id": "BL-18",
+    "title": "/unit page",
+    "area": "frontend",
+    "tier": "mvp",
+    "description": "Watch list table with verdict chips, watch-window chip, fused z, sparkline, escalation counter; 10 s polling only while visible.",
+    "depends_on": [
+      "BL-13",
+      "BL-16"
+    ],
+    "done_when": "Sorted list matches the API; polling stops when the tab is hidden.",
+    "spec_section": "Frontend",
+    "owner_lane": "frontend"
+  },
+  {
+    "id": "BL-19",
+    "title": "/resident/[id] page",
+    "area": "frontend",
+    "tier": "mvp",
+    "description": "Verdict card, 4 small-multiple charts with baseline band and change marker, evidence chain with click-through to /evidence/{id}, SBAR panel with source badge, 'how this was decided' table.",
+    "depends_on": [
+      "BL-13",
+      "BL-16"
+    ],
+    "done_when": "Every evidence chip opens its source quote; band and markers render for Mrs. K.",
+    "spec_section": "Frontend",
+    "owner_lane": "frontend"
+  },
+  {
+    "id": "BL-20",
+    "title": "Compose and HTTPS host",
+    "area": "ops",
+    "tier": "mvp",
+    "description": "compose: db (timescaledb-ha), object-store, api (with ffmpeg), worker (tenant 0 loop), web. Host on a Vultr VM with Caddy + GoDaddy domain, or a laptop + Cloudflare tunnel. Decide by 16:00.",
+    "depends_on": [
+      "BL-07",
+      "BL-16"
+    ],
+    "done_when": "Public HTTPS URL; a phone on LTE can record and get a result.",
+    "spec_section": "Demo data, config and deployment",
+    "owner_lane": "context-ops"
+  },
+  {
+    "id": "BL-21",
+    "title": "Demo reset script",
+    "area": "ops",
+    "tier": "mvp",
+    "description": "scripts/demo_reset.py: reload synthetic patients only (never the runner's real clips), mint 48 h tokens, write web/.env.local, print demo URLs.",
+    "depends_on": [
+      "BL-14",
+      "BL-20"
+    ],
+    "done_when": "One command restores state in under a minute.",
+    "spec_section": "Demo data, config and deployment",
+    "owner_lane": "core"
+  },
+  {
+    "id": "BL-22",
+    "title": "Repo public and initial Devpost entry",
+    "area": "submission",
+    "tier": "mvp",
+    "description": "Before 21:00 Saturday: scan history for secrets, make the repo public, create the Devpost entry with team members, prize categories (PointClickCare, KAZE, Healthcare, AI for Social Impact, Gemini, Tiger Data, Vultr/GoDaddy if used) and AI tools used (Claude Code, Codex, Gemini).",
+    "depends_on": [],
+    "done_when": "Submitted before 21:00 Saturday.",
+    "spec_section": "Tickets",
+    "owner_lane": null
+  },
+  {
+    "id": "BL-23",
+    "title": "Backup video, write-up, README",
+    "area": "submission",
+    "tier": "mvp",
+    "description": "Record the full demo video by 17:00 Saturday; Devpost write-up (why, stack, what it does); README run steps from a clean clone.",
+    "depends_on": [
+      "BL-20"
+    ],
+    "done_when": "Video saved in two places; README reproduces the demo.",
+    "spec_section": "Tickets",
+    "owner_lane": null
+  },
+  {
+    "id": "BL-24",
+    "title": "Rehearsal and checklist dry run",
+    "area": "submission",
+    "tier": "mvp",
+    "description": "Two full solo run-throughs by the Sunday presenters before 18:00 Saturday; run the demo-day checklist once.",
+    "depends_on": [
+      "BL-21",
+      "BL-23"
+    ],
+    "done_when": "Both runs under 4 minutes with no manual fixes.",
+    "spec_section": "Test plan and demo-day checklist",
+    "owner_lane": null
+  },
+  {
+    "id": "BL-25",
+    "title": "KAZE: safety session model and endpoints",
+    "area": "backend",
+    "tier": "kaze",
+    "description": "Migration 004: safety_sessions, escalation_events, session_id + lat/lon/accuracy on voice_checks; arm/status/end endpoints; 24 h deletion job; separate kaze-demo tenant.",
+    "depends_on": [
+      "BL-07",
+      "BL-08"
+    ],
+    "done_when": "Arming with 3 baseline clips moves the session to active; RLS test passes.",
+    "spec_section": "KAZE extension: safety sessions",
+    "owner_lane": null
+  },
+  {
+    "id": "BL-26",
+    "title": "KAZE: scheduler and triggers",
+    "area": "backend",
+    "tier": "kaze",
+    "description": "baseline/safety.py in the worker loop every 15 s: missed-check detection, speech-change trigger, ladder levels 0-4.",
+    "depends_on": [
+      "BL-25"
+    ],
+    "done_when": "Unit tests: on-time check resets; 5 min overdue reaches level 2; ack stops the ladder.",
+    "spec_section": "KAZE extension: safety sessions",
+    "owner_lane": null
+  },
+  {
+    "id": "BL-27",
+    "title": "KAZE: SMS and acknowledgement",
+    "area": "backend",
+    "tier": "kaze",
+    "description": "Twilio sender (PM_TWILIO_*) with a log fallback; neutral fixed message wording; public GET /ack/{token}.",
+    "depends_on": [
+      "BL-26"
+    ],
+    "done_when": "A verified phone receives the text; tapping the link marks the session acknowledged.",
+    "spec_section": "KAZE extension: safety sessions",
+    "owner_lane": null
+  },
+  {
+    "id": "BL-28",
+    "title": "KAZE: /out and session pages",
+    "area": "frontend",
+    "tier": "kaze",
+    "description": "Arm flow (contacts, end time, interval, context, 3 baseline clips), countdown + check-in button, judge-facing session timeline.",
+    "depends_on": [
+      "BL-17",
+      "BL-25"
+    ],
+    "done_when": "Full arm -> miss -> text -> ack loop works on two phones.",
+    "spec_section": "KAZE extension: safety sessions",
+    "owner_lane": null
+  },
+  {
+    "id": "BL-29",
+    "title": "KAZE: demo and Devpost section",
+    "area": "submission",
+    "tier": "kaze",
+    "description": "Demo script with interval_min = 1; Devpost section mapping to safety, dignity, privacy, autonomy; tick the KAZE prize.",
+    "depends_on": [
+      "BL-27",
+      "BL-28"
+    ],
+    "done_when": "Rehearsed twice; KAZE selected on Devpost.",
+    "spec_section": "KAZE extension: safety sessions",
+    "owner_lane": null
+  },
+  {
+    "id": "BL-30",
+    "title": "Signal-adapter registry",
+    "area": "backend",
+    "tier": "pcc-feedback",
+    "description": "FeatureSpec registry in baseline/engine.py; per-modality status; corroborated flag on assessments; corroborated provisional treated as change.",
+    "depends_on": [
+      "BL-08"
+    ],
+    "done_when": "Existing engine tests pass unchanged; a two-modality test sets corroborated.",
+    "spec_section": "PointClickCare feedback: Vox add-on, more signals, experience",
+    "owner_lane": null
+  },
+  {
+    "id": "BL-31",
+    "title": "Resident and PSW experience on /check",
+    "area": "frontend",
+    "tier": "pcc-feedback",
+    "description": "Spoken prompt (speechSynthesis, per-resident language), large type, 'Let's count together', warm thank-you, never show scores to residents, listening indicator, skip today, one-retry rule, due-now list, 'Your observation helped'.",
+    "depends_on": [
+      "BL-17"
+    ],
+    "done_when": "A non-technical tester completes a check without help; no score ever appears in resident mode.",
+    "spec_section": "PointClickCare feedback: Vox add-on, more signals, experience",
+    "owner_lane": null
+  },
+  {
+    "id": "BL-32",
+    "title": "Vox encounter adapter (mock)",
+    "area": "backend",
+    "tier": "pcc-feedback",
+    "description": "POST /v1/integrations/vox/encounters: consent gate (422 + audit), resident-only segment extraction, >= 8 s resident speech, prompt_version free-conversation-v1 with PM_Z_THRESHOLD_FREE=2.5, fixture encounter. Label as mock in UI. NOTE: same PayloadLimit middleware issue as BL-07 (415 for non-JSON bodies); allow multipart on this route.",
+    "depends_on": [
+      "BL-07",
+      "BL-08"
+    ],
+    "done_when": "Fixture encounter produces a check from resident speech only; consent false returns 422.",
+    "spec_section": "PointClickCare feedback: Vox add-on, more signals, experience",
+    "owner_lane": null
+  },
+  {
+    "id": "BL-33",
+    "title": "Draft note export",
+    "area": "backend",
+    "tier": "pcc-feedback",
+    "description": "GET /v1/patients/{id}/assessments/{aid}/note returns a FHIR R4 DocumentReference with docStatus preliminary carrying the SBAR; 'Send to sign-off queue' button on /resident.",
+    "depends_on": [
+      "BL-12"
+    ],
+    "done_when": "Payload validates against the DocumentReference shape; button shows it.",
+    "spec_section": "PointClickCare feedback: Vox add-on, more signals, experience",
+    "owner_lane": null
+  },
+  {
+    "id": "BL-34",
+    "title": "Movement check (stretch)",
+    "area": "frontend",
+    "tier": "stretch",
+    "description": "/check?type=motion: MediaPipe PoseLandmarker in browser; sit_to_stand_s, trunk_sway, step_cadence_spm; POST /motion-checks; motion_checks hypertable with RLS. No video leaves the phone.",
+    "depends_on": [
+      "BL-30",
+      "BL-16"
+    ],
+    "done_when": "A judge standing up from a chair gets 3 numbers in under 15 s.",
+    "spec_section": "PointClickCare feedback: Vox add-on, more signals, experience",
+    "owner_lane": null
+  },
+  {
+    "id": "BL-35",
+    "title": "Vitals as a signal (stretch)",
+    "area": "backend",
+    "tier": "stretch",
+    "description": "Resting HR and RR from existing observations into the registry as modality vitals.",
+    "depends_on": [
+      "BL-30"
+    ],
+    "done_when": "Mrs. K's synthetic resting RR rise shows as a corroborating vitals change.",
+    "spec_section": "PointClickCare feedback: Vox add-on, more signals, experience",
+    "owner_lane": null
+  }
+]
