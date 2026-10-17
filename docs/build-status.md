@@ -1,5 +1,16 @@
 # Implementation review handoff
 
+## BL-14 — Storyline preparation only
+
+`fixtures/synthetic/baseline_storylines.json` now supplies reproducible inputs for
+12 fictional residents over 30 days, plus valid source-ingestion payloads for the
+three scripted scenarios. Regenerate with `python -m scripts.prepare_baseline_storylines`.
+The manifest's expected verdicts are pending BL-11 and loader verification; no
+loader, source publication, context extraction or actual assessments are added.
+See [decision 008](decisions/008-baseline-storyline-preparation.md) and the fixture
+README for the historical snapshot and Mrs. L CUSUM/provisional gates. This is
+partial BL-14 work; the issue remains open.
+
 Implemented on `build/backend-mvp` with separate commits. Read this alongside the original target specification; implementation does not imply all research/pilot gates are met.
 
 | Milestone | Implemented behavior | Remaining scope or gate |
