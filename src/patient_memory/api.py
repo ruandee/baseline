@@ -19,6 +19,7 @@ from pydantic import AwareDatetime
 
 from patient_memory.auth import decode_token
 from patient_memory.baseline.context import add_context
+from patient_memory.baseline.notes import extract_pending_notes
 from patient_memory.baseline.overview import overview as build_overview
 from patient_memory.baseline.overview import watchlist as build_watchlist
 from patient_memory.checks import care_gate, store_check
@@ -30,6 +31,7 @@ from patient_memory.domain import (
     CheckResult,
     ContextInput,
     ContextTagOut,
+    NoteExtractionResult,
     PatientInput,
     Question,
     Reason,
@@ -207,6 +209,15 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             tag = add_context(conn, actor, patient_id, body, idempotency_key, app.state.objects)
             audit(conn, actor, patient_id, "add_context", request.state.request_id)
             return tag
+
+    @app.post("/v1/patients/{patient_id}/notes/extract", response_model=NoteExtractionResult)
+    def extract_notes(patient_id: UUID, request: Request, retry_fallback: bool = Query(default=False),
+                      actor=actor_dep):
+        result = extract_pending_notes(cfg, actor, patient_id, retry_fallback)
+        with transaction(cfg, actor) as conn:
+            patient_access(conn, patient_id, write=True)
+            audit(conn, actor, patient_id, "extract_note_context", request.state.request_id)
+            return result
 
     @app.get("/v1/patients/{patient_id}/jobs/{job_id}")
     def job_state(patient_id: UUID, job_id: UUID, actor=actor_dep):
