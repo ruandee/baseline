@@ -116,6 +116,105 @@ Not done here: Gemini free-text tags, and readers ignoring tags of retracted sou
 overview tickets must do that join). Only importer-assigned callers can post context, because it
 goes through source ingestion.
 
+## Verdicts, assessments and the two read endpoints (BL-11, BL-13)
+
+Every usable check is scored when it is stored and gets an `assessments` row, returned as `change`
+and `assessment` by `POST /checks`. `baseline/verdict.py` is the pure verdict table plus the shift
+escalation budget (`PM_ESCALATION_BUDGET`, default 3 per 8-hour shift), the no-escalate list
+(`PM_NO_ESCALATE_PATIENTS`) and the template SBAR. `GET /v1/watchlist` and
+`GET /v1/patients/{id}/overview?days=30` read the stored rows; both are care-team only and apply
+RLS. See [decision 012](decisions/012-verdict-assessments-and-overview.md).
+
+Not done: Gemini note extraction and SBAR drafting (BL-10, BL-12), the cohort loader (BL-14), and
+the "temperature documented normal" reader. The ffmpeg-dependent contract tests in
+`tests/contract/test_checks.py` skip where ffmpeg is not installed, so the audio path into
+`store_check` is covered only by `tests/integration/test_assessments.py`, which calls it directly.
+
+
+## BL-11/BL-13 review corrections
+
+A review branch adds source revision/provenance to assessments, atomically scrubs copied quotes/SBAR
+on source revision bumps, and withholds stale assessments on both read endpoints. Active context
+excludes superseded sources. History selection preserves enrolled clips and prompt scope, and
+advisory locks serialize concurrent budget/history decisions with access rechecks. Browser upload
+contracts now require the built assessment response and CI installs ffmpeg. See
+[decision 015](decisions/015-assessment-evidence-lifecycle.md).
+
+Local Windows/Python 3.14 with ffmpeg: lint passed; unit 150 passed, 6 slow deselected. Service-backed
+regressions require PostgreSQL/S3, unavailable locally; CI results are reported on the review PR.
+
+## BL-12 ? Validated SBAR drafts (integration pending)
+
+
+
+Watch/escalate checks now draft through `baseline.sbar` after deterministic verdict selection.
+
+Configured providers receive only rounded feature values and selected context; all S/B/A/R
+
+sections, allowed IDs/numbers, banned phrases and the fixed action label are validated. Provider
+
+or validation failure uses the template, and stub mode never calls a provider. Canonical check/tag
+
+IDs are validated before mapping to the existing UI check/fact citation convention. See
+
+[decision 014](decisions/014-validated-sbar-drafts.md).
+
+
+
+Local Windows/Python 3.14 verification: frozen sync and lint pass; 169 unit tests pass with FFmpeg
+
+on PATH, 6 slow tests deselected. DB persistence/authorization tests were added but not run locally
+
+because Docker is unavailable. Migrations, DB-backed suites and stub evaluation await CI. No live
+
+model call or real-audio validation was performed. This branch depends on BL-10's shared client
+
+and BL-11/13 review integration, including stored evidence invalidation on lifecycle changes;
+
+BL-12 remains open until those dependencies and full CI pass.
+
+
+
+BL-12 semantic review hardening: model output must exactly match server-constructed supported
+
+sentence/evidence pairs, and R must be the fixed standard action sentence with no extra advice.
+
+This closes the unsupported-negative and appended-treatment gaps left by IDs/numbers-only
+
+validation. Tests reject invented absence/presence, swapped numbers, wrong tag attribution and
+
+additional action clauses. This is constrained sentence assembly, not unrestricted prose generation;
+
+ADR 014 records the design change and remaining clinical/evidence validity limits.
+
+
+
+
+
+BL-01 takeover update: main conflicts resolved; token TTL tested at 1, 7, 48 and
+72 hours with expired-token rejection; provider error/schema/model-discovery tests
+added. Local lint and frozen sync pass; unit suite 68 passed, 7 ffmpeg-dependent
+skips and 2 slow deselections. Previous live Gemini request returned HTTP 404;
+no saved key is available for a retry, so provider acceptance remains open.
+See decision 009 for recovery commands and the explicit unrun service checks.
+
+## BL-09 — Structured context and `POST /context`
+
+`baseline/context.py` holds the no-model rules: an `ordered` or `administered` medication event for
+a high-risk drug becomes `high_risk_med_new`, `temperature_c` of 37.8 or more becomes
+`fever_documented`, and a `context.<tag>` observation becomes that tag. The worker writes the tags
+in the same transaction that publishes the facts, quoting the record's own span.
+`POST /v1/patients/{id}/context` submits such an observation through normal ingestion and returns
+the tag with canonical text and fact published atomically, completing the queued job and bumping
+the patient revision once. Its citation resolves immediately without a worker. Generic context
+inputs reject check-only `language_change`; structured extraction skips it until check-linked
+metadata exists. Migration 004 lets purge delete tags so a purged source leaves no quote behind. See
+[decision 007](decisions/007-structured-context-tags.md).
+
+Not done here: Gemini free-text tags, and readers ignoring tags of retracted sources (verdict and
+overview tickets must do that join). Only importer-assigned callers can post context, because it
+goes through source ingestion.
+
 ## BL-08 policy proposal ? not accepted or deployed
 
 The isolated `bl/bl-08-policy-proposal` branch implements a reviewed-change candidate, not an
@@ -161,3 +260,9 @@ contracts now require the built assessment response and CI installs ffmpeg. See
 
 Local Windows/Python 3.14 with ffmpeg: lint passed; unit 150 passed, 6 slow deselected. Service-backed
 regressions require PostgreSQL/S3, unavailable locally; CI results are reported on the review PR.
+BL-12 integration follow-up: the check transaction commits its deterministic verdict, budget slot
+and template before provider drafting. Enrichment runs outside database transactions, then
+publishes only after care-team, source-revision and check-eligibility rechecks. Source changes
+return 409 `memory_changed` with the original check preserved; revoked access returns 404. See
+ADR 014. Local lint and ffmpeg-enabled unit suite: 250 passed, 6 slow deselected. New concurrency
+and lifecycle regressions require the service-backed CI run.
