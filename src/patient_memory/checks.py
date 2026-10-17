@@ -2,11 +2,10 @@ from uuid import UUID, uuid4
 
 from psycopg.types.json import Jsonb
 
-from patient_memory.baseline.assess import assess_check
+from patient_memory.baseline.assess import assess_check, lock_assessment
 from patient_memory.config import Settings
 from patient_memory.domain import CheckResult
 from patient_memory.errors import Problem
-from patient_memory.ingestion import lock_patient
 from patient_memory.speech.pipeline import Analysis
 from patient_memory.storage import audit, patient_access
 
@@ -24,9 +23,7 @@ def store_check(conn, identity, patient_id: UUID, request_id: UUID, analysis: An
     care_gate(conn, patient_id)
     # All check writers take tenant/shift admission before the patient history lock.
     # A concurrent final-slot escalation must see the previous committed reservation.
-    conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
-                 ("baseline-budget/" + str(identity.tenant_id),))
-    lock_patient(conn, patient_id)
+    lock_assessment(conn, identity.tenant_id, patient_id)
     care_gate(conn, patient_id)
     check_id = uuid4()
     words = [{"w": w.w, "start": w.start, "end": w.end} for w in analysis.words]

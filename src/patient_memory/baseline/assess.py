@@ -14,6 +14,15 @@ from patient_memory.baseline.verdict import (
     shift_bounds,
 )
 from patient_memory.config import Settings
+from patient_memory.ingestion import lock_patient
+from patient_memory.storage import patient_access
+
+
+def lock_assessment(conn, tenant_id: UUID, patient_id: UUID):
+    """All admission paths, including synthetic fixture scoring, use this lock order."""
+    conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
+                 ("baseline-budget/" + str(tenant_id),))
+    lock_patient(conn, patient_id)
 
 
 def valid_tags(conn, patient_id: UUID, at: datetime) -> list[dict]:
@@ -73,6 +82,9 @@ def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_i
                  ts: datetime, device_id: str, prompt_version: str, is_baseline: bool,
                  features: dict, display_name: str) -> tuple[dict, dict]:
     """Returns the (change, assessment) payloads of POST /checks and stores the assessment row."""
+    patient_access(conn, patient_id)
+    lock_assessment(conn, tenant_id, patient_id)
+    patient_access(conn, patient_id)
     history = _history(conn, patient_id, ts, prompt_version)
     mode = "enrolled" if sum(c.is_baseline for c in history) >= MIN_BASELINE else "rolling"
     check = Check(str(check_id), ts, device_id, prompt_version, is_baseline, True, dict(features))
