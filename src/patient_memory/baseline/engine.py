@@ -16,7 +16,7 @@ SEQUENCE = 20
 CONSECUTIVE_WITHIN = timedelta(hours=24)
 MAD_SCALE = 1.4826
 REL_FLOOR = 0.05
-POLICY_VERSION = "multifeature-cusum-v2-proposal"
+POLICY_VERSION = "multifeature-cusum-v2"
 CUSUM_MIN_FEATURES = 2
 
 # direction: -1 slower is concerning, +1 higher is concerning, 0 two-sided.

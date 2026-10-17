@@ -186,7 +186,7 @@ def test_every_parameter_used_is_echoed():
     assert params["directions"]["speech_rate_wpm"] == -1
     assert (params["rolling_checks"], params["rolling_window_days"]) == (10, 30)
     assert (params["rolling_guard_hours"], params["consecutive_hours"]) == (12, 24)
-    assert params["policy_version"] == "multifeature-cusum-v2-proposal"
+    assert params["policy_version"] == "multifeature-cusum-v2"
     assert params["cusum_min_features"] == 2
     assert params["cusum_confirmation_hours"] == 24
     assert params["cusum_requires_ongoing_deviation"] is True

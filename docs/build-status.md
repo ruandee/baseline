@@ -266,3 +266,9 @@ publishes only after care-team, source-revision and check-eligibility rechecks. 
 return 409 `memory_changed` with the original check preserved; revoked access returns 404. See
 ADR 014. Local lint and ffmpeg-enabled unit suite: 250 passed, 6 slow deselected. New concurrency
 and lifecycle regressions require the service-backed CI run.
+
+BL-08 adoption update: the user explicitly approved policy PR #60 and paired scenario #61.
+Decision019/docs06 now record the accepted multifeature/pitch-correspondence policy, unchanged
+thresholds and diagnostic-only single-feature CUSUM. Assessment policy_version is now
+multifeature-cusum-v2. This branch integrates latest main including BL-10 and reviewed BL-12;
+review/CI still precede merge. Fixture and loader adoption remain separately reviewable.

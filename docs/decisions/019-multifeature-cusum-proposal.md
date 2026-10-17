@@ -1,6 +1,7 @@
 # 019: Proposal — corroborated, ongoing CUSUM alarms
 
-Status: proposed for review, not an accepted replacement for decision 011, 2026-10-17.
+Status: accepted by explicit user approval of PRs #60 and #61, 2026-10-17. Supersedes
+the status-rule interpretation in decision 011; code adoption still requires reviewed CI/merge.
 
 ## Problem and evidence
 
@@ -11,11 +12,12 @@ the original engine also flags stable Resident 06 at day 30 through pitch CUSUM.
 `abs(z) - k` in one pitch stream pools opposite-direction noise into a positive trend.
 Large historical CUSUM values can also maintain a flag after the current measurements recover.
 
-This branch proposes a **behavior change**, not a bug fix consistent with the original spec.
-It needs explicit review/acceptance and corresponding spec/acceptance changes before merge.
+This is an explicitly approved **behavior change**, not a bug fix consistent with the original
+spec. The user approved both the policy and its separately authored Mr. T scenario amendment;
+this record and docs/06 describe the adopted contract. Review and CI still precede main merge.
 No threshold is adjusted and no clinical sensitivity/specificity is established.
 
-## Proposed status policy
+## Accepted status policy
 
 - Tighten instantaneous confirmation too: at least `PM_MIN_FEATURES` of the **same feature names**
   must exceed `PM_Z_THRESHOLD` on current and previous usable checks within 24 hours. If pitch is
@@ -35,7 +37,7 @@ No threshold is adjusted and no clinical sensitivity/specificity is established.
 All baseline, prompt, temporal, device preference, feature scale and 20-check sequence rules
 remain unchanged. The current baseline is still used to reconstruct the entire scored sequence;
 previous-score reconstruction is not the previous assessment's original historical snapshot.
-Every result echoes `policy_version=multifeature-cusum-v2-proposal`, CUSUM minimum features,
+Every result echoes `policy_version=multifeature-cusum-v2`, CUSUM minimum features,
 confirmation hours, ongoing-deviation requirement, signed-pitch mode and instantaneous feature/
 direction correspondence in `params`.
 
@@ -87,7 +89,7 @@ pitch reversal plus persistent rate drift, could still report change through the
 path. Both confirmation paths now require corresponding feature names and pitch direction.
 Thresholds, minimum-feature settings and the inclusive 24-hour boundary are unchanged. Regression
 cases isolate instantaneous scoring with a high CUSUM threshold and cover both rejected cases
-plus a consistent-pair positive control. This remains a proposal awaiting explicit acceptance.
+plus a consistent-pair positive control. This correspondence follow-up was included in the subsequent explicit approval recorded below.
 
 
 Re-evaluating every original draft row and the separate in-memory 35% copy after this follow-up
@@ -96,3 +98,22 @@ produced identical statuses to the first draft on both 360-row datasets: origina
 36 enrolling / 319 none / 3 provisional / 2 change. The fixture file hash was checked unchanged.
 Local full unit suite: 154 passed, 6 slow deselected; 39 engine cases passed. No fixture edit,
 accepted policy/spec change or main-branch merge occurred.
+
+## Explicit adoption
+
+The user explicitly approved policy PR #60 and the paired Mr. T +35% scenario PR #61 after
+reviewable proposals and tradeoffs were presented. Adopt the matching-feature/pitch-direction
+instantaneous confirmation and supported multifeature CUSUM rules above, without changing any
+threshold. The accepted policy identifier is `multifeature-cusum-v2`; the earlier proposal suffix
+is removed so stored assessment parameters identify the approved contract. The original and
+amended 360-row replays remain separate evidence, not clinical calibration. BL-14 still reports
+actual results strictly, and its retrospective prefix versus full-history presentation is explicit.
+
+Acceptance replay after latest-main integration evaluated 720 checks using the real engine,
+structured-context rules, offline note extraction and verdict table: original 20% manifest
+matches 11/12 declared snapshots (Mr. T remains within_normal); the approved 35% manifest
+matches 12/12 (Mrs. K escalate/4at_now, Mr. T explained/none, Mrs. L watch/recheck_1h).
+Both sets have zero provisional/change flags across all 270 control checks. Recovery returns
+to none on days28?30 for K/T and day30 for L. This is deterministic engineering evidence;
+actual PostgreSQL/S3 loader acceptance remains a separate full-CI gate. Local lint and 269 unit
+tests pass with FFmpeg, 6 slow tests deselected; no live model or real-audio calls were made.
