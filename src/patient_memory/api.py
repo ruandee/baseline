@@ -22,6 +22,7 @@ from patient_memory.baseline.context import add_context
 from patient_memory.baseline.notes import extract_pending_notes
 from patient_memory.baseline.overview import overview as build_overview
 from patient_memory.baseline.overview import watchlist as build_watchlist
+from patient_memory.baseline.sbar import enrich_assessment_sbar
 from patient_memory.checks import care_gate, store_check
 from patient_memory.config import Settings
 from patient_memory.domain import (
@@ -352,8 +353,11 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             if not cfg.keep_audio:
                 shutil.rmtree(work, ignore_errors=True)
         with transaction(cfg, actor) as conn:
-            return store_check(conn, actor, patient_id, request.state.request_id, analysis,
-                               mode, device_id, device_ts, is_baseline, cfg)
+            result = store_check(conn, actor, patient_id, request.state.request_id, analysis,
+                                 mode, device_id, device_ts, is_baseline, cfg)
+        if result.assessment:
+            enrich_assessment_sbar(cfg, actor, patient_id, result.assessment["id"])
+        return result
 
     @app.get("/v1/watchlist")
     def watchlist(actor=actor_dep):
