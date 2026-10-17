@@ -96,5 +96,10 @@ def claim_job(conn):
 def bump(conn, patient_id):
     # Caller holds patient advisory lock for every revision mutation.
     conn.execute("DELETE FROM answers WHERE patient_id=%s", (patient_id,))
+    # Assessments copy source quotes. Invalidate and scrub derived prose in the same source
+    # mutation/publication transaction, including purge; preserve numeric audit and budget flags.
+    conn.execute("UPDATE assessments SET reasons='[]',sbar=NULL,"
+                 "params=params || '{\"invalidated\":true}'::jsonb WHERE patient_id=%s",
+                 (patient_id,))
     return conn.execute("UPDATE patients SET revision=revision+1 WHERE id=%s RETURNING revision",
                         (patient_id,)).fetchone()["revision"]
