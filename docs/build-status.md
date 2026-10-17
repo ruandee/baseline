@@ -53,3 +53,18 @@ Not done here: `change` and `assessment` are `null` and `timings_ms` has no `eng
 keys until the change engine (BL-08) and the verdict table (BL-11) exist. Clips over 30 s are
 refused (the prompt stops at 15 s) so a crafted upload cannot hold Whisper for minutes. The
 p95 under 5 s target has not been measured on the demo host.
+
+## BL-20 — Container hosting preparation (acceptance pending)
+
+Opt-in `compose.demo.yaml` adds the ffmpeg image, seeded tenant-0 worker, same-origin frontend/API
+and Caddy HTTPS proxy. Hosted startup requires explicit hostnames, a deployment signing secret
+and a valid seeded nurse token. Only Caddy publishes public ports. Explicit migration/bootstrap
+commands precede startup; the six-patient seed is empty until BL-14/21 cohort/reset integration.
+See [deployment recipe](demo-hosting.md) and [decision 007](decisions/007-demo-hosting.md).
+No public host was provisioned. Container/service validation, phone LTE recording/result and
+latency gates remain outstanding; issue #22 must stay open.
+
+Local validation on Windows/Python 3.14.2: ruff passed; unit tests 47 passed, 7 skipped, 2 slow
+tests deselected. Overlay YAML parsed and runtime port/admin-URL assertions passed. Docker is
+unavailable here, so image build, Compose runtime validation, migrations, DB-backed tests and
+stub evaluation were not run. Unit skips include missing ffmpeg; the container installs it.

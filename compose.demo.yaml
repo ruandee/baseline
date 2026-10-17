@@ -1,0 +1,70 @@
+# Use with: docker compose -f compose.yaml -f compose.demo.yaml ...
+x-demo: &demo
+  image: patient-memory-demo:local
+  build: .
+  env_file: .env.demo
+  environment: &environment
+    PM_ENVIRONMENT: synthetic
+    PM_DATABASE_URL: postgresql://pm_runtime:synthetic-runtime@db:5432/patient_memory?connect_timeout=5
+    # Needed only by explicit migrate/bootstrap commands, not normal API/worker startup.
+    PM_ADMIN_DATABASE_URL: postgresql://postgres:synthetic-admin@db:5432/patient_memory?connect_timeout=5
+    PM_OBJECT_ENDPOINT: http://object-store:4566
+    PM_KEEP_AUDIO: "false"
+  depends_on:
+    db:
+      condition: service_healthy
+    object-store:
+      condition: service_healthy
+services:
+  object-store:
+    healthcheck:
+      test: ["CMD", "awslocal", "s3api", "list-buckets"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  migrate:
+    <<: *demo
+    command: ["alembic", "upgrade", "head"]
+    profiles: ["setup"]
+  bootstrap:
+    <<: *demo
+    command: ["python", "-m", "scripts.hosted_demo", "bootstrap"]
+    profiles: ["setup"]
+  api:
+    <<: *demo
+    restart: unless-stopped
+    environment:
+      <<: *environment
+      PM_ADMIN_DATABASE_URL: ""
+      PM_PROXY_TRUSTED_IPS: "*"
+    volumes: ["whisper:/home/demo/.cache/huggingface"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/v1/health/live', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+  worker:
+    <<: *demo
+    restart: unless-stopped
+    environment:
+      <<: *environment
+      PM_ADMIN_DATABASE_URL: ""
+    command: ["python", "-m", "scripts.hosted_demo", "worker"]
+  caddy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    environment:
+      PM_DEMO_DOMAIN: ${PM_DEMO_DOMAIN:?Set PM_DEMO_DOMAIN in .env.demo}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+volumes:
+  whisper:
+  caddy_data:
+  caddy_config:
