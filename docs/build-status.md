@@ -1,5 +1,17 @@
 # Implementation review handoff
 
+## BL-10 — Note context extraction
+
+Bounded schema provider client, exact-quote note tagging and deterministic keyword fallback
+now run atomically with worker publication. Importers can process legacy/unprocessed notes
+through `POST /v1/patients/{id}/notes/extract`, five per batch; optional `retry_fallback=true`
+explicitly retries keyword results. Migration 005 adds forced-RLS completion markers so empty
+results are idempotent. Notes retain uncertain source attribution and existing fact IDs.
+OpenAPI is regenerated. See [decision 013](decisions/013-note-context-extraction.md).
+Local frozen sync/lint pass; unit tests 152 passed, 7 ffmpeg skips, 6 slow deselections.
+DB-backed migration/contract/integration tests and stub evaluation await CI; no live model
+calls were made. This is conservative engineering validation, not clinical validation.
+
 Implemented on `build/backend-mvp` with separate commits. Read this alongside the original target specification; implementation does not imply all research/pilot gates are met.
 
 | Milestone | Implemented behavior | Remaining scope or gate |

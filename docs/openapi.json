@@ -216,6 +216,61 @@
         }
       }
     },
+    "/v1/patients/{patient_id}/notes/extract": {
+      "post": {
+        "summary": "Extract Notes",
+        "operationId": "extract_notes_v1_patients__patient_id__notes_extract_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "retry_fallback",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Retry Fallback"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteExtractionResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/patients/{patient_id}/jobs/{job_id}": {
       "get": {
         "summary": "Job State",
@@ -1698,6 +1753,42 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "NoteExtractionResult": {
+        "properties": {
+          "processed": {
+            "type": "integer",
+            "title": "Processed"
+          },
+          "tags_created": {
+            "type": "integer",
+            "title": "Tags Created"
+          },
+          "methods": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "keyword",
+                "gemini"
+              ]
+            },
+            "type": "array",
+            "title": "Methods"
+          },
+          "batch_limit": {
+            "type": "integer",
+            "title": "Batch Limit"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "processed",
+          "tags_created",
+          "methods",
+          "batch_limit"
+        ],
+        "title": "NoteExtractionResult"
       },
       "PatientInput": {
         "properties": {

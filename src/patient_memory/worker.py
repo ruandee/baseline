@@ -4,12 +4,13 @@ from uuid import UUID, uuid4
 
 from patient_memory.auth import Identity
 from patient_memory.baseline.context import store_tags, structured_tags
+from patient_memory.baseline.notes import note_tags, publish_note_tags
 from patient_memory.config import Settings
 from patient_memory.domain import SourceInput
 from patient_memory.extraction import extract, store_facts, store_relations
 from patient_memory.ingestion import bump, claim_job, lock_patient
 from patient_memory.objects import ObjectStore
-from patient_memory.storage import audit, transaction
+from patient_memory.storage import audit, patient_access, transaction
 
 
 def run_once(cfg: Settings, identity: Identity, objects=None):
@@ -21,23 +22,28 @@ def run_once(cfg: Settings, identity: Identity, objects=None):
         job = claim_job(conn)
         if not job:
             return False
+        patient_access(conn, job["patient_id"], write=True)
         source = conn.execute("SELECT * FROM sources WHERE id=%s", (job["source_id"],)).fetchone()
     try:
         raw = objects.get(source["object_key"], source["payload_hash"])
         payload = SourceInput.model_validate_json(raw)
         canonical, candidates = extract(payload)
+        tags, note_method = note_tags(payload, cfg) if payload.kind == "nursing_note" else ([], None)
         with transaction(cfg, identity) as conn:
             lock_patient(conn, job["patient_id"])
+            patient_access(conn, job["patient_id"], write=True)
             current = conn.execute("SELECT * FROM jobs WHERE id=%s FOR UPDATE", (job["id"],)).fetchone()
             if not current or current["lease_token"] != job["lease_token"] or current["status"] != "processing":
                 return True
             source = conn.execute("SELECT * FROM sources WHERE id=%s", (job["source_id"],)).fetchone()
-            if not source or source["retracted_at"] or source["purged_at"]:
+            if not source or source["retracted_at"] or source["purged_at"] or source["purge_requested"]:
                 conn.execute("UPDATE jobs SET status='cancelled',stage='cancelled' WHERE id=%s", (job["id"],))
                 return True
             store_facts(conn, identity.tenant_id, job["patient_id"], source["id"], candidates)
             store_tags(conn, identity.tenant_id, job["patient_id"], source["id"],
                        structured_tags(payload, candidates))
+            if note_method:
+                publish_note_tags(conn, identity, job["patient_id"], source["id"], tags, note_method)
             conn.execute("UPDATE sources SET canonical_text=%s,published_at=coalesce(published_at,clock_timestamp()) WHERE id=%s",
                          (canonical, source["id"]))
             store_relations(conn, job["patient_id"])
