@@ -1,6 +1,7 @@
 """The demo session is local-only and its token retains nurse permissions."""
 from uuid import uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 
 from scripts.frontend import workspace_app
@@ -43,3 +44,50 @@ def test_workspace_rejects_cross_origin_and_remote_bootstrap(sandbox):
     remote = TestClient(client.app, base_url='http://127.0.0.1:8001',
                         client=('192.0.2.10', 1234))
     assert remote.get('/demo/session', headers={'X-PM-Demo': '1'}).status_code == 403
+
+
+def hosted_client(sandbox, **kwargs):
+    cfg, patient, actors, _ = sandbox
+    app = workspace_app(cfg, actors['nurse'], [
+        {'id': str(patient), 'name': 'Synthetic Test', 'reference': 'synthetic-test'}], **kwargs)
+    return TestClient(app, base_url='https://demo.example.com', client=('127.0.0.1', 1234))
+
+
+def test_hosted_mode_allows_only_listed_hosts(sandbox):
+    client = hosted_client(sandbox, extra_hosts=('demo.example.com',), demo_token='fixed.demo.jwt')
+    ok = client.get('/demo/session', headers={'X-PM-Demo': '1',
+                                              'Origin': 'https://demo.example.com'})
+    assert ok.status_code == 200
+    for headers in [{'Host': 'evil.example.com'}, {'Origin': 'https://evil.example.com'},
+                    {'Sec-Fetch-Site': 'cross-site'}]:
+        assert client.get('/demo/session',
+                          headers={'X-PM-Demo': '1', **headers}).status_code == 403
+    unlisted = hosted_client(sandbox)
+    assert unlisted.get('/demo/session', headers={'X-PM-Demo': '1'}).status_code == 403
+    visitor = TestClient(client.app, base_url='https://demo.example.com',
+                         client=('192.0.2.10', 1234))
+    assert visitor.get('/demo/session', headers={'X-PM-Demo': '1'}).status_code == 200
+
+
+def test_hosted_mode_serves_configured_demo_token(sandbox):
+    client = hosted_client(sandbox, extra_hosts=('demo.example.com',), demo_token='fixed.demo.jwt')
+    session = client.get('/demo/session', headers={'X-PM-Demo': '1'}).json()
+    assert session['token'] == 'fixed.demo.jwt'
+    default = workspace_client(sandbox).get('/demo/session', headers={'X-PM-Demo': '1'}).json()
+    assert default['token'] != 'fixed.demo.jwt'
+
+
+def test_hosted_mode_requires_a_demo_token(sandbox):
+    with pytest.raises(ValueError):
+        hosted_client(sandbox, extra_hosts=('demo.example.com',))
+
+
+def test_baseline_pages_share_one_shell_with_mic_csp(sandbox):
+    client = workspace_client(sandbox)
+    for path in ['/unit', '/resident/abc', '/check?mode=resident']:
+        page = client.get(path)
+        assert page.status_code == 200 and 'baseline.js' in page.text
+        csp = page.headers['content-security-policy']
+        assert "script-src 'self'" in csp and "media-src 'self' blob:" in csp
+    assert client.get('/assets/baseline.js').status_code == 200
+    assert 'baseline.js' not in client.get('/').text

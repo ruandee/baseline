@@ -1,5 +1,11 @@
-"""Loopback-only synthetic workspace. Run with python -m scripts.frontend."""
+"""Synthetic workspace, loopback-only unless hosted mode is configured explicitly.
+
+Run with python -m scripts.frontend. Hosted mode (decision 005) is opt-in through
+PM_FRONTEND_HOSTS (comma-separated public hostnames behind a TLS proxy) and
+PM_DEMO_TOKEN (a pre-minted synthetic nurse token served instead of a fresh one).
+"""
 import json
+import os
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
@@ -42,15 +48,28 @@ def prepare_demo(cfg):
     return reader, patients
 
 
-def workspace_app(cfg, reader, patients):
+LOOPBACK = {"localhost", "127.0.0.1", "::1"}
+PAGE_CSP = (
+    "default-src 'self'; script-src 'self'; style-src 'self'; "
+    "img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; "
+    "frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+)
+
+
+def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None):
     app = create_app(cfg)
+    if extra_hosts and not demo_token:
+        raise ValueError("Hosted mode (PM_FRONTEND_HOSTS) requires PM_DEMO_TOKEN")
+    allowed = LOOPBACK | {h.lower() for h in extra_hosts}
 
     @app.middleware("http")
     async def local_only(request: Request, call_next):
         host = request.url.hostname
         origin = request.headers.get("origin")
-        allowed = {"localhost", "127.0.0.1", "::1"}
-        if (not request.client or request.client.host not in allowed or host not in allowed
+        # Behind a TLS proxy the client address is the visitor's, so hosted mode relies on
+        # the Host allowlist; without extra hosts the client must still be loopback.
+        if ((not extra_hosts and (not request.client or request.client.host not in LOOPBACK))
+                or host not in allowed
                 or (origin and origin != f"{request.url.scheme}://{request.url.netloc}")
                 or request.headers.get("sec-fetch-site") == "cross-site"):
             return JSONResponse({"error": {"message": "Local workspace only"}}, status_code=403)
@@ -58,24 +77,28 @@ def workspace_app(cfg, reader, patients):
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; script-src 'self'; style-src 'self'; "
-            "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; "
-            "base-uri 'none'; form-action 'self'"
-        ) if request.url.path in {"/", "/demo/session"} else response.headers.get(
-            "Content-Security-Policy", "frame-ancestors 'none'")
+        page = request.url.path in {"/", "/demo/session", "/unit", "/check"} or (
+            request.url.path.startswith("/resident/"))
+        response.headers["Content-Security-Policy"] = PAGE_CSP if page else (
+            response.headers.get("Content-Security-Policy", "frame-ancestors 'none'"))
         return response
 
     @app.get("/demo/session", include_in_schema=False)
     def session(request: Request):
         if request.headers.get("x-pm-demo") != "1":
             return JSONResponse({"error": {"message": "Workspace header required"}}, status_code=403)
-        return {"token": synthetic_token(reader, cfg), "patients": patients,
+        return {"token": demo_token or synthetic_token(reader, cfg), "patients": patients,
                 "provider": cfg.provider, "as_of": "2026-01-03T00:00:00Z"}
 
     @app.get("/", include_in_schema=False)
     def index():
         return FileResponse(ROOT / "frontend" / "index.html")
+
+    @app.get("/unit", include_in_schema=False)
+    @app.get("/check", include_in_schema=False)
+    @app.get("/resident/{patient_id}", include_in_schema=False)
+    def baseline_shell(request: Request):
+        return FileResponse(ROOT / "frontend" / "baseline.html")
 
     app.mount("/assets", StaticFiles(directory=ROOT / "frontend"), name="workspace-assets")
     return app
@@ -85,8 +108,11 @@ def main():
     cfg = Settings(provider="stub")
     # Fixture bootstrap is explicit CLI work, never an unauthenticated API write.
     reader, patients = prepare_demo(cfg)
-    uvicorn.run(workspace_app(cfg, reader, patients), host="127.0.0.1", port=8001,
-                access_log=False)
+    hosts = tuple(h.strip() for h in os.environ.get("PM_FRONTEND_HOSTS", "").split(",")
+                  if h.strip())
+    app = workspace_app(cfg, reader, patients, hosts, os.environ.get("PM_DEMO_TOKEN") or None)
+    uvicorn.run(app, host="127.0.0.1", port=8001, access_log=False,
+                proxy_headers=bool(hosts), forwarded_allow_ips="127.0.0.1")
 
 
 if __name__ == "__main__":
