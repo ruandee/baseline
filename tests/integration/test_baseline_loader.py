@@ -36,10 +36,13 @@ def test_loads_real_scoped_sources_and_assessments_idempotently(sandbox):
                               presentation="scenario-snapshots")
     assert counts(sandbox, scope) == before == [353, 4, 353]
     assert first == second and session["patients"] == again["patients"]
-    # Existing original-engine Mrs. L inconsistency is reported, never silently coerced.
+    # Accepted engine with the original +20% fixture honestly reports the remaining T gate.
+    # PR #61 adopts the separately approved +35% scenario and strengthens this to all matches.
     assert first["matches_spec"] is False
+    assert {r["resident"] for r in first["outcomes"] if not r["matches_spec"]} == {"synthetic-mr-t"}
     mrs_l = next(r for r in first["outcomes"] if r["resident"] == "synthetic-mrs-l")
-    assert mrs_l["actual_snapshot"]["verdict"] != mrs_l["expected"]["verdict"]
+    assert mrs_l["actual_snapshot"]["verdict"] == "watch"
+    assert mrs_l["actual_snapshot"]["suggested_action"] == "recheck_1h"
     with transaction(cfg, scope.nurse) as conn:
         assert conn.execute(
             "SELECT count(*) AS n FROM assessments a JOIN patients p ON p.tenant_id=a.tenant_id "

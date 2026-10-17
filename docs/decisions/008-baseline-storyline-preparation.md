@@ -53,3 +53,13 @@ hash with the complete manifest; the synthetic source-system stamp alone never a
 extra context record. Bootstrap checks ownership before granting demo assignments. Expected
 context support must occur inside the tag's own exact quote, and its linked exact fact span
 must cover the tag; unrelated phrases elsewhere in a note are insufficient.
+
+## Approved policy integration, original scenario retained pending PR #61
+
+The user explicitly approved policy #60 and the separate +35% Mr. T scenario #61. The loader
+branch integrates accepted multifeature-cusum-v2 and latest main (including BL-10/BL-12) while
+retaining the original fixture until the separately reviewable scenario adoption. Under this
+intermediate state, actual replay gives K escalate, L watch/recheck_1h and nine quiet controls,
+but original Mr. T within_normal: strict report correctly remains false rather than coercing
+his verdict. The DB test identifies that specific remaining mismatch; #61 will require all
+actual canonical labels once its approved fixture lands. This preserves a reviewable transition.

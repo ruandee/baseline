@@ -553,3 +553,10 @@ Decision019/docs06 now record the accepted multifeature/pitch-correspondence pol
 thresholds and diagnostic-only single-feature CUSUM. Assessment policy_version is now
 multifeature-cusum-v2. This branch integrates latest main including BL-10 and reviewed BL-12;
 review/CI still precede merge. Fixture and loader adoption remain separately reviewable.
+
+BL-14 approved-policy integration: latest main (BL-10 and reviewed BL-12) and accepted policy
+#60 are included. The separately approved scenario #61 remains its own reviewable diff. Until
+that lands, original +20% Mr. T is the sole declared-snapshot mismatch and strict report remains
+false; Mrs. L is now correctly watch/recheck_1h. Configured loader scoring intentionally stores
+the service template; it does not call post-commit model enrichment for hundreds of history rows.
+Offline mode is fully deterministic and performs no provider requests.
