@@ -33,7 +33,7 @@ passed; lint and JavaScript syntax checks pass. See
 
 `frontend/baseline.html`, `baseline.js` and `baseline.css` give the Baseline pages a shared
 shell: routes `/unit`, `/resident/{id}` and `/check` (page bodies arrive with BL-18, BL-19 and
-BL-17), verdict colour tokens and an API health check using the demo token. Opt-in hosted mode
+BL-17), verdict colour tokens and an API check (liveness plus a nurse-token patient read; `/v1/health/ready` is administrator-only). Opt-in hosted mode
 (`PM_FRONTEND_HOSTS`, `PM_DEMO_TOKEN`) lets a phone reach it over HTTPS. See
 [decision 005](decisions/005-baseline-frontend-location.md). Contract tests were added in
 `tests/contract/test_frontend.py`; they need the database services.

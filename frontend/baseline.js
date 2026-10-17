@@ -40,12 +40,16 @@ async function render() {
   main.replaceChildren(el('h1', current.title),
     el('p', current.ticket ? `Coming with ${current.ticket}.` : 'This page does not exist.'), status);
   try {
+    await api('/v1/health/live');
     await bootstrap();
-    await api('/v1/health/ready');
-    status.textContent = 'API reachable with the demo token.';
+    // /v1/health/ready is administrator-only, so prove the nurse token with a patient read.
+    const patient = state.session.patients[0];
+    if (!patient) throw new Error('no demo patients in the session');
+    await api(`/v1/patients/${patient.id}/timeline`);
+    status.textContent = 'API reachable and the demo token is accepted.';
     status.dataset.state = 'ok';
   } catch (error) {
-    status.textContent = `API not reachable: ${error.message}`;
+    status.textContent = `API check failed: ${error.message}`;
     status.dataset.state = 'error';
   }
 }
