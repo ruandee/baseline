@@ -70,11 +70,11 @@
     return p;
   }
 
-  async function openEvidence(h, ctx, reason, target) {
+  async function openEvidence(h, ctx, evidenceId, target) {
     target.replaceChildren(h.el('p', 'Loading source…'));
     try {
-      const ev = ctx.mock ? window.RESIDENT_FIXTURE_EVIDENCE[reason.evidence_id]
-        : await h.api(`/v1/patients/${ctx.id}/evidence/${reason.evidence_id}`);
+      const ev = ctx.mock ? window.RESIDENT_FIXTURE_EVIDENCE[evidenceId]
+        : await h.api(`/v1/patients/${ctx.id}/evidence/${evidenceId}`);
       if (!ev) throw new Error('404 evidence');
       target.replaceChildren(
         h.el('p', `${ev.source_kind} · ${ev.author_role} · recorded ${h.formatTime(ev.recorded_at)}`,
@@ -123,7 +123,7 @@
       const detail = h.el('div', '', {class: 'bl-source', hidden: ''});
       open.addEventListener('click', async () => {
         detail.hidden = false;
-        await openEvidence(h, ctx, r, detail);
+        await openEvidence(h, ctx, r.evidence_id, detail);
       });
       row.append(h.el('span', KIND_LABEL[r.kind] || r.kind, {class: 'bl-kind', 'data-kind': r.kind}),
                  ' ', h.el('strong', r.label), highlighted(h, r),
@@ -131,15 +131,22 @@
                  open, detail);
       section.append(row);
     });
+    const normals = (data.latest_assessment && data.latest_assessment.documented_normal) || [];
+    if (normals.length) {
+      section.append(h.el('h3', 'Documented and normal'));
+      normals.forEach((n) => section.append(
+        h.el('p', `${n.label} · ${n.source_kind} · ${h.formatTime(n.recorded_at)}`)));
+    }
     return section;
   }
 
-  function sbarPanel(h, data) {
+  function sbarPanel(h, ctx, data) {
     const sbar = data.latest_assessment && data.latest_assessment.sbar;
     if (!sbar) return null;
     const section = h.el('section', '', {class: 'bl-section'});
     section.append(h.el('h2', 'SBAR draft'),
                    h.el('span', SBAR_BADGE[sbar.source] || sbar.source, {class: 'bl-badge', 'data-source': sbar.source}));
+    const sourcePanel = h.el('div', '', {class: 'bl-source', hidden: ''});
     const order = [...new Set(sbar.sentences.flatMap((s) => s.evidence_ids).filter((id) => !id.startsWith('asm')))];
     Object.entries(SECTIONS).forEach(([key, label]) => {
       const lines = sbar.sentences.filter((s) => s.section === key);
@@ -147,11 +154,23 @@
       section.append(h.el('h3', label));
       lines.forEach((s) => {
         const p = h.el('p', s.text);
-        s.evidence_ids.forEach((id) => p.append(' ', h.el('span', id.startsWith('asm') ? 'check' : `source ${order.indexOf(id) + 1}`,
-                                                   {class: 'bl-cite', title: id})));
+        s.evidence_ids.forEach((id) => {
+          if (id.startsWith('asm')) {  // the check itself, not a source document
+            p.append(' ', h.el('span', 'check', {class: 'bl-cite', title: id}));
+            return;
+          }
+          const chipButton = h.el('button', `source ${order.indexOf(id) + 1}`,
+                                  {type: 'button', class: 'bl-cite', title: 'Open the source quote'});
+          chipButton.addEventListener('click', () => {
+            sourcePanel.hidden = false;
+            openEvidence(h, ctx, id, sourcePanel);
+          });
+          p.append(' ', chipButton);
+        });
         section.append(p);
       });
     });
+    section.append(sourcePanel);
     return section;
   }
 
@@ -215,7 +234,7 @@
       grid.append(fig);
     });
     const legend = h.el('p', 'Line: daily median · dots: each check · green band: usual range (median ± 2 × scale) · dashed line: first change', {class: 'bl-muted'});
-    const sbar = sbarPanel(h, data);
+    const sbar = sbarPanel(h, ctx, data);
     main.replaceChildren(title, verdictCard(h, data), h.el('h2', 'Last 30 days'), grid, legend,
                          evidenceChain(h, ctx, data), ...(sbar ? [sbar] : []),
                          decisionTable(h, data));

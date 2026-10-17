@@ -52,5 +52,6 @@ body.baseline{padding-top:56px}
 .bl-link{background:none;border:0;padding:0;color:var(--green);text-decoration:underline;cursor:pointer;font-size:14px}
 .bl-source-quote{margin:8px 0 0;padding:8px 12px;border-left:3px solid var(--green)}
 .bl-badge{font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px;background:var(--v-watch-bg);color:var(--v-watch)}
-.bl-cite{font-size:11px;padding:1px 6px;border-radius:999px;background:var(--v-normal-bg);color:var(--v-normal)}
+.bl-cite{font:inherit;font-size:11px;padding:1px 6px;border:0;border-radius:999px;background:var(--v-normal-bg);color:var(--v-normal)}
+button.bl-cite{cursor:pointer;text-decoration:underline}
 .bl-section summary{cursor:pointer;font-weight:700;font-size:18px}
