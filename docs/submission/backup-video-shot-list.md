@@ -14,6 +14,9 @@ Record only once each item below is true; otherwise cut the segment or label it 
 - [ ] `/check` (BL-17) and `/resident/{id}` (BL-19) are merged and talk to the live API,
       not fixture mocks.
 - [ ] Every evidence chip clicked on camera opens its real source quote.
+- [ ] The normal-temperature display ("temperature documented as normal", read from a real
+      synthetic observation, never inferred from a missing fever tag) has merged. Until then,
+      drop that phrase from shot 5.
 - [ ] The SBAR panel shows its true badge: "AI draft, verify" only if BL-12 produced it,
       otherwise "template".
 - [ ] No real person's data appears except the consenting teammate's own voice check, and only
@@ -29,7 +32,7 @@ Record only once each item below is true; otherwise cut the segment or label it 
 | 2 | 0:15-0:35 | Problem slide | Delirium often shows as confusion before fever; aides notice "seems off" before the chart does. | Source for the cited statistic |
 | 3 | 0:35-1:10 | Phone `/check`, live mode | A teammate counts to 20 and says the days of the week. Result: waveform, word chips, shaded pauses, four numbers. | `enrolling` verdict (no baseline yet); `timings_ms` footer |
 | 4 | 1:10-1:30 | `/unit` | Watch list sorted by verdict; "1 of 3 escalations used this shift". | "synthetic" badges; text labels on every verdict chip |
-| 5 | 1:30-2:25 | `/resident/{Mrs. K}` | Speech slowed and pauses grew two days after a new oxybutynin order; aide's note "quiet at lunch"; temperature documented as normal. Verdict escalate, suggested 4AT. | Evidence rows with highlighted quotes; click one through to the source; baseline band and change marker on the charts |
+| 5 | 1:30-2:25 | `/resident/{Mrs. K}` | Speech slowed and pauses grew two days after a new oxybutynin order; aide's note "quiet at lunch"; temperature documented as normal (only if the normal-temperature display has merged; otherwise omit). Verdict escalate, suggested 4AT. | Evidence rows with highlighted quotes; click one through to the source; baseline band and change marker on the charts |
 | 6 | 2:25-2:40 | SBAR panel | Handoff draft the nurse edits rather than writes; every number is checked against the computed values. | Badge ("AI draft, verify" or "template"); citation chips |
 | 7 | 2:40-3:20 | Runner or Mr. T | **If BL-15 runner clips exist:** race clips change, context "running a marathon", verdict explained, nobody paged. **Otherwise:** Mr. T's new dentures explain his change. | `explained` verdict and the explaining quote; "would escalate, disabled" for the runner |
 | 8 | 3:20-3:35 | "How this was decided" table | Statistics decide change, fixed rules decide the verdict, the model only finds context in notes. | Per-feature median, scale, z, EWMA, CUSUM |

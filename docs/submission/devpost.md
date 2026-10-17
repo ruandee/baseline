@@ -56,7 +56,10 @@ because the record already explains it.
   short, noisy, clipped or off-script clips with plain-language reasons.
 - **Change engine:** per-person robust baseline (median and scaled MAD), z-scores, EWMA and
   CUSUM, with a *provisional* status so a single strong reading asks for a recheck instead of
-  escalating.
+  escalating. The accepted `multifeature-cusum-v2` policy (decision 019) requires corroboration:
+  a change needs at least two of the same features deviating on two consecutive usable checks,
+  pitch is tracked as separate signed up/down streams, and a one-feature CUSUM alarm alone never
+  sets a status. Thresholds were not retuned, and no clinical sensitivity or specificity is claimed.
 - **Context and verdict:** structured rules (medication events, documented temperatures) plus
   note tagging. The model may only return exact quotes from the note, which the server checks
   character-for-character; anything it cannot verify is dropped, and a keyword fallback runs
@@ -120,8 +123,8 @@ and cited evidence. The model never decides a verdict, has no tools, and cannot 
 - **The runner proves the pipeline, not the medicine.** A teammate's real voice during exertion
   shows that the system measures physical change against a personal baseline; it says nothing
   about delirium. [Keep only if the runner segment runs; BL-15 is on hold.]
-- **Privacy.** Only the four measurements are kept; audio is deleted after processing unless a
-  developer flag is set. A real deployment would need consent and Canadian hosting.
+- **Privacy.** Audio is deleted after processing unless a developer flag is set; the four
+  measurements, the transcript and word timings are stored with the check. A real deployment would need consent and Canadian hosting.
 
 ## Built with
 
@@ -139,7 +142,7 @@ Only select a track where the "claim we can make" column is true when you submit
 | Project KAZE | Only via the "Baseline Out" extension | Design and spec only, unless BL-25 to BL-29 merge and the two-phone loop works | That KAZE sessions, texts or acknowledgement work today |
 | Best Healthcare & Well-being | Good | Decision-support prototype on synthetic data | Diagnosis, validation, patient outcomes |
 | AI for Social Impact | Good | Staffing-pressure framing; dignity and consent design | Measured impact |
-| MLH Best Use of Gemini API | Moderate | Gemini (OpenAI-compatible endpoint, strict JSON schema) tags note context; server verifies every quote; keyword fallback. Live schema smoke passed locally on `gemini-3.5-flash-lite` | That Gemini decides verdicts, or that it ran live on stage unless it did. SBAR drafting only if BL-12 merges |
+| MLH Best Use of Gemini API | Moderate | Gemini (OpenAI-compatible endpoint, strict JSON schema) tags note context; server verifies every quote; keyword fallback. Local live schema smoke reported passing on `gemini-3.5-flash-lite` (17 Oct, not recorded in CI); re-confirm before submission | That Gemini decides verdicts, or that it ran live on stage unless it did. SBAR sentence assembly (BL-12, merged) only if shown running against Gemini |
 | MLH Best Use of Tiger Data | Moderate, be precise | Runs on the TimescaleDB image; `time_bucket` builds the daily overview and sparkline series | That `voice_checks` is a hypertable: it is a plain table because chunk tables bypassed RLS (decision 004) |
 | MLH Vultr / GoDaddy | Only if used | Hosted on a Vultr VM with a GoDaddy domain | Anything, unless BL-20 is deployed that way |
 | Overall Top 3 | Yes | | |

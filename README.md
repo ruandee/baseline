@@ -10,7 +10,8 @@ Baseline adds a 10-second voice check to this backend: it measures speech timing
 compares them with the same resident's own history, checks the record for context, and lets a
 fixed rule table pick a verdict (`escalate`, `watch`, `explained`, `within_normal`, `enrolling`).
 Statistics detect change; rules choose the verdict; the language model only tags note context and
-(once BL-12 lands) assembles a validated SBAR draft. It is a synthetic-data prototype: it does not
+assembles a validated SBAR draft from fixed server-built sentences (BL-12), falling back to the
+template. It is a synthetic-data prototype: it does not
 diagnose, suggest treatment, or claim clinical validation. Spec: [docs/06-baseline.md](docs/06-baseline.md);
 current status: [docs/build-status.md](docs/build-status.md); tracker: issue #38.
 
@@ -18,21 +19,22 @@ What is on `main` today versus still pending (check the tracker before relying o
 
 | Area | On `main` | Pending (not merged) |
 | --- | --- | --- |
-| Speech pipeline and `POST /v1/patients/{id}/checks` | Yes (BL-04, BL-05, BL-07) | Real-voice golden clips (BL-06, on hold); p95 latency on a host |
-| Change engine, verdicts, assessments, shift budget | Yes (BL-08, BL-11) | Engine policy proposal (PR #60) is not approved |
+| Speech pipeline and `POST /v1/patients/{id}/checks` | Yes (BL-04, BL-05, BL-07) | Golden-clip tests merged (#51) but skipped until the four real recordings exist (BL-06 open); p95 latency on a host |
+| Change engine, verdicts, assessments, shift budget | Yes (BL-08, BL-11); accepted multifeature-cusum-v2 policy (PR #60, [decision 019](docs/decisions/019-multifeature-cusum-proposal.md)) | |
 | Context tags, note extraction with offline fallback | Yes (BL-09, BL-10) | Live Gemini acceptance |
 | `GET /v1/watchlist`, `GET /v1/patients/{id}/overview` | Yes (BL-13) | |
-| Validated SBAR draft | Template SBAR only | BL-12 (PR #57) |
+| Validated SBAR draft | Yes (BL-12); template in stub/offline mode and for loader-scored history | Live provider acceptance |
 | Frontend `/unit` | Yes (BL-18) | Integrated acceptance with the cohort |
-| Frontend `/check`, `/resident/{id}` | Shell routes only | BL-17 (PR #50), BL-19 (PR #55) |
-| 12-resident synthetic cohort loader | No | BL-14 (PR #53) |
+| Frontend `/check` | Yes (BL-17); uploads to the live API, `?mock=1` uses fixtures | BL-31 (PR #64) |
+| Frontend `/resident/{id}` | Placeholder | BL-19 (PR #55) |
+| 12-resident synthetic cohort loader | Yes (BL-14: `uv run python -m scripts.load_baseline_demo --presentation scenario-snapshots` or `all-history`, optional `--offline`) | Wiring into `/unit` and hosting; normal-temperature display |
 | Demo reset script | No | BL-21 |
-| HTTPS host (Compose + Caddy) | No | BL-20 (PR #54) |
-| Vox Advantage adapter | No | BL-32; it is a **mock** contract, there is no real Vox/PointClickCare integration |
-| KAZE safety sessions | No | BL-25 to BL-29; not integrated |
+| HTTPS host (Compose + Caddy) | No | BL-20 (PR #54, PR #62) |
+| Vox Advantage adapter | No | BL-32 (PR #65); it is a **mock** contract, there is no real Vox/PointClickCare integration |
+| KAZE safety sessions | No | BL-25 (PR #66) to BL-29; not integrated |
 
-Until BL-14, BL-17, BL-19, BL-20 and BL-21 merge, a clean clone cannot reproduce the full Baseline
-stage demo. What a clean clone can run today is below.
+Until BL-19, BL-20 and BL-21 merge and the loader's cohort is wired into the served pages, a clean
+clone cannot reproduce the full Baseline stage demo. What a clean clone can run today is below.
 
 ## Run locally
 
@@ -140,8 +142,9 @@ No Node build or external assets are required.
 The same server also serves the Baseline shell at `/unit`, `/check` and `/resident/{id}`
 ([decision 005](docs/decisions/005-baseline-frontend-location.md)). On `main`, `/unit` reads the
 live watch list; it lists the workspace's fictional patients with no verdict until voice checks
-are recorded for them, because the Baseline cohort loader (BL-14) is not merged. `/check` and `/resident/{id}` render placeholders
-until BL-17 and BL-19 merge. Hosted (off-loopback) mode needs `PM_FRONTEND_HOSTS` and a
+are recorded for them. The BL-14 loader writes its own synthetic tenant, which is not yet wired into
+the workspace session. `/check` uploads to the live API (`?mock=1` shows fixtures instead);
+`/resident/{id}` renders a placeholder until BL-19 merges. Hosted (off-loopback) mode needs `PM_FRONTEND_HOSTS` and a
 pre-minted `PM_DEMO_TOKEN` signed with a deployment-only `PM_JWT_SECRET`; never host with the
 default secret, which is public in this repository.
 
