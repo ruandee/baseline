@@ -42,6 +42,7 @@ class ContextTag:
     valid_from: datetime
     valid_to: datetime | None
     candidate: Candidate
+    extracted_by: str = "structured"
 
 
 def default_valid_to(tag, valid_from):
@@ -141,12 +142,14 @@ def tag_id(source_id, tag: ContextTag):
 
 def store_tags(conn, tenant_id, patient_id, source_id, tags):
     """Idempotent: ids are derived from the source span, so a worker retry cannot duplicate."""
+    created = 0
     for tag in tags:
-        conn.execute(
+        created += conn.execute(
             "INSERT INTO context_tags(tenant_id,patient_id,id,kind,tag,source_id,fact_id,quote,"
             "start_offset,end_offset,valid_from,valid_to,extracted_by) "
-            "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'structured') ON CONFLICT DO NOTHING",
+            "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
             (tenant_id, patient_id, tag_id(source_id, tag), tag.kind, tag.tag, source_id,
              fact_id(source_id, tag.candidate), tag.quote, tag.start, tag.end, tag.valid_from,
-             tag.valid_to),
-        )
+             tag.valid_to, tag.extracted_by),
+        ).rowcount
+    return created
