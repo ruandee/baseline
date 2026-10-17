@@ -237,6 +237,8 @@ Sort: escalate, then watch, then explained, then within normal; ties by `fused_z
 
 Returns `series` (daily `time_bucket` medians per feature plus raw checks), `baseline` (median and MAD per feature, mode, number of baseline checks), `latest_assessment` (as above, plus `sbar`), `context_tags` (with quote, offsets, source id, validity), and `watch_window`.
 
+Shape as built (decision 012): `patient_id`, `display_name`, `synthetic`, `watch_window`, `features` (`{name: {label, unit}}`), `series` (`{feature: {daily: [{day, median}], checks: [{ts, value}]}}`), `baseline` (`{mode, n_checks, features: {name: {median, scale}}}`, `scale` is the floored robust scale from the score formula), `first_change_ts`, `latest_assessment` (`id`, `ts`, `verdict`, `over_budget`, `no_escalate_profile`, `suggested_action: {id, label}`, `reasons[]` with `kind`, `tag`, `label`, `evidence_id`, `quote`, `match`, `source_kind`, `recorded_at`, `change` with `per_feature` carrying `scale`, and `sbar`) and `context_tags`.
+
 ### `POST /v1/patients/{id}/context`
 
 ```json

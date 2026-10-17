@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     ewma_lambda: float = Field(default=0.3, gt=0, le=1, allow_inf_nan=False)
     cusum_k: float = Field(default=0.5, ge=0, allow_inf_nan=False)
     cusum_h: float = Field(default=4.0, gt=0, allow_inf_nan=False)
+    escalation_budget: int = Field(default=3, ge=0)
+    shift_timezone: str = "America/Toronto"
+    # Comma-separated patient UUIDs that never escalate (the demo runner).
+    no_escalate_patients: str = ""
 
     @model_validator(mode="after")
     def safe_mode(self):

@@ -19,6 +19,8 @@ from pydantic import AwareDatetime
 
 from patient_memory.auth import decode_token
 from patient_memory.baseline.context import add_context
+from patient_memory.baseline.overview import overview as build_overview
+from patient_memory.baseline.overview import watchlist as build_watchlist
 from patient_memory.checks import care_gate, store_check
 from patient_memory.config import Settings
 from patient_memory.domain import (
@@ -340,7 +342,21 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
                 shutil.rmtree(work, ignore_errors=True)
         with transaction(cfg, actor) as conn:
             return store_check(conn, actor, patient_id, request.state.request_id, analysis,
-                               mode, device_id, device_ts, is_baseline)
+                               mode, device_id, device_ts, is_baseline, cfg)
+
+    @app.get("/v1/watchlist")
+    def watchlist(actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            require_member(conn)
+            return build_watchlist(conn, cfg)
+
+    @app.get("/v1/patients/{patient_id}/overview")
+    def patient_overview(patient_id: UUID, days: Annotated[int, Query(ge=1, le=90)] = 30,
+                         actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            care_gate(conn, patient_id)
+            patient = patient_access(conn, patient_id)
+            return build_overview(conn, cfg, patient, days)
 
     @app.post("/v1/patients/{patient_id}/questions", response_model=Answer)
     def question(patient_id: UUID, body: Question, request: Request, actor=actor_dep):

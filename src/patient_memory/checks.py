@@ -2,6 +2,8 @@ from uuid import UUID, uuid4
 
 from psycopg.types.json import Jsonb
 
+from patient_memory.baseline.assess import assess_check
+from patient_memory.config import Settings
 from patient_memory.domain import CheckResult
 from patient_memory.errors import Problem
 from patient_memory.speech.pipeline import Analysis
@@ -16,7 +18,7 @@ def care_gate(conn, patient_id: UUID):
 
 
 def store_check(conn, identity, patient_id: UUID, request_id: UUID, analysis: Analysis,
-                mode, device_id, device_ts, is_baseline) -> CheckResult:
+                mode, device_id, device_ts, is_baseline, cfg: Settings) -> CheckResult:
     """Insert the check (unusable ones too, for audit) and audit the write."""
     care_gate(conn, patient_id)
     check_id = uuid4()
@@ -31,7 +33,15 @@ def store_check(conn, identity, patient_id: UUID, request_id: UUID, analysis: An
          features["pause_ratio"], features["mean_pause_s"], features["f0_median_hz"],
          " ".join(w["w"] for w in words), Jsonb(words))).fetchone()["ts"]
     audit(conn, identity, patient_id, "create_check", request_id)
+    change = assessment = None
+    if analysis.usable:  # unusable clips are stored for audit but never scored
+        name = conn.execute("SELECT external_id FROM patients WHERE id=%s",
+                            (patient_id,)).fetchone()["external_id"]
+        change, assessment = assess_check(
+            conn, cfg, patient_id, identity.tenant_id, check_id, ts, device_id,
+            "count20-days-v1", is_baseline, features, name)
     return CheckResult(
+        change=change, assessment=assessment,
         check_id=check_id, ts=ts, usable=analysis.usable, quality=analysis.quality,
         features=features, words=words,
         pauses=[{"start": p.start, "end": p.end} for p in analysis.pauses],
