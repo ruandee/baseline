@@ -103,6 +103,25 @@ def test_purge_removes_quotes_and_never_reextracts(sandbox):
                             (source_id,)).fetchone()["n"] == 0
 
 
+def test_provider_output_is_discarded_if_source_retracted_while_waiting(sandbox, monkeypatch):
+    cfg, pid, actors, _ = sandbox
+    source_id = publish_note(sandbox)
+    with psycopg.connect(cfg.admin_database_url) as admin:
+        admin.execute("DELETE FROM context_tags WHERE source_id=%s", (source_id,))
+        admin.execute("DELETE FROM note_context_runs WHERE source_id=%s", (source_id,))
+    configured = cfg.model_copy(update={"provider": "compatible",
+        "provider_url": "https://synthetic.invalid", "provider_model": "synthetic"})
+    def retract(*args, **kwargs):
+        with psycopg.connect(cfg.admin_database_url) as admin:
+            admin.execute("UPDATE sources SET retracted_at=clock_timestamp() WHERE id=%s", (source_id,))
+        return {"tags": [{"tag": "new_confusion_noted", "quote": "Not her usual chatty self."}]}
+    monkeypatch.setattr("patient_memory.baseline.llm.request_json", retract)
+    with transaction(cfg, actors["importer"]) as conn:
+        assert extract_pending_notes(conn, actors["importer"], pid, configured).processed == 0
+        assert conn.execute("SELECT count(*) AS n FROM context_tags WHERE source_id=%s",
+                            (source_id,)).fetchone()["n"] == 0
+
+
 def test_note_run_table_forced_rls_other_tenant_invisible_and_cross_patient_fk(sandbox):
     cfg, pid, actors, _ = sandbox
     own_source = publish_note(sandbox)

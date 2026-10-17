@@ -115,6 +115,10 @@ def extract_pending_notes(conn, identity, patient_id, cfg, retry_fallback=False)
     rows = conn.execute(
         "SELECT s.* FROM sources s WHERE s.patient_id=%s AND s.published_at IS NOT NULL "
         "AND s.retracted_at IS NULL AND s.purged_at IS NULL AND NOT s.purge_requested "
+        "AND NOT EXISTS(SELECT FROM sources amended WHERE amended.tenant_id=s.tenant_id "
+        "AND amended.patient_id=s.patient_id AND amended.supersedes=s.id "
+        "AND amended.published_at IS NOT NULL AND amended.retracted_at IS NULL "
+        "AND amended.purged_at IS NULL) "
         "AND s.payload->>'kind'='nursing_note' AND NOT EXISTS(SELECT FROM note_context_runs r "
         "WHERE r.tenant_id=s.tenant_id AND r.patient_id=s.patient_id AND r.source_id=s.id "
         "AND (NOT %s OR r.method<>'keyword')) "
@@ -128,6 +132,10 @@ def extract_pending_notes(conn, identity, patient_id, cfg, retry_fallback=False)
                                (patient_id, row["id"])).fetchone()
         if (not current or current["retracted_at"] or current["purged_at"]
                 or current["purge_requested"] or current["payload_hash"] != row["payload_hash"]):
+            continue
+        if conn.execute("SELECT id FROM sources WHERE patient_id=%s AND supersedes=%s "
+                        "AND published_at IS NOT NULL AND retracted_at IS NULL "
+                        "AND purged_at IS NULL", (patient_id, row["id"])).fetchone():
             continue
         count += publish_note_tags(conn, identity, patient_id, row["id"], tags, method)
         processed += 1
