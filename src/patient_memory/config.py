@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     provider_key: str = ""
     provider_model: str = ""
     whisper_model: str = "base"
+    z_threshold: float = 2.0
+    provisional_z: float = 3.0
+    min_features: int = 2
+    ewma_lambda: float = 0.3
+    cusum_k: float = 0.5
+    cusum_h: float = 4.0
 
     @model_validator(mode="after")
     def safe_mode(self):
