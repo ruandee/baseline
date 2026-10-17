@@ -143,29 +143,52 @@ contracts now require the built assessment response and CI installs ffmpeg. See
 Local Windows/Python 3.14 with ffmpeg: lint passed; unit 150 passed, 6 slow deselected. Service-backed
 regressions require PostgreSQL/S3, unavailable locally; CI results are reported on the review PR.
 
-## BL-12 ? Validated SBAR drafts (integration pending)
-
-Watch/escalate checks now draft through `baseline.sbar` after deterministic verdict selection.
-Configured providers receive only rounded feature values and selected context; all S/B/A/R
-sections, allowed IDs/numbers, banned phrases and the fixed action label are validated. Provider
-or validation failure uses the template, and stub mode never calls a provider. Canonical check/tag
-IDs are validated before mapping to the existing UI check/fact citation convention. See
-[decision 014](decisions/014-validated-sbar-drafts.md).
-
-Local Windows/Python 3.14 verification: frozen sync and lint pass; 169 unit tests pass with FFmpeg
-on PATH, 6 slow tests deselected. DB persistence/authorization tests were added but not run locally
-because Docker is unavailable. Migrations, DB-backed suites and stub evaluation await CI. No live
-model call or real-audio validation was performed. This branch depends on BL-10's shared client
-and BL-11/13 review integration, including stored evidence invalidation on lifecycle changes;
-BL-12 remains open until those dependencies and full CI pass.
-
-BL-12 semantic review hardening: model output must exactly match server-constructed supported
-sentence/evidence pairs, and R must be the fixed standard action sentence with no extra advice.
-This closes the unsupported-negative and appended-treatment gaps left by IDs/numbers-only
-validation. Tests reject invented absence/presence, swapped numbers, wrong tag attribution and
-additional action clauses. This is constrained sentence assembly, not unrestricted prose generation;
-ADR 014 records the design change and remaining clinical/evidence validity limits.
-
+## BL-12 ? Validated SBAR drafts (integration pending)
+
+
+
+Watch/escalate checks now draft through `baseline.sbar` after deterministic verdict selection.
+
+Configured providers receive only rounded feature values and selected context; all S/B/A/R
+
+sections, allowed IDs/numbers, banned phrases and the fixed action label are validated. Provider
+
+or validation failure uses the template, and stub mode never calls a provider. Canonical check/tag
+
+IDs are validated before mapping to the existing UI check/fact citation convention. See
+
+[decision 014](decisions/014-validated-sbar-drafts.md).
+
+
+
+Local Windows/Python 3.14 verification: frozen sync and lint pass; 169 unit tests pass with FFmpeg
+
+on PATH, 6 slow tests deselected. DB persistence/authorization tests were added but not run locally
+
+because Docker is unavailable. Migrations, DB-backed suites and stub evaluation await CI. No live
+
+model call or real-audio validation was performed. This branch depends on BL-10's shared client
+
+and BL-11/13 review integration, including stored evidence invalidation on lifecycle changes;
+
+BL-12 remains open until those dependencies and full CI pass.
+
+
+
+BL-12 semantic review hardening: model output must exactly match server-constructed supported
+
+sentence/evidence pairs, and R must be the fixed standard action sentence with no extra advice.
+
+This closes the unsupported-negative and appended-treatment gaps left by IDs/numbers-only
+
+validation. Tests reject invented absence/presence, swapped numbers, wrong tag attribution and
+
+additional action clauses. This is constrained sentence assembly, not unrestricted prose generation;
+
+ADR 014 records the design change and remaining clinical/evidence validity limits.
+
+
+
 
 
 BL-12 integration follow-up: the check transaction commits its deterministic verdict, budget slot
@@ -174,3 +197,21 @@ publishes only after care-team, source-revision and check-eligibility rechecks. 
 return 409 `memory_changed` with the original check preserved; revoked access returns 404. See
 ADR 014. Local lint and ffmpeg-enabled unit suite: 250 passed, 6 slow deselected. New concurrency
 and lifecycle regressions require the service-backed CI run.
+
+## BL-08 ? Accepted corroborated change policy
+
+The user explicitly approved PR #60 and paired Mr. T scenario PR #61. The accepted
+`multifeature-cusum-v2` policy supersedes decision011's single-feature-CUSUM interpretation.
+Instantaneous confirmation requires corresponding feature names and pitch direction on both
+checks within24h. CUSUM needs two ongoing supported features; the same features/direction must
+persist on the preceding usable check to confirm. Pitch has separate signed streams; a lone
+feature or recovered residual accumulation is diagnostic only. Thresholds and baseline rules
+are unchanged. See [decision019](decisions/019-multifeature-cusum-proposal.md).
+
+Latest main (including BL-10 and reviewed BL-12) is integrated. All720 original/amended replay
+checks used the actual engine, deterministic source context and verdict rules: original20%
+Mr. T scenario matches11/12 declared snapshots; approved35% matches12/12 (K escalate, T explained,
+L watch/recheck1h). Both datasets have zero flags across all270 control checks and the expected
+recovery. This is engineering fixture evidence, not clinical validation. Latest local lint and
+269 unit tests pass with FFmpeg;6 slow tests deselected. Full integrated CI still precedes merge.
+No live model or real-audio calls were made; loader/presentation acceptance is tracked separately.
