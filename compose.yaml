@@ -1,0 +1,23 @@
+services:
+  db:
+    image: pgvector/pgvector:0.8.2-pg17@sha256:feb68f4f15446397d8cac7f4fe48fe4586de83160d1fc48b46283312d1a33966
+    environment:
+      POSTGRES_DB: patient_memory
+      POSTGRES_PASSWORD: synthetic-admin
+    ports: ["127.0.0.1:55432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d patient_memory"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  object-store:
+    image: localstack/localstack:4.8.1@sha256:8c9756bddc44625cd6e890f5e4bcc29b045eebe108b268482b848f4f832ec153
+    environment:
+      SERVICES: s3
+      PERSISTENCE: "1"
+    ports: ["127.0.0.1:59000:4566"]
+    volumes: ["objects:/var/lib/localstack"]
+volumes:
+  pgdata:
+  objects:

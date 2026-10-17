@@ -77,3 +77,5 @@ Error envelope: `{error: {code, message, request_id, retryable}}`; no stack trac
 Read from one published patient revision. Before returning a generated answer, check revision and authorization again; if changed, retry once with new scope/revision, then return 409 `memory_changed`. New authorized pending sources are reflected in coverage. Source corrections require new versions; never overwrite raw text. An empty timeline is a valid 200, but a failed index is not an empty timeline.
 
 API tests must cover role × route × patient ownership, not just happy paths. Citation fetches enforce current permission even when the answer was created earlier.
+
+Implementation additions: administrators manage assignments through `PUT /patients/{id}/assignments`; importers can change source visibility with `PUT .../sources/{version}/visibility` and request active-store erasure with `POST .../sources/{version}/purge`. Those source mutations require idempotency keys; purge returns 202. Unsupported request content types return 415. When retrieved evidence exists but the model selects none, unknown reason is `selection_abstained`, distinct from `not_documented`.

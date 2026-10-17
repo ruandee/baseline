@@ -1,0 +1,41 @@
+"""Idempotent synthetic identities; never run against a real patient database."""
+import json
+from uuid import NAMESPACE_URL, uuid5
+
+import psycopg
+
+from patient_memory.auth import Identity, synthetic_token
+from patient_memory.config import Settings
+
+
+def uid(name):
+    return uuid5(NAMESPACE_URL, f"patient-memory/synthetic/{name}")
+
+
+def seed(cfg=None):
+    cfg = cfg or Settings()
+    with psycopg.connect(cfg.admin_database_url) as conn:
+        for tenant in range(2):
+            tid = uid(f"tenant-{tenant}")
+            conn.execute("INSERT INTO tenants VALUES(%s,%s) ON CONFLICT DO NOTHING",
+                         (tid, f"synthetic-tenant-{tenant}"))
+            for role in ["admin", "importer", "nurse", "patient"]:
+                actor = uid(f"{tenant}/{role}")
+                conn.execute(
+                    "INSERT INTO principals(id,tenant_id,name,administrator) VALUES(%s,%s,%s,%s) "
+                    "ON CONFLICT DO NOTHING", (actor, tid, f"synthetic-{role}", role == "admin"))
+            for p in range(6):
+                pid = uid(f"{tenant}/patient-{p}")
+                conn.execute("INSERT INTO patients(id,tenant_id,external_id) VALUES(%s,%s,%s) "
+                             "ON CONFLICT DO NOTHING", (pid, tid, f"synthetic-patient-{p}"))
+                for role in ["importer", "nurse", "patient"]:
+                    if role == "patient" and p != 0:
+                        continue
+                    conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,%s,true) "
+                                 "ON CONFLICT DO NOTHING", (tid, pid, uid(f"{tenant}/{role}"), role))
+    return {role: synthetic_token(Identity(uid(f"0/{role}"), uid("tenant-0")), cfg)
+            for role in ["admin", "importer", "nurse", "patient"]}
+
+
+if __name__ == "__main__":
+    print(json.dumps({"patient_id": str(uid("0/patient-0")), "tokens": seed()}, indent=2))

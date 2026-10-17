@@ -1,0 +1,324 @@
+import logging
+import time
+from datetime import datetime
+from typing import Annotated
+from uuid import UUID, uuid4
+
+import psycopg
+from botocore.exceptions import BotoCoreError, ClientError
+from fastapi import Depends, FastAPI, Header, Query, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from patient_memory.auth import decode_token
+from patient_memory.config import Settings
+from patient_memory.domain import (
+    Answer,
+    AssignmentInput,
+    PatientInput,
+    Question,
+    Reason,
+    SourceInput,
+    Summary,
+    VisibilityInput,
+    now,
+)
+from patient_memory.errors import Problem
+from patient_memory.generation import build_answer
+from patient_memory.ingestion import digest, lock_patient, submit
+from patient_memory.lifecycle import (
+    assign,
+    cache_get,
+    cache_put,
+    change_source,
+    rate_limit,
+    scope_hash,
+)
+from patient_memory.objects import ObjectStore
+from patient_memory.providers import generator_for
+from patient_memory.retrieval import evidence, retrieve
+from patient_memory.storage import audit, patient_access, require_member, transaction
+
+
+class PayloadLimit:
+    def __init__(self, app, limit):
+        self.app, self.limit = app, limit
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        body = bytearray()
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return
+            body.extend(message.get("body", b""))
+            if len(body) > self.limit:
+                response = JSONResponse(status_code=413, content={"error": {
+                    "code": "payload_too_large", "message": "Payload exceeds limit",
+                    "request_id": str(uuid4()), "retryable": False}})
+                return await response(scope, receive, send)
+            if not message.get("more_body", False):
+                break
+        headers = dict(scope.get("headers", []))
+        if body and headers.get(b"content-type", b"").split(b";")[0] != b"application/json":
+            response = JSONResponse(status_code=415, content={"error": {
+                "code": "unsupported_content_type", "message": "Use application/json",
+                "request_id": str(uuid4()), "retryable": False}})
+            return await response(scope, receive, send)
+        delivered = False
+
+        async def replay():
+            nonlocal delivered
+            if not delivered:
+                delivered = True
+                return {"type": "http.request", "body": bytes(body), "more_body": False}
+            return await receive()
+
+        return await self.app(scope, replay, send)
+
+
+def create_app(cfg=None, objects=None, generator=None):
+    cfg = cfg or Settings()
+    app = FastAPI(title="Patient Memory — synthetic prototype", version="0.1.0")
+    app.state.cfg = cfg
+    app.state.objects = objects or ObjectStore(cfg)
+    app.state.generator = generator or generator_for(cfg)
+    app.add_middleware(PayloadLimit, limit=cfg.max_payload_bytes)
+    bearer = HTTPBearer(auto_error=False)
+
+    @app.middleware("http")
+    async def request_context(request: Request, call_next):
+        started = time.monotonic()
+        request.state.request_id = uuid4()
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = str(request.state.request_id)
+        route = request.scope.get("route")
+        logging.getLogger("patient_memory.requests").info(
+            "request method=%s route=%s status=%d duration_ms=%.1f",
+            request.method, getattr(route, "path", "unmatched"), response.status_code,
+            (time.monotonic() - started) * 1000,
+        )
+        return response
+
+    @app.exception_handler(Problem)
+    async def problem_handler(request: Request, exc: Problem):
+        return JSONResponse(status_code=exc.status,
+                            headers={"Retry-After": "60"} if exc.status == 429 else None,
+                            content={"error": {
+            "code": exc.code, "message": exc.message,
+            "request_id": str(request.state.request_id), "retryable": exc.status in {409, 429, 502, 503, 504}}})
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_handler(request: Request, exc):
+        # Never echo rejected clinical text or tokens in validation responses.
+        syntax = any(error["type"] == "json_invalid" for error in exc.errors())
+        return await problem_handler(request, Problem(400 if syntax else 422, "invalid_request"))
+
+    async def dependency_error(request: Request, exc):
+        return await problem_handler(request, Problem(503, "dependency_unavailable"))
+
+    for error_type in (psycopg.Error, BotoCoreError, ClientError):
+        app.add_exception_handler(error_type, dependency_error)
+
+    def identity(credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]):
+        if not credentials:
+            raise Problem(401, "invalid_identity")
+        actor = decode_token(credentials.credentials, cfg)
+        with transaction(cfg, actor) as conn:
+            require_member(conn)
+        return actor
+
+    actor_dep = Depends(identity)
+
+    @app.get("/v1/health/live")
+    def live():
+        return {"status": "alive", "mode": "synthetic"}
+
+    @app.get("/v1/health/ready")
+    def ready(actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            if not require_member(conn)["administrator"]:
+                raise Problem(404, "not_found")
+            conn.execute("SELECT 1")
+        app.state.objects.client.head_bucket(Bucket=cfg.object_bucket)
+        return {"status": "ready"}
+
+    @app.post("/v1/patients", status_code=201)
+    def create_patient(body: PatientInput, request: Request, actor=actor_dep):
+        pid = uuid4()
+        with transaction(cfg, actor) as conn:
+            if not require_member(conn)["administrator"]:
+                raise Problem(404, "not_found")
+            try:
+                conn.execute("INSERT INTO patients(id,tenant_id,external_id) VALUES(%s,%s,%s)",
+                             (pid, actor.tenant_id, body.external_id))
+            except psycopg.errors.UniqueViolation as exc:
+                raise Problem(409, "patient_exists") from exc
+            audit(conn, actor, pid, "create_patient", request.state.request_id)
+        return {"patient_id": pid}
+
+    @app.post("/v1/patients/{patient_id}/sources", status_code=202)
+    def import_source(patient_id: UUID, body: SourceInput, request: Request,
+                      idempotency_key: str = Header(), actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            result = submit(conn, actor, patient_id, body, idempotency_key, app.state.objects)
+            audit(conn, actor, patient_id, "import_source", request.state.request_id)
+            return result
+
+    @app.get("/v1/patients/{patient_id}/jobs/{job_id}")
+    def job_state(patient_id: UUID, job_id: UUID, actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            patient = patient_access(conn, patient_id)
+            job = conn.execute("SELECT * FROM jobs WHERE patient_id=%s AND id=%s", (patient_id, job_id)).fetchone()
+            if not job:
+                raise Problem(404, "not_found")
+            return {**{key: job[key] for key in ["status", "stage", "attempt", "error_code"]},
+                    "memory_revision": patient["revision"]}
+
+    @app.post("/v1/patients/{patient_id}/jobs/{job_id}/retry", status_code=202)
+    def retry_job(patient_id: UUID, job_id: UUID, body: dict, request: Request,
+                  idempotency_key: str = Header(), actor=actor_dep):
+        from patient_memory.ingestion import idempotent
+        if body:
+            raise Problem(422, "invalid_request")
+        with transaction(cfg, actor) as conn:
+            patient_access(conn, patient_id, write=True)
+
+            def perform():
+                row = conn.execute("SELECT * FROM jobs WHERE patient_id=%s AND id=%s FOR UPDATE",
+                                   (patient_id, job_id)).fetchone()
+                if not row:
+                    raise Problem(404, "not_found")
+                if row["status"] != "failed":
+                    raise Problem(409, "invalid_retry_state")
+                conn.execute("UPDATE jobs SET status='queued',attempt=0,next_attempt_at=now(),"
+                             "error_code=NULL WHERE id=%s", (job_id,))
+                audit(conn, actor, patient_id, "retry_job", request.state.request_id)
+                return {"job_id": str(job_id), "status": "queued"}
+            return idempotent(conn, actor, patient_id, "retry", idempotency_key,
+                              {"job_id": str(job_id)}, perform)
+
+    def answer(patient_id, body, actor, request, summary=False):
+        instant = now()
+        as_of = body.shift_end if summary else body.as_of or instant
+        known_at = body.known_at or instant
+        question = "shift handover summary" if summary else body.question
+        with transaction(cfg, actor) as conn:
+            patient_access(conn, patient_id)
+            allowed = rate_limit(conn, actor, cfg.rate_limit)
+        if not allowed:
+            raise Problem(429, "rate_limited")
+        for attempt in range(2):
+            model_version = app.state.generator.version()
+            with transaction(cfg, actor) as conn:
+                lock_patient(conn, patient_id)
+                patient = patient_access(conn, patient_id)
+                facts, coverage = retrieve(conn, patient_id, as_of, known_at, question,
+                                           cfg.max_evidence, summary)
+                revision = patient["revision"]
+                initial_scope = scope_hash(conn, actor, patient_id)
+                key = digest({"tenant": str(actor.tenant_id), "patient": str(patient_id),
+                              "scope": initial_scope, "revision": revision, "asof": as_of,
+                              "known": known_at, "question": question,
+                              "shift_start": body.shift_start if summary else None,
+                              "model": model_version, "prompt": "verbatim-v1",
+                              "retriever": "rrf-hash-v1", "embedding": "hash64-v1",
+                              "max_evidence": cfg.max_evidence, "coverage": coverage})
+                cached = cache_get(conn, patient_id, key)
+                if cached:
+                    result = Answer.model_validate(cached)
+                    result.request_id = request.state.request_id
+                    audit(conn, actor, patient_id, "cache_hit", request.state.request_id)
+                    return result
+            result = build_answer(app.state.generator, question, facts, coverage, patient_id,
+                                  revision, as_of, known_at, request.state.request_id,
+                                  body.shift_start if summary else None)
+            latest_model = app.state.generator.version()
+            with transaction(cfg, actor) as conn:
+                lock_patient(conn, patient_id)
+                latest = patient_access(conn, patient_id)
+                if (latest["revision"] != revision or latest_model != model_version
+                        or scope_hash(conn, actor, patient_id) != initial_scope):
+                    if attempt == 0:
+                        continue
+                    raise Problem(409, "memory_changed")
+                audit(conn, actor, patient_id, "summary" if summary else "question", request.state.request_id)
+                cache_put(conn, actor, patient_id, key, revision, result)
+                return result
+
+    @app.put("/v1/patients/{patient_id}/assignments")
+    def assignment(patient_id: UUID, body: AssignmentInput, request: Request, actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            try:
+                return assign(conn, actor, patient_id, body, request.state.request_id)
+            except psycopg.errors.ForeignKeyViolation as exc:
+                raise Problem(422, "invalid_assignment_target") from exc
+
+    @app.post("/v1/patients/{patient_id}/sources/{source_id}/retract")
+    def retract(patient_id: UUID, source_id: UUID, body: Reason, request: Request,
+                idempotency_key: str = Header(), actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            return change_source(conn, actor, patient_id, source_id, "retract", idempotency_key,
+                                 body.model_dump(), request.state.request_id)
+
+    @app.post("/v1/patients/{patient_id}/sources/{source_id}/purge", status_code=202)
+    def purge(patient_id: UUID, source_id: UUID, body: Reason, request: Request,
+              idempotency_key: str = Header(), actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            return change_source(conn, actor, patient_id, source_id, "purge", idempotency_key,
+                                 body.model_dump(), request.state.request_id)
+
+    @app.put("/v1/patients/{patient_id}/sources/{source_id}/visibility")
+    def visibility(patient_id: UUID, source_id: UUID, body: VisibilityInput, request: Request,
+                   idempotency_key: str = Header(), actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            return change_source(conn, actor, patient_id, source_id, "visibility", idempotency_key,
+                                 body.model_dump(), request.state.request_id)
+
+    @app.post("/v1/patients/{patient_id}/questions", response_model=Answer)
+    def question(patient_id: UUID, body: Question, request: Request, actor=actor_dep):
+        return answer(patient_id, body, actor, request)
+
+    @app.post("/v1/patients/{patient_id}/summaries", response_model=Answer)
+    def summary(patient_id: UUID, body: Summary, request: Request, actor=actor_dep):
+        return answer(patient_id, body, actor, request, True)
+
+    @app.get("/v1/patients/{patient_id}/evidence/{evidence_id}")
+    def get_evidence(patient_id: UUID, evidence_id: UUID, request: Request, actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            patient_access(conn, patient_id)
+            f = conn.execute(
+                "SELECT f.*,s.payload,s.canonical_text,s.recorded_at,s.ingested_at FROM facts f "
+                "JOIN sources s ON s.tenant_id=f.tenant_id AND s.patient_id=f.patient_id AND s.id=f.source_id "
+                "WHERE f.patient_id=%s AND f.id=%s AND s.published_at IS NOT NULL "
+                "AND s.retracted_at IS NULL AND s.purged_at IS NULL", (patient_id, evidence_id),
+            ).fetchone()
+            if not f:
+                raise Problem(404, "not_found")
+            audit(conn, actor, patient_id, "evidence", request.state.request_id)
+            return evidence(f)
+
+    @app.get("/v1/patients/{patient_id}/timeline")
+    def timeline(patient_id: UUID, request: Request, as_of: datetime | None = None,
+                 known_at: datetime | None = None, start: datetime | None = Query(None, alias="from"),
+                 end: datetime | None = Query(None, alias="to"), limit: int = Query(50, ge=1, le=100),
+                 cursor: str | None = None, actor=actor_dep):
+        from patient_memory.pagination import paginate
+        instant = now()
+        for dt in [as_of, known_at, start, end]:
+            if dt and dt.tzinfo is None:
+                raise Problem(422, "timezone_required")
+        if known_at and known_at > instant or start and end and start > end:
+            raise Problem(422, "invalid_interval")
+        with transaction(cfg, actor) as conn:
+            lock_patient(conn, patient_id)
+            patient = patient_access(conn, patient_id)
+            return paginate(conn, cfg, actor, patient, as_of, known_at, start, end, limit,
+                            cursor, request.state.request_id)
+
+    return app
+
+
+app = create_app()
