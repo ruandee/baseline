@@ -72,6 +72,8 @@ Schema lives in `migrations/versions/` as paired `NNN_name.py` + `NNN_name.sql` 
 
 Tests are layered `unit` / `integration` (real Postgres and S3, including `test_rls.py` against the runtime role) / `contract` (API) / `e2e` (`test_safety_cases.py`). The `sandbox` fixture in `tests/conftest.py` creates an isolated tenant, patient and four role identities through the admin connection.
 
+Local toolchain, Colima and clock-skew gotchas on macOS: `docs/operations.md` ("Local toolchain on macOS").
+
 ## Agent skills
 
 ### Issue tracker

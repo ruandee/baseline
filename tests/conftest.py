@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from uuid import uuid4
 
 import psycopg
@@ -13,8 +14,25 @@ def offline_models(monkeypatch):
     monkeypatch.setenv("PM_PROVIDER", "stub")
 
 
+MAX_DB_CLOCK_LEAD_MS = 10
+
+
+@pytest.fixture(scope="session")
+def db_clock_in_step():
+    """Tests take `now()` from the host but rows are stamped by the database clock, so a database
+    clock ahead of the host makes just-written rows look like they arrive in the future."""
+    with psycopg.connect(Settings().admin_database_url) as conn:
+        before = datetime.now(timezone.utc)
+        database = conn.execute("SELECT clock_timestamp()").fetchone()[0]
+        after = datetime.now(timezone.utc)
+    lead_ms = ((database - before) + (database - after)).total_seconds() * 500
+    if lead_ms > MAX_DB_CLOCK_LEAD_MS:
+        pytest.exit(f"Database clock is {lead_ms:.0f} ms ahead of the host; time-cutoff tests "
+                    "would fail. Resync it (macOS Colima: see docs/operations.md).", returncode=3)
+
+
 @pytest.fixture
-def sandbox():
+def sandbox(db_clock_in_step):
     cfg = Settings()
     tenant, patient = uuid4(), uuid4()
     actors = {role: uuid4() for role in ["admin", "importer", "nurse", "patient"]}

@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from patient_memory.auth import synthetic_token
 from patient_memory.errors import Problem
-from scripts.frontend import workspace_app
+from scripts.frontend import PAGE_CSP, SHELL_ROUTES, workspace_app
 from tests.contract.test_api import import_note, source_payload
 
 
@@ -91,10 +91,20 @@ def test_hosted_mode_requires_a_valid_demo_token(sandbox):
 
 def test_baseline_pages_share_one_shell_with_mic_csp(sandbox):
     client = workspace_client(sandbox)
-    for path in ['/unit', '/resident/abc', '/check?mode=resident']:
-        page = client.get(path)
+    for route in SHELL_ROUTES:
+        page = client.get(route.format(patient_id='abc') + '?mode=resident')
         assert page.status_code == 200 and 'baseline.js' in page.text
-        csp = page.headers['content-security-policy']
-        assert "script-src 'self'" in csp and "media-src 'self' blob:" in csp
+        assert page.headers['content-security-policy'] == PAGE_CSP
+    assert "script-src 'self'" in PAGE_CSP and "media-src 'self' blob:" in PAGE_CSP
     assert client.get('/assets/baseline.js').status_code == 200
     assert 'baseline.js' not in client.get('/').text
+
+
+def test_shell_health_calls_work_for_the_nurse_token(sandbox):
+    """Mirrors the calls in frontend/baseline.js; /v1/health/ready is administrator-only."""
+    client = workspace_client(sandbox)
+    assert client.get('/v1/health/live').status_code == 200
+    token = client.get('/demo/session', headers={'X-PM-Demo': '1'}).json()['token']
+    client.headers['Authorization'] = 'Bearer ' + token
+    assert client.get(f'/v1/patients/{sandbox[1]}/timeline').status_code == 200
+    assert client.get('/v1/health/ready').status_code == 404
