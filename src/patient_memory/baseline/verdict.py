@@ -78,33 +78,7 @@ def apply_profile(decision: Decision, *, escalations_used: int, budget: int,
     return decision, flags
 
 
-def _pct(v):
-    return f"{v * 100:.0f}%"
-
-
-def sbar_template(name: str, status: str, decision: Decision, check_id: str, features: dict,
-                  tags: list[dict]) -> dict | None:
-    """Template SBAR for escalate and watch verdicts; sentences cite check or evidence ids."""
-    if decision.verdict not in ("escalate", "watch"):
-        return None
-    rate = features.get("speech_rate_wpm")
-    pause = features.get("pause_ratio")
-    cite_check = [f"check:{check_id}"]
-    s = f"{name}'s speech differs from their usual"
-    if rate and pause:
-        s += (f": speech rate {rate['value']:.0f} vs {rate['median']:.0f} words per minute, "
-              f"pauses {_pct(pause['value'])} vs {_pct(pause['median'])}")
-    context = [t for t in tags if t["evidence_id"]]
-    labels = [t["label"] for t in tags]
-    amplifiers = [t["label"] for t in tags if t["kind"] == "amplifier"]
-    basis = ("Meets the change threshold" if status == "change"
-             else "One strong reading, not yet confirmed")
-    return {"source": "template", "sentences": [
-        {"section": "S", "text": s + ".", "evidence_ids": cite_check},
-        {"section": "B", "text": ("; ".join(labels) + ".") if labels else "No context on record.",
-         "evidence_ids": [t["evidence_id"] for t in context]},
-        {"section": "A", "text": basis + ("; " + ", ".join(amplifiers) + " present." if amplifiers
-                                          else "."), "evidence_ids": cite_check},
-        {"section": "R", "text": f"Suggest {ACTION_LABELS[decision.action]}.",
-         "evidence_ids": cite_check},
-    ]}
+def sbar_template(*args, **kwargs):
+    """Compatibility import; drafting lives in baseline.sbar (BL-12)."""
+    from patient_memory.baseline.sbar import sbar_template as template
+    return template(*args, **kwargs)

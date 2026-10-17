@@ -97,3 +97,19 @@ Not done: Gemini note extraction and SBAR drafting (BL-10, BL-12), the cohort lo
 the "temperature documented normal" reader. The ffmpeg-dependent contract tests in
 `tests/contract/test_checks.py` skip where ffmpeg is not installed, so the audio path into
 `store_check` is covered only by `tests/integration/test_assessments.py`, which calls it directly.
+
+## BL-12 ? Validated SBAR drafts (integration pending)
+
+Watch/escalate checks now draft through `baseline.sbar` after deterministic verdict selection.
+Configured providers receive only rounded feature values and selected context; all S/B/A/R
+sections, allowed IDs/numbers, banned phrases and the fixed action label are validated. Provider
+or validation failure uses the template, and stub mode never calls a provider. Canonical check/tag
+IDs are validated before mapping to the existing UI check/fact citation convention. See
+[decision 014](decisions/014-validated-sbar-drafts.md).
+
+Local Windows/Python 3.14 verification: frozen sync and lint pass; 169 unit tests pass with FFmpeg
+on PATH, 6 slow tests deselected. DB persistence/authorization tests were added but not run locally
+because Docker is unavailable. Migrations, DB-backed suites and stub evaluation await CI. No live
+model call or real-audio validation was performed. This branch depends on BL-10's shared client
+and BL-11/13 review integration, including stored evidence invalidation on lifecycle changes;
+BL-12 remains open until those dependencies and full CI pass.
