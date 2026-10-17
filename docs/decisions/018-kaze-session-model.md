@@ -135,7 +135,8 @@ Transitions:
   `accuracy_m`. With a session: mode must be `live`; `arming` takes only `is_baseline=true`, other
   open states only `is_baseline=false` (422 `invalid_request`); `ended` is 409 `session_ended`;
   unknown/foreign session is 404. Session checks are scored only against the same session's history
-  (tonight's baseline), and checks outside a session never use session clips. The response gains
+  (tonight's baseline), and checks outside a session never use session clips. Session check-ins
+  never go to a model provider for SBAR drafting. The response gains
   `session: {id, status, baseline_required, baseline_usable, next_due_at}`.
 - `GET /ack/{token}` is BL-27's public route; it calls `pm_acknowledge_escalation`.
 
@@ -151,7 +152,8 @@ stays append-only for the runtime role: no DELETE grant is added.
 
 - BL-26 reads open sessions (`status IN ('active','escalating')`, `next_due_at`) as `kaze-service`
   and updates `ladder_level`, `ladder_trigger`, `episode`, `next_due_at`, `status` under row lock
-  (`SELECT … FOR UPDATE`). Last known location for a text: latest session check with `lat`.
+  (`SELECT … FOR UPDATE`), taking the patient advisory lock (`lock_patient`) first, as check
+  admission does. Last known location for a text: latest session check with `lat`.
 - BL-27 generates tokens with `secrets.token_urlsafe(32)`, stores only `sha256` in
   `ack_token_hash`, renders the fixed neutral text from `docs/06-baseline.md`, and never sends real
   SMS in CI. `/ack/{token}` hashes the token and calls `pm_acknowledge_escalation(hash)`, which
@@ -162,6 +164,6 @@ stays append-only for the runtime role: no DELETE grant is added.
 
 - KAZE data never shares a tenant with residents; RLS and the safety-tenant check enforce that.
 - Activation is the only ladder logic in BL-25; timing and escalation remain BL-26's.
-- When BL-10's migration 005 lands, 006's `down_revision` must point at `005` (see the PR).
+- Migration 006 chains directly off BL-10's 005 (`note_context_runs`), so alembic has one head.
 - Not done here: scheduler, SMS, ack route, pages, `loud_venue` quality tolerance, and integrated
   acceptance after the PointClickCare path reaches BL-13.

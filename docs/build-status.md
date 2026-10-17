@@ -243,3 +243,21 @@ Six loader DB cases cover idempotency, publication/evidence support, prefix/full
 RLS/revocation and injected context. Local Docker/DB/migrations/eval remain unrun. BL-14 remains
 open for accepted scenario adoption, final strict DB acceptance and current-time/readback wiring.
 Real-audio/runner, hosting/reset and normal-temperature display are separate outstanding gates.
+
+## BL-25 — KAZE safety sessions (model and endpoints)
+
+Migration 006 (chained off 005) adds `tenants.safety_mode`, `safety_sessions`, `safety_contacts`
+and `escalation_events` (forced RLS, composite tenant/patient and session-scoped FKs), plus
+`session_id`, `lat`, `lon`, `accuracy_m` on `voice_checks`. Sessions exist only in safety-mode
+tenants (`scripts/kaze_demo.py` creates `kaze-demo`); the person is importer on their own row,
+the `kaze-service` principal is nurse. Endpoints: arm (`POST /v1/patients/{id}/sessions`), list,
+status and end. `POST /checks` accepts `session_id` and location; the third usable baseline
+clip activates the session, and session checks are scored only against that session's history.
+`pm_acknowledge_escalation` (hashed token, for BL-27) and `pm_retire_safety_sessions` (expiry and
+24 h deletion of session checks/locations/assessments/contacts/events; worker calls it each
+minute) are SECURITY DEFINER and tenant-scoped. Contract: [decision 018](decisions/018-kaze-session-model.md).
+
+Not done: scheduler/ladder progression and check-in resets (BL-26), SMS sender and `/ack` route
+(BL-27), pages (BL-28), `loud_venue` quality tolerance, two-phone acceptance, and integrated
+acceptance after the PointClickCare path reaches BL-13. DB-backed tests run in CI only (no
+local Docker).
