@@ -61,7 +61,7 @@ class StorylineInputsTests(unittest.TestCase):
     def test_scripted_deltas_and_stable_controls(self):
         changes = [
             ({26, 27}, {"speech_rate_wpm": .78, "pause_ratio": 1.4, "mean_pause_s": 1.35}),
-            ({26, 27}, {"speech_rate_wpm": .85, "pause_ratio": 1.2, "mean_pause_s": 1.2}),
+            ({26, 27}, {"speech_rate_wpm": .85, "pause_ratio": 1.35, "mean_pause_s": 1.35}),
             ({29}, {"speech_rate_wpm": .7, "pause_ratio": 1.5}),
         ]
         for index, resident in enumerate(self.residents):

@@ -55,7 +55,7 @@ def build_storylines():
             if index == 0 and day in {26, 27}:
                 multipliers = {"speech_rate_wpm": 0.78, "pause_ratio": 1.40, "mean_pause_s": 1.35}
             elif index == 1 and day in {26, 27}:
-                multipliers = {"speech_rate_wpm": 0.85, "pause_ratio": 1.20, "mean_pause_s": 1.20}
+                multipliers = {"speech_rate_wpm": 0.85, "pause_ratio": 1.35, "mean_pause_s": 1.35}
             elif index == 2 and day == 29:
                 multipliers = {"speech_rate_wpm": 0.70, "pause_ratio": 1.50}
             for key, factor in multipliers.items():
