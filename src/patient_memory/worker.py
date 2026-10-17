@@ -13,6 +13,9 @@ from patient_memory.storage import audit, transaction
 
 def run_once(cfg: Settings, identity: Identity, objects=None):
     objects = objects or ObjectStore(cfg)
+    from patient_memory.lifecycle import purge_once
+    if purge_once(cfg, identity, objects):
+        return True
     with transaction(cfg, identity) as conn:
         job = claim_job(conn)
         if not job:

@@ -11,10 +11,28 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from patient_memory.auth import decode_token
 from patient_memory.config import Settings
-from patient_memory.domain import Answer, PatientInput, Question, SourceInput, Summary, now
+from patient_memory.domain import (
+    Answer,
+    AssignmentInput,
+    PatientInput,
+    Question,
+    Reason,
+    SourceInput,
+    Summary,
+    VisibilityInput,
+    now,
+)
 from patient_memory.errors import Problem
 from patient_memory.generation import ExtractiveGenerator, build_answer
-from patient_memory.ingestion import lock_patient, submit
+from patient_memory.ingestion import digest, lock_patient, submit
+from patient_memory.lifecycle import (
+    assign,
+    cache_get,
+    cache_put,
+    change_source,
+    rate_limit,
+    scope_hash,
+)
 from patient_memory.objects import ObjectStore
 from patient_memory.retrieval import evidence, retrieve
 from patient_memory.storage import audit, patient_access, require_member, transaction
@@ -70,7 +88,9 @@ def create_app(cfg=None, objects=None, generator=None):
 
     @app.exception_handler(Problem)
     async def problem_handler(request: Request, exc: Problem):
-        return JSONResponse(status_code=exc.status, content={"error": {
+        return JSONResponse(status_code=exc.status,
+                            headers={"Retry-After": "60"} if exc.status == 429 else None,
+                            content={"error": {
             "code": exc.code, "message": exc.message,
             "request_id": str(request.state.request_id), "retryable": exc.status in {409, 429, 502, 503, 504}}})
 
@@ -169,6 +189,11 @@ def create_app(cfg=None, objects=None, generator=None):
         as_of = body.shift_end if summary else body.as_of or instant
         known_at = body.known_at or instant
         question = "shift handover summary" if summary else body.question
+        with transaction(cfg, actor) as conn:
+            patient_access(conn, patient_id)
+            allowed = rate_limit(conn, actor, cfg.rate_limit)
+        if not allowed:
+            raise Problem(429, "rate_limited")
         for attempt in range(2):
             with transaction(cfg, actor) as conn:
                 lock_patient(conn, patient_id)
@@ -176,18 +201,62 @@ def create_app(cfg=None, objects=None, generator=None):
                 facts, coverage = retrieve(conn, patient_id, as_of, known_at, question,
                                            cfg.max_evidence, summary)
                 revision = patient["revision"]
+                initial_scope = scope_hash(conn, actor, patient_id)
+                key = digest({"tenant": str(actor.tenant_id), "patient": str(patient_id),
+                              "scope": initial_scope, "revision": revision, "asof": as_of,
+                              "known": known_at, "question": question,
+                              "shift_start": body.shift_start if summary else None,
+                              "model": app.state.generator.model_id, "prompt": "verbatim-v1",
+                              "retriever": "rrf-hash-v1", "embedding": "hash64-v1",
+                              "max_evidence": cfg.max_evidence, "coverage": coverage})
+                cached = cache_get(conn, patient_id, key)
+                if cached:
+                    result = Answer.model_validate(cached)
+                    result.request_id = request.state.request_id
+                    audit(conn, actor, patient_id, "cache_hit", request.state.request_id)
+                    return result
             result = build_answer(app.state.generator, question, facts, coverage, patient_id,
                                   revision, as_of, known_at, request.state.request_id,
                                   body.shift_start if summary else None)
             with transaction(cfg, actor) as conn:
                 lock_patient(conn, patient_id)
                 latest = patient_access(conn, patient_id)
-                if latest["revision"] != revision:
+                if latest["revision"] != revision or scope_hash(conn, actor, patient_id) != initial_scope:
                     if attempt == 0:
                         continue
                     raise Problem(409, "memory_changed")
                 audit(conn, actor, patient_id, "summary" if summary else "question", request.state.request_id)
+                cache_put(conn, actor, patient_id, key, revision, result)
                 return result
+
+    @app.put("/v1/patients/{patient_id}/assignments")
+    def assignment(patient_id: UUID, body: AssignmentInput, request: Request, actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            try:
+                return assign(conn, actor, patient_id, body, request.state.request_id)
+            except psycopg.errors.ForeignKeyViolation as exc:
+                raise Problem(422, "invalid_assignment_target") from exc
+
+    @app.post("/v1/patients/{patient_id}/sources/{source_id}/retract")
+    def retract(patient_id: UUID, source_id: UUID, body: Reason, request: Request,
+                idempotency_key: str = Header(), actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            return change_source(conn, actor, patient_id, source_id, "retract", idempotency_key,
+                                 body.model_dump(), request.state.request_id)
+
+    @app.post("/v1/patients/{patient_id}/sources/{source_id}/purge", status_code=202)
+    def purge(patient_id: UUID, source_id: UUID, body: Reason, request: Request,
+              idempotency_key: str = Header(), actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            return change_source(conn, actor, patient_id, source_id, "purge", idempotency_key,
+                                 body.model_dump(), request.state.request_id)
+
+    @app.put("/v1/patients/{patient_id}/sources/{source_id}/visibility")
+    def visibility(patient_id: UUID, source_id: UUID, body: VisibilityInput, request: Request,
+                   idempotency_key: str = Header(), actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            return change_source(conn, actor, patient_id, source_id, "visibility", idempotency_key,
+                                 body.model_dump(), request.state.request_id)
 
     @app.post("/v1/patients/{patient_id}/questions", response_model=Answer)
     def question(patient_id: UUID, body: Question, request: Request, actor=actor_dep):
