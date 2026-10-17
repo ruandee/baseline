@@ -11,11 +11,18 @@ Explained, enrolling and within-normal results do not request or store an SBAR.
 The strict output schema bounds sentence counts/lengths and rejects extra fields. Validation
 requires all S/B/A/R sections, exact evidence IDs from the supplied check/tag bundle, numeric
 tokens from the rounded supplied measurements or fixed action label, no banned diagnostic or
-treatment phrases, and the exact suggested action label in every R sentence. Other than a B
+treatment phrases, and the exact fixed `Suggest {action label}.` R sentence with no appended advice. Other than a B
 sentence with no supplied context, sentences must cite evidence. Any provider/schema/validation
 failure uses the deterministic template, preserving the check and original verdict. No provider
-request/response or exception text is logged. These checks do not establish that arbitrary prose
-is semantically true; the UI must continue to label generated prose as a draft for verification.
+request/response or exception text is logged. Citation membership and numeric overlap alone cannot establish semantic support: a model could
+otherwise append treatment advice or invent negative findings while reusing a permitted ID.
+Therefore the server constructs allowed `(section, text, evidence_ids)` sentence options from
+computed measurements, selected context and the fixed decision. The provider can only assemble
+those exact supported options; paraphrases, added advice, unsupported negatives, swapped numeric
+relationships and misattributed tag sentences are rejected to the template. This deliberately
+narrows the original free-form drafting design to constrained assembly. These checks establish
+consistency with supplied data, not clinical truth or completeness; the UI must still label the
+output as a draft for verification.
 
 ## Citation contract
 
@@ -34,6 +41,7 @@ already stored prose. No prompt, quote copy or provider result is cached by this
 ## Acceptance
 
 Deterministic unit tests exercise all five validators, rounding, citation mapping, provider
-failures and no-network stub behavior. DB tests exercise saved drafts and scoped evidence reads
+failures, unsupported negative/positive claims, appended action advice, attribution and no-network
+stub behavior. DB tests exercise saved drafts and scoped evidence reads
 with mocked provider calls. Full CI, BL-10 client integration and the BL-11 lifecycle fix must
 pass before BL-12 is complete. Live Gemini generation has not been run by this change.

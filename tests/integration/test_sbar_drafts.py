@@ -22,16 +22,10 @@ def test_provider_draft_is_validated_persisted_and_read_with_scoped_citations(
     def request(cfg, **kwargs):
         bundle = json.loads(kwargs["user"])
         calls.append(bundle)
-        check = bundle["check_id"]
-        tag = bundle["context"][0]["id"]
-        return {"sentences": [
-            {"section": "S", "text": "Speech differs from baseline.", "evidence_ids": [check]},
-            {"section": "B", "text": "Poor intake is documented.",
-             "evidence_ids": ["invented-tag" if invalid else tag]},
-            {"section": "A", "text": "A change is flagged.", "evidence_ids": [check]},
-            {"section": "R", "text": "Suggest " + bundle["action_label"] + ".",
-             "evidence_ids": [check]},
-        ]}
+        sentences = bundle["supported_sentences"][:4]
+        if invalid:
+            sentences[1]["evidence_ids"] = ["invented-tag"]
+        return {"sentences": sentences}
 
     monkeypatch.setattr("patient_memory.baseline.llm.request_json", request)
     cfg = sandbox[0].model_copy(update={"provider": "compatible"})

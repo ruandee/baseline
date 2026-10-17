@@ -113,3 +113,10 @@ because Docker is unavailable. Migrations, DB-backed suites and stub evaluation 
 model call or real-audio validation was performed. This branch depends on BL-10's shared client
 and BL-11/13 review integration, including stored evidence invalidation on lifecycle changes;
 BL-12 remains open until those dependencies and full CI pass.
+
+BL-12 semantic review hardening: model output must exactly match server-constructed supported
+sentence/evidence pairs, and R must be the fixed standard action sentence with no extra advice.
+This closes the unsupported-negative and appended-treatment gaps left by IDs/numbers-only
+validation. Tests reject invented absence/presence, swapped numbers, wrong tag attribution and
+additional action clauses. This is constrained sentence assembly, not unrestricted prose generation;
+ADR 014 records the design change and remaining clinical/evidence validity limits.

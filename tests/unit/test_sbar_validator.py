@@ -22,13 +22,7 @@ def inputs():
 
 
 def valid():
-    return {"sentences": [
-        {"section": "S", "text": "Speech rate 123 vs 158 words per minute.",
-         "evidence_ids": [CHECK]},
-        {"section": "B", "text": "Poor intake was documented.", "evidence_ids": [TAG]},
-        {"section": "A", "text": "The change threshold is met.", "evidence_ids": [CHECK]},
-        {"section": "R", "text": "Suggest Run 4AT now.", "evidence_ids": [CHECK]},
-    ]}
+    return {"sentences": copy.deepcopy(inputs()[0]["supported_sentences"][:4])}
 
 
 def configured():
@@ -138,4 +132,32 @@ def test_exact_ids_are_case_sensitive_and_never_broaden_scope():
     raw["sentences"][1]["evidence_ids"] = ["check:" + CHECK]
     bundle, citations = inputs()
     with pytest.raises(ValueError, match="unknown evidence"):
+        validate_draft(raw, bundle, citations)
+
+
+@pytest.mark.parametrize("section,text", [
+    ("R", "Run 4AT now and stop all oral fluids"),
+    ("R", "Suggest Run 4AT now. Stop all oral fluids."),
+    ("R", "Suggest Run 4AT now and no medication today."),
+    ("B", "No fever or confusion is present."),
+    ("B", "Fever and confusion are present."),
+    ("B", "The resident is clinically stable."),
+    ("A", "The resident needs urgent transfer."),
+    ("S", "Speech rate 158 vs 123 words per minute."),  # allowed numbers, wrong relationship
+])
+def test_citations_and_allowed_numbers_do_not_authorize_unsupported_claims(section, text):
+    raw = valid()
+    next(sentence for sentence in raw["sentences"] if sentence["section"] == section)["text"] = text
+    assert generate(lambda *a, **kw: raw)["source"] == "template"
+
+
+def test_supported_claim_must_keep_its_actual_supporting_tag():
+    other = {**TAGS[0], "context_tag_id": "other-tag", "evidence_id": "other-fact",
+             "label": "Recent fall"}
+    bundle, citations = evidence_bundle("Mrs. K", "change", DECISION, CHECK, FEATURES,
+                                        [*TAGS, other])
+    raw = {"sentences": copy.deepcopy(bundle["supported_sentences"][:4])}
+    raw["sentences"][1] = {"section": "B", "text": "Recorded context: Poor intake.",
+                           "evidence_ids": ["other-tag"]}
+    with pytest.raises(ValueError, match="attribution"):
         validate_draft(raw, bundle, citations)
