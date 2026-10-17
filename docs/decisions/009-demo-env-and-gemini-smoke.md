@@ -53,3 +53,6 @@ Local validation: frozen sync and lint passed; unit tests 68 passed, 7 skipped
 (ffmpeg unavailable), 2 slow deselected. Docker is absent, so database-backed
 checks and stub evaluation require CI or a service-enabled host. Real Gemini
 validation awaits a locally supplied key. Do not close BL-01 on stub results alone.
+
+Model example updated to gemini-3.8-flash following Google model guidance for new projects;
+2.5 model access is limited to previous users. See https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash .
