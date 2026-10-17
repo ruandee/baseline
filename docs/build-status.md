@@ -93,7 +93,7 @@ scoring intentionally stores templates instead of making hundreds of historical 
 --offline also forces keyword note extraction and makes no provider requests.
 
 Presentation is explicit: all-history loads 360 checks and reports declared historical snapshots
-separately from day 30 recovery. Scenario-snapshots loads 353 prefixes: K/T through 
+separately from day 30 recovery. Scenario-snapshots loads 353 prefixes: K/T through
 2026-10-14T14:00:00Z, L through 2026-10-16T14:00:00Z and controls through2026-10-17T14:00:00Z.
 These are different retrospective event-time cutoffs with currently published evidence, not an
 earlier knowledge snapshot or a current-date unit/reset. Fuller histories cannot be silently
