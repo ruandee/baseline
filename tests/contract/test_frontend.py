@@ -108,3 +108,10 @@ def test_shell_health_calls_work_for_the_nurse_token(sandbox):
     client.headers['Authorization'] = 'Bearer ' + token
     assert client.get(f'/v1/patients/{sandbox[1]}/timeline').status_code == 200
     assert client.get('/v1/health/ready').status_code == 404
+
+
+def test_resident_assets_are_served(sandbox):
+    client = workspace_client(sandbox)
+    for asset in ('resident.js', 'resident-fixtures.js'):
+        assert client.get('/assets/' + asset).status_code == 200
+    assert 'resident.js' in client.get('/resident/some-id').text
