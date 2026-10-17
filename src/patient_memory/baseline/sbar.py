@@ -38,6 +38,7 @@ def sbar_template(name: str, status: str, decision: Decision, check_id: str, fea
     """Safe fallback: context absence is not a documented negative clinical finding."""
     if decision.verdict not in ("escalate", "watch"):
         return None
+    tags = [tag for tag in tags if tag.get("evidence_id")]
     cite = [f"check:{check_id}"]
     text = f"{name}'s speech differs from their usual"
     rate, pause = features.get("speech_rate_wpm"), features.get("pause_ratio")

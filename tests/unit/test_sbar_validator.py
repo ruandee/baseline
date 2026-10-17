@@ -125,6 +125,9 @@ def test_unresolvable_context_is_not_sent_to_provider():
     tag = {**TAGS[0], "evidence_id": None}
     bundle, citations = evidence_bundle("Mrs. K", "change", DECISION, CHECK, FEATURES, [tag])
     assert bundle["context"] == [] and TAG not in citations
+    fallback = generate(lambda *a, **kw: {}, tags=[tag])
+    assert fallback["sentences"][1]["text"] == "No context supplied for this assessment."
+    assert all("Poor intake" not in sentence["text"] for sentence in fallback["sentences"])
 
 
 def test_exact_ids_are_case_sensitive_and_never_broaden_scope():
