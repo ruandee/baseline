@@ -1,11 +1,11 @@
 services:
   db:
-    image: pgvector/pgvector:0.8.2-pg17@sha256:feb68f4f15446397d8cac7f4fe48fe4586de83160d1fc48b46283312d1a33966
+    image: timescale/timescaledb-ha:pg17@sha256:20534b8a06680956336604f3735d5811807f5244c6a364c761a70dea9c63de36
     environment:
       POSTGRES_DB: patient_memory
       POSTGRES_PASSWORD: synthetic-admin
     ports: ["127.0.0.1:55432:5432"]
-    volumes: ["pgdata:/var/lib/postgresql/data"]
+    volumes: ["pgdata_timescale:/home/postgres/pgdata"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d patient_memory"]
       interval: 2s
@@ -19,5 +19,5 @@ services:
     ports: ["127.0.0.1:59000:4566"]
     volumes: ["objects:/var/lib/localstack"]
 volumes:
-  pgdata:
+  pgdata_timescale:
   objects:

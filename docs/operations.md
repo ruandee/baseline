@@ -2,7 +2,7 @@
 
 ## Services and scope
 
-The API and worker run as host Python processes. Compose runs PostgreSQL+pgvector and LocalStack S3 with pinned image digests. MinIO was replaced after its image was unavailable. Services bind to loopback. `PM_ENVIRONMENT` must be `synthetic`; other environments fail validation.
+The API and worker run as host Python processes. Compose runs PostgreSQL 17 with TimescaleDB and pgvector (the `timescaledb-ha` image, volume `pgdata_timescale`) and LocalStack S3, with pinned image digests. See [decision 004](decisions/004-timescale.md). MinIO was replaced after its image was unavailable. Services bind to loopback. `PM_ENVIRONMENT` must be `synthetic`; other environments fail validation.
 
 `PM_ADMIN_DATABASE_URL` is for migrations, fixture bootstrap and evaluation. API and worker queries use `PM_DATABASE_URL`, a non-owner role without BYPASSRLS. An approved deployment must give runtime processes only runtime credentials, with a separate migration identity. Checked-in passwords are local fictional-data credentials.
 

@@ -41,7 +41,7 @@ Python 3.12–3.14, uv 0.13.1, Docker Compose. All commands run from the repo ro
 
 ```sh
 uv sync --frozen
-docker compose up -d --wait db object-store     # Postgres 17+pgvector on :55432, LocalStack S3 on :59000
+docker compose up -d --wait db object-store     # Postgres 17+TimescaleDB+pgvector on :55432, LocalStack S3 on :59000
 uv run alembic upgrade head
 uv run uvicorn patient_memory.api:app --host 127.0.0.1 --port 8000 --no-access-log
 uv run python -m scripts.demo                    # end-to-end demo against the running API
