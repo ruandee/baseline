@@ -49,6 +49,27 @@ BL-17), verdict colour tokens and an API check (liveness plus a nurse-token pati
 [decision 005](decisions/005-baseline-frontend-location.md). Contract tests were added in
 `tests/contract/test_frontend.py`; they need the database services.
 
+## BL-01 — Demo env hardening
+
+Added configurable token TTL (48-hour default), demo rate-limit and Gemini-compatible
+environment entries, plus `scripts/gemini_smoke.py` with strict schema validation.
+The smoke call is opt-in and requires a user-supplied key; no provider call ran in
+CI. Unit tests pass (44 passed, 2 skipped, 2 deselected) and lint passes. See
+[decision 009](decisions/009-demo-env-and-gemini-smoke.md).
+
+## BL-08 — Pure change engine
+
+`baseline.engine.evaluate` computes enrolled/rolling baseline scores, EWMA, CUSUM
+and change status without storage or API integration. Its six configuration values
+reject nonfinite or invalid ranges at startup. Threshold interpretation and unchanged
+single-clip CUSUM behavior are recorded in
+[decision 011](decisions/011-change-engine-interpretation.md).
+
+Review revision: lint passed; unit tests returned 93 passed, 7 skipped (ffmpeg is
+unavailable), and 2 slow tests deselected on Windows/Python 3.14. Database-backed
+integration/contract/e2e checks, migrations and stub evaluation were not rerun because
+Docker is unavailable locally. API/verdict integration belongs to BL-11.
+
 ## BL-07 — Voice check upload
 
 `POST /v1/patients/{id}/checks` takes `multipart/form-data` (`audio`, `mode`, `device_id`, optional
@@ -64,3 +85,28 @@ Not done here: `change` and `assessment` are `null` and `timings_ms` has no `eng
 keys until the change engine (BL-08) and the verdict table (BL-11) exist. Clips over 30 s are
 refused (the prompt stops at 15 s) so a crafted upload cannot hold Whisper for minutes. The
 p95 under 5 s target has not been measured on the demo host.
+
+
+BL-01 takeover update: main conflicts resolved; token TTL tested at 1, 7, 48 and
+72 hours with expired-token rejection; provider error/schema/model-discovery tests
+added. Local lint and frozen sync pass; unit suite 68 passed, 7 ffmpeg-dependent
+skips and 2 slow deselections. Previous live Gemini request returned HTTP 404;
+no saved key is available for a retry, so provider acceptance remains open.
+See decision 009 for recovery commands and the explicit unrun service checks.
+
+## BL-09 — Structured context and `POST /context`
+
+`baseline/context.py` holds the no-model rules: an `ordered` or `administered` medication event for
+a high-risk drug becomes `high_risk_med_new`, `temperature_c` of 37.8 or more becomes
+`fever_documented`, and a `context.<tag>` observation becomes that tag. The worker writes the tags
+in the same transaction that publishes the facts, quoting the record's own span.
+`POST /v1/patients/{id}/context` submits such an observation through normal ingestion and returns
+the tag with canonical text and fact published atomically, completing the queued job and bumping
+the patient revision once. Its citation resolves immediately without a worker. Generic context
+inputs reject check-only `language_change`; structured extraction skips it until check-linked
+metadata exists. Migration 004 lets purge delete tags so a purged source leaves no quote behind. See
+[decision 007](decisions/007-structured-context-tags.md).
+
+Not done here: Gemini free-text tags, and readers ignoring tags of retracted sources (verdict and
+overview tickets must do that join). Only importer-assigned callers can post context, because it
+goes through source ingestion.
