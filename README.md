@@ -1,5 +1,7 @@
 # Patient Memory Backend
 
+New collaborators and agents: start with [CONTEXT.md](CONTEXT.md) for the project idea, implemented architecture, database, setup and remaining work.
+
 A working synthetic-data backend for nursing-note and patient-record memory. Import sources, process immutable versions, ask cited questions, generate a handover summary, and reproduce what was known before a correction.
 
 **Status: research prototype using fictional records.** PostgreSQL access controls, evidence spans, temporal queries and failure behavior are tested. Clinical validation and real semantic embeddings are not implemented.
