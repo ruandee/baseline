@@ -32,19 +32,19 @@ The native Ollama adapter uses structured evidence selection with thinking disab
 If installed, run `ollama serve` and `ollama pull qwen3.5:0.8b`. The optional Windows script downloads the official portable release, checks its published SHA-256 and keeps local files outside Git:
 
 ```powershell
-./scripts/start-ollama.ps1 -Architecture arm64
+./scripts/start-ollama.ps1 -Architecture arm64 -TextOnly
 ```
 
-Use `-Architecture amd64` for Intel/AMD Windows PCs. ARM64 is tested on the development laptop. Configure `.env`, then restart the API:
+Use `-Architecture amd64` for Intel/AMD Windows PCs. ARM64 is tested on the development laptop. `-TextOnly` imports pinned primary weights without the optional vision/draft layers; its local model name is `patient-memory-qwen35:0.8b`. For a regular full Ollama pull, omit `-TextOnly` and use `qwen3.5:0.8b` as the configured model. Configure `.env`, then restart the API:
 
 ```dotenv
 PM_ENVIRONMENT=synthetic
 PM_PROVIDER=ollama
 PM_PROVIDER_URL=http://127.0.0.1:11434
-PM_PROVIDER_MODEL=qwen3.5:0.8b
+PM_PROVIDER_MODEL=patient-memory-qwen35:0.8b
 ```
 
-`PM_PROVIDER=stub` restores offline generation. Tests force stub mode; configured evaluations explicitly use your model. See [model adapter details](docs/decisions/002-model-adapters.md).
+`PM_PROVIDER=stub` restores offline generation. Tests force stub mode; configured evaluations explicitly use your model. See [model adapter details](docs/decisions/002-model-adapters.md) and [measured local trial results](docs/local-model-results.md).
 
 ## Load data and run workers
 
