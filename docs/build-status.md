@@ -38,6 +38,19 @@ BL-17), verdict colour tokens and an API check (liveness plus a nurse-token pati
 [decision 005](decisions/005-baseline-frontend-location.md). Contract tests were added in
 `tests/contract/test_frontend.py`; they need the database services.
 
+## BL-08 — Pure change engine
+
+`baseline.engine.evaluate` computes enrolled/rolling baseline scores, EWMA, CUSUM
+and change status without storage or API integration. Its six configuration values
+reject nonfinite or invalid ranges at startup. Threshold interpretation and unchanged
+single-clip CUSUM behavior are recorded in
+[decision 011](decisions/011-change-engine-interpretation.md).
+
+Review revision: lint passed; unit tests returned 93 passed, 7 skipped (ffmpeg is
+unavailable), and 2 slow tests deselected on Windows/Python 3.14. Database-backed
+integration/contract/e2e checks, migrations and stub evaluation were not rerun because
+Docker is unavailable locally. API/verdict integration belongs to BL-11.
+
 ## BL-07 — Voice check upload
 
 `POST /v1/patients/{id}/checks` takes `multipart/form-data` (`audio`, `mode`, `device_id`, optional
