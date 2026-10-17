@@ -118,4 +118,5 @@ def build_storylines():
 
 
 if __name__ == "__main__":
-    OUTPUT.write_text(json.dumps(build_storylines(), indent=2) + "\n", encoding="utf-8")
+    OUTPUT.write_text(json.dumps(build_storylines(), indent=2) + "\n",
+                      encoding="utf-8", newline="\n")
