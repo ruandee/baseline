@@ -232,3 +232,46 @@ class CheckResult(Contract):
     change: dict | None = None
     assessment: dict | None = None
     timings_ms: dict[str, int]
+
+
+class VoxSegment(Contract):
+    """One diarized turn of a MOCK Vox Advantage encounter (docs/06-baseline.md, BL-32).
+
+    `text` is accepted for shape compatibility and never stored or used: the transcript comes
+    from our own ASR on resident audio only, so staff words cannot reach storage.
+    """
+
+    speaker: Literal["resident", "staff", "other"]
+    start: FiniteFloat = Field(ge=0)
+    end: FiniteFloat = Field(ge=0)
+    text: str | None = Field(default=None, max_length=4000)
+
+    @model_validator(mode="after")
+    def ordered(self):
+        if self.end <= self.start:
+            raise ValueError("end must be after start")
+        return self
+
+
+class VoxSegmentCounts(Contract):
+    resident: int
+    staff: int
+    other: int
+
+
+class VoxEncounterResult(Contract):
+    """Result of the MOCK Vox adapter. Not a PointClickCare or Vox Advantage integration."""
+
+    mock: Literal[True] = True
+    adapter: Literal["vox-advantage-mock-v1"] = "vox-advantage-mock-v1"
+    resident_id: UUID
+    prompt_version: Literal["free-conversation-v1"] = "free-conversation-v1"
+    usable: bool
+    reasons: list[str]
+    # Resident-labelled speech left after any overlap with staff or other speakers is cut out.
+    resident_speech_s: float
+    # Seconds actually analyzed: the resident speech, capped at the adapter's analysis limit.
+    analyzed_s: float
+    truncated: bool
+    segments: VoxSegmentCounts
+    check: CheckResult

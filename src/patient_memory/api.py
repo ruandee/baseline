@@ -11,13 +11,14 @@ from uuid import UUID, uuid4
 
 import psycopg
 from botocore.exceptions import BotoCoreError, ClientError
-from fastapi import Depends, FastAPI, Form, Header, Query, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, Query, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import AwareDatetime
 
 from patient_memory.auth import decode_token
+from patient_memory.baseline.assess import FREE_CONVERSATION
 from patient_memory.baseline.context import add_context
 from patient_memory.baseline.overview import overview as build_overview
 from patient_memory.baseline.overview import watchlist as build_watchlist
@@ -36,11 +37,13 @@ from patient_memory.domain import (
     SourceInput,
     Summary,
     VisibilityInput,
+    VoxEncounterResult,
     now,
 )
 from patient_memory.errors import Problem
 from patient_memory.generation import build_answer
 from patient_memory.ingestion import digest, lock_patient, submit
+from patient_memory.integrations import vox
 from patient_memory.lifecycle import (
     assign,
     cache_get,
@@ -56,8 +59,10 @@ from patient_memory.speech import asr
 from patient_memory.speech.pipeline import DecoderUnavailable, InvalidAudio, analyze
 from patient_memory.storage import audit, patient_access, require_member, transaction
 
-# Voice-check uploads are the one multipart route; every other route stays JSON only.
-CHECK_UPLOAD = re.compile(r"^/v1/patients/[^/]+/checks$")
+# Voice-check uploads and the MOCK Vox encounter adapter are the only multipart routes (POST
+# only); every other route stays JSON only. Both keep the same whole-body size cap.
+MULTIPART_ROUTES = (re.compile(r"^/v1/patients/[^/]+/checks$"),
+                    re.compile(r"^/v1/integrations/vox/encounters$"))
 
 
 class PayloadLimit:
@@ -81,7 +86,7 @@ class PayloadLimit:
             if not message.get("more_body", False):
                 break
         headers = dict(scope.get("headers", []))
-        upload = scope["method"] == "POST" and CHECK_UPLOAD.match(scope["path"])
+        upload = scope["method"] == "POST" and any(r.match(scope["path"]) for r in MULTIPART_ROUTES)
         expected = "multipart/form-data" if upload else "application/json"
         if body and headers.get(b"content-type", b"").split(b";")[0] != expected.encode():
             response = JSONResponse(status_code=415, content={"error": {
@@ -343,6 +348,56 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
         with transaction(cfg, actor) as conn:
             return store_check(conn, actor, patient_id, request.state.request_id, analysis,
                                mode, device_id, device_ts, is_baseline, cfg)
+
+    @app.post("/v1/integrations/vox/encounters", tags=["mock integrations"],
+              summary="MOCK Vox Advantage encounter (not a real PointClickCare/Vox integration)")
+    def vox_encounter(resident_id: Annotated[UUID, Form()], request: Request, actor=actor_dep,
+                      audio: Annotated[UploadFile | None, File()] = None,
+                      segments: Annotated[str | None, Form()] = None,
+                      consent: Annotated[str | None, Form()] = None,
+                      encounter_ts: Annotated[str | None, Form()] = None) -> VoxEncounterResult:
+        """Mock adapter contract defined by this project (decision 016); no Vox API exists to us.
+
+        Authorization comes first (404 before anything else). Consent must be the literal
+        `true`; otherwise the refusal is audited, nothing else is stored and the answer is 422
+        `consent_required`. Only resident segments are analyzed, as `free-conversation-v1`.
+        """
+        with transaction(cfg, actor) as conn:
+            care_gate(conn, resident_id)
+            refused = not vox.consent_given(consent)
+            if refused:  # committed with the transaction, before the 422 is raised
+                audit(conn, actor, resident_id, "vox_encounter", request.state.request_id,
+                      "consent_refused")
+        if refused:
+            raise Problem(422, "consent_required")
+        parsed = vox.parse_segments(segments)
+        device_ts = vox.parse_encounter_ts(encounter_ts)
+        if audio is None:
+            raise Problem(422, "invalid_request")
+        work = Path(tempfile.mkdtemp(prefix="vox-"))
+        try:
+            upload = work / "upload"
+            with upload.open("wb") as out:
+                shutil.copyfileobj(audio.file, out)
+            try:
+                encounter = vox.analyze_encounter(upload, work, parsed, app.state.transcriber)
+            except InvalidAudio as exc:
+                raise Problem(422, "invalid_audio") from exc
+            except DecoderUnavailable as exc:
+                raise Problem(503, "dependency_unavailable") from exc
+        finally:
+            if not cfg.keep_audio:
+                shutil.rmtree(work, ignore_errors=True)
+        with transaction(cfg, actor) as conn:
+            check = store_check(conn, actor, resident_id, request.state.request_id,
+                                encounter.analysis, "resident", vox.DEVICE_ID, device_ts, False,
+                                cfg, prompt_version=FREE_CONVERSATION)
+            audit(conn, actor, resident_id, "vox_encounter", request.state.request_id)
+        return VoxEncounterResult(
+            resident_id=resident_id, usable=check.usable, reasons=check.quality.reasons,
+            resident_speech_s=round(encounter.resident_speech_s, 2),
+            analyzed_s=round(encounter.analyzed_s, 2), truncated=encounter.truncated,
+            segments=encounter.counts, check=check)
 
     @app.get("/v1/watchlist")
     def watchlist(actor=actor_dep):

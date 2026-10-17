@@ -126,3 +126,22 @@ contracts now require the built assessment response and CI installs ffmpeg. See
 
 Local Windows/Python 3.14 with ffmpeg: lint passed; unit 150 passed, 6 slow deselected. Service-backed
 regressions require PostgreSQL/S3, unavailable locally; CI results are reported on the review PR.
+
+## BL-32 — Mock Vox encounter adapter
+
+`POST /v1/integrations/vox/encounters` (multipart, the second and last multipart route) is a
+**mock** Vox Advantage adapter; it is not a PointClickCare or Vox integration, and every response
+says `mock: true`. After the care-team gate (404 for other tenants, unassigned patients and
+non-care roles, before consent or audio work), consent must be the literal `true`, else 422
+`consent_required` with a committed `vox_encounter/consent_refused` audit row and nothing stored.
+Resident segments, minus any staff/other overlap, are cut from one bounded decode (encounter at
+most 120 s, analysis at most 60 s) and stored through `store_check` as `mode=resident`,
+`prompt_version=free-conversation-v1`, `device_id=vox-mock`. Under 8 s of resident speech gives
+`too_little_resident_speech` without transcription. Free conversation skips only the on-script
+quality reason and is scored with `PM_Z_THRESHOLD_FREE` (2.5) against its own prompt's history.
+The overview charts the latest assessment's prompt (`baseline.prompt_version`) and the watch-list
+sparkline the counting prompt. Fixture: `fixtures/synthetic/vox_encounter_mrs_k.json` (no audio).
+See [decision 016](decisions/016-vox-mock-encounter-adapter.md).
+
+Not done: any Vox UI or mock label on a page, real-speech validation (recordings on hold; tests use
+synthetic tones on the fixture timeline), and the BL-33 note export. No migration.
