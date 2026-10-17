@@ -1,15 +1,20 @@
 # Implementation review handoff
 
-## BL-14 — Storyline preparation only
+## BL-10 — Note context extraction
 
-`fixtures/synthetic/baseline_storylines.json` now supplies reproducible inputs for
-12 fictional residents over 30 days, plus valid source-ingestion payloads for the
-three scripted scenarios. Regenerate with `python -m scripts.prepare_baseline_storylines`.
-The manifest's expected verdicts are pending BL-11 and loader verification; no
-loader, source publication, context extraction or actual assessments are added.
-See [decision 008](decisions/008-baseline-storyline-preparation.md) and the fixture
-README for the historical snapshot and Mrs. L CUSUM/provisional gates. This is
-partial BL-14 work; the issue remains open.
+Bounded schema provider client, exact-quote note tagging and deterministic keyword fallback
+now run atomically with worker publication. Importers can process legacy/unprocessed notes
+through `POST /v1/patients/{id}/notes/extract`, one per batch; optional `retry_fallback=true`
+explicitly retries keyword results. Migration 005 adds forced-RLS completion markers so empty
+results are idempotent. Notes retain uncertain source attribution and existing fact IDs.
+OpenAPI is regenerated. See [decision 013](decisions/013-note-context-extraction.md).
+Provider work runs outside database transactions/locks, under a cancellable combined
+15-second HTTP deadline; publication rechecks authorization, source state and revision.
+Contracted negation and negated poor-sleep propositions abstain conservatively.
+After integrating reviewed BL-11/13 changes, local frozen sync/lint pass; unit tests
+222 passed with ffmpeg, no skips, 6 slow deselections.
+DB-backed migration/contract/integration tests and stub evaluation await CI; no live model
+calls were made. This is conservative engineering validation, not clinical validation.
 
 Implemented on `build/backend-mvp` with separate commits. Read this alongside the original target specification; implementation does not imply all research/pilot gates are met.
 
@@ -137,3 +142,104 @@ contracts now require the built assessment response and CI installs ffmpeg. See
 
 Local Windows/Python 3.14 with ffmpeg: lint passed; unit 150 passed, 6 slow deselected. Service-backed
 regressions require PostgreSQL/S3, unavailable locally; CI results are reported on the review PR.
+
+## BL-12 ? Validated SBAR drafts (integration pending)
+
+
+
+Watch/escalate checks now draft through `baseline.sbar` after deterministic verdict selection.
+
+Configured providers receive only rounded feature values and selected context; all S/B/A/R
+
+sections, allowed IDs/numbers, banned phrases and the fixed action label are validated. Provider
+
+or validation failure uses the template, and stub mode never calls a provider. Canonical check/tag
+
+IDs are validated before mapping to the existing UI check/fact citation convention. See
+
+[decision 014](decisions/014-validated-sbar-drafts.md).
+
+
+
+Local Windows/Python 3.14 verification: frozen sync and lint pass; 169 unit tests pass with FFmpeg
+
+on PATH, 6 slow tests deselected. DB persistence/authorization tests were added but not run locally
+
+because Docker is unavailable. Migrations, DB-backed suites and stub evaluation await CI. No live
+
+model call or real-audio validation was performed. This branch depends on BL-10's shared client
+
+and BL-11/13 review integration, including stored evidence invalidation on lifecycle changes;
+
+BL-12 remains open until those dependencies and full CI pass.
+
+
+
+BL-12 semantic review hardening: model output must exactly match server-constructed supported
+
+sentence/evidence pairs, and R must be the fixed standard action sentence with no extra advice.
+
+This closes the unsupported-negative and appended-treatment gaps left by IDs/numbers-only
+
+validation. Tests reject invented absence/presence, swapped numbers, wrong tag attribution and
+
+additional action clauses. This is constrained sentence assembly, not unrestricted prose generation;
+
+ADR 014 records the design change and remaining clinical/evidence validity limits.
+
+
+
+
+
+BL-12 integration follow-up: the check transaction commits its deterministic verdict, budget slot
+and template before provider drafting. Enrichment runs outside database transactions, then
+publishes only after care-team, source-revision and check-eligibility rechecks. Source changes
+return 409 `memory_changed` with the original check preserved; revoked access returns 404. See
+ADR 014. Local lint and ffmpeg-enabled unit suite: 250 passed, 6 slow deselected. New concurrency
+and lifecycle regressions require the service-backed CI run.
+
+## BL-08 ? Accepted corroborated change policy
+
+The user explicitly approved PR #60 and paired Mr. T scenario PR #61. The accepted
+`multifeature-cusum-v2` policy supersedes decision011's single-feature-CUSUM interpretation.
+Instantaneous confirmation requires corresponding feature names and pitch direction on both
+checks within24h. CUSUM needs two ongoing supported features; the same features/direction must
+persist on the preceding usable check to confirm. Pitch has separate signed streams; a lone
+feature or recovered residual accumulation is diagnostic only. Thresholds and baseline rules
+are unchanged. See [decision019](decisions/019-multifeature-cusum-proposal.md).
+
+Latest main (including BL-10 and reviewed BL-12) is integrated. All720 original/amended replay
+checks used the actual engine, deterministic source context and verdict rules: original20%
+Mr. T scenario matches11/12 declared snapshots; approved35% matches12/12 (K escalate, T explained,
+L watch/recheck1h). Both datasets have zero flags across all270 control checks and the expected
+recovery. This is engineering fixture evidence, not clinical validation. Latest local lint and
+269 unit tests pass with FFmpeg;6 slow tests deselected. Full integrated CI still precedes merge.
+No live model or real-audio calls were made; loader/presentation acceptance is tracked separately.
+
+## BL-14 ? Scoped loader and explicit historical presentations
+
+`scripts.load_baseline_demo` provisions twelve known synthetic residents, publishes immutable
+SourceInput records and shared BL-10 note context BEFORE runtime-role scoring, and verifies exact
+source/fact/tag support. Existing source identities/versions/payload hashes must match the full
+manifest; synthetic system stamps alone never authorize extra context. Revoked assignments stay
+revoked. Immutable authored checks retain synthetic/non-audio provenance, no transcript/words.
+Unchanged checks and source-revision/signature-matching assessments are reused on rerun.
+
+Explicit all-history loads360 rows; scenario-snapshots loads353 prefixes (K/Tthroughday27,
+Lthroughday29, controlsday30). The report distinguishes retrospective event-time/current-knowledge
+replay from a shared/current-time unit. Fuller histories cannot be destructively truncated.
+Expected/actual snapshot and latest results are reported strictly; mismatches return nonzero.
+The nurse token/roster are written only to ignored artifacts, never stdout or Git.
+
+Approved policy#60 is integrated; original +20% Mr. T fixture remains here until separately
+reviewable approved scenario#61 adoption. Mr. T is the sole remaining declared-snapshot mismatch;
+K escalates, L watches/rechecks1h and controls remain quiet. Configured loader scoring deliberately
+stores the service template instead of issuing hundreds of historical SBAR model calls. Offline
+mode uses no provider calls. See decision008 and the fixture README for commands/integration.
+
+Latest integrated local lint/unit:289 passed withFFmpeg,6 slow deselected. Previous loader CI
+head2023ec7 passed242 unit/119 DB cases withzero skips; new combined-head fullCI is pending.
+Six loader DB cases cover idempotency, publication/evidence support, prefix/full history,
+RLS/revocation and injected context. Local Docker/DB/migrations/eval remain unrun. BL-14 remains
+open for accepted scenario adoption, final strict DB acceptance and current-time/readback wiring.
+Real-audio/runner, hosting/reset and normal-temperature display are separate outstanding gates.

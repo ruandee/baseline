@@ -1,67 +1,68 @@
-# BL-14 Mr. T scenario amendment ? PROPOSAL ONLY
+# BL-14 loader and authored synthetic storylines
 
-`baseline_storylines.json` contains 12 fictional residents and 360 authored feature
-rows, with fixed UTC event times, one row per resident per day. These values are
-synthetic measurements, not extracted recordings. No runner, live profile, audio,
-transcript, quality measurements, database IDs or credentials are included.
-`usable: true` is fixture input, not a claim that audio passed the quality pipeline.
+The manifest contains12 fictional residents and360 authored feature rows across30 fixed UTC days,
+not extracted recordings. Seed20261017 draws resident reference values from docs06, with daily
+Gaussian noise clipped at1.5 generating SDs; realized sample SD is consequently lower. Scripted
+changes multiply reference values exactly. `usable:true` is authored input, not an audio-quality
+claim. No runner/live profile, audio, transcript or credential is committed.
 
-Regenerate from the repository root with
-`python -m scripts.prepare_baseline_storylines`. The seed is 20261017; resident
-reference features use the ranges in docs/06, with daily Gaussian noise using its
-stated SDs, clipped at 1.5 SD to avoid accidental control outliers. Consequently the
-realized sample SD is lower than the requested generating SD. Scripted changes are
-exact multipliers of `reference_features`, with normal pitch and other unspecified
-features left at their daily values. For Mr. T, “pauses +20%” applies to both pause
-ratio and mean pause duration.
+The user approved policy#60 and separate Mr. T scenario#61. This intermediate loader branch
+uses accepted `multifeature-cusum-v2` but retains the original20% pause fixture until#61 adoption;
+Mr. T is its sole declared-snapshot mismatch. #61 explicitly changes BOTH pause ratio and mean
+pause to+35% on days26/27, retaining speech-rate-15%. It is a reviewed authored scenario, not an
+empirical claim about dentures. K/L/control inputs, notes, timestamps and seed do not change.
 
-The manifest has `schema_version: 1` and `status: storyline_inputs_only`. Each
-resident has `id` (a synthetic external reference), `display_name`,
-`reference_features`, `checks`, `sources`, `expected_context`, and
-`expected_assessment`. Checks supply explicit `ts`, prompt, device, mode, flags and
-four features. `sources` are directly valid `SourceInput` payloads for the existing
-ingestion path. `expected_context` is an engineering oracle, not precomputed tags:
-quoted note spans must be found in published canonical text, while structured
-record spans must be resolved by the existing structured extractor. The temperature
-of 37.1 C is an observation, not a fever tag. The medication is an order event,
-not evidence of administration or a diagnosis. Missing sources on other residents
-mean no supplied context, not documented clinical negatives.
+## Run
 
-`expected_assessment` records the spec's desired verdict/action at an explicit
-scenario snapshot; every result remains `pending_bl11_loader`. Mrs. K and Mr. T
-are assessed on day 27, Mrs. L on day 29, controls on day 30. The changed residents
-return to generated normal feature values on later days. A loader must explicitly
-choose historical scenario snapshots or agree on a changed demo timeline; it
-cannot use day 30 as a shared latest-check snapshot and promise all three labels.
+Migrate first, then choose a presentation explicitly:
 
-## Remaining BL-14 gates
+```sh
+uv run alembic upgrade head
+uv run python -m scripts.load_baseline_demo --offline --presentation all-history
+uv run python -m scripts.load_baseline_demo --offline --presentation scenario-snapshots
+```
 
-- Implement `scripts/load_baseline_demo.py`, seeded tenant/nurse assignments,
-  scoped synthetic writes, immutable source ingestion/publication, idempotency and
-  `--offline` context extraction after BL-11 is available.
-- Evaluate the manifest with the merged engine and verdict code, including all
-  stable controls. Inputs alone do not establish engine statuses or verdicts.
-- Resolve Mrs. L's spec inconsistency before claiming acceptance: her one-day
-  -30% rate/+50% pause change can cross CUSUM H=4 immediately under the status
-  rules, which prioritize `change` over `provisional`. The required
-  `watch/recheck_1h (provisional)` is therefore not guaranteed. Preserve the stated
-  deltas and settle the engine policy explicitly instead of tuning away this gate.
-- Run real PostgreSQL/S3 loader, RLS, historical-cutoff, offline-context and verdict
-  end-to-end checks. No loader or backend behavior is changed by this preparation.
+The two loader commands are alternatives; use a fresh scope when changing from a fuller history
+to prefixes. All-history loads360 immutable checks and scores all30 days. Scenario-snapshots
+loads353 prefixes: K/Tthroughday27(2026-10-14T14:00:00Z), Lthroughday29(2026-10-16T14:00:00Z),
+controls throughday30(2026-10-17T14:00:00Z). The scenarios have different historical cutoffs.
+Checks after the scenario recover, so full-history latest results are normally within_normal;
+declared-snapshot acceptance is separately reported. Fuller histories cannot be truncated by
+this loader; prefixes can be extended. It never rewrites timestamps to now. This is event-time
+replay using currently published evidence, not an earlier knowledge snapshot or current-date reset.
 
-## Proposed amendment (not accepted)
+## Publication, scope and idempotency
 
-This isolated branch changes only Mr. T's authored day-26/day-27 pause ratio and mean-pause
-multipliers from +20% to +35%; the -15% speech-rate change is preserved. Generator and fixture
-invariants are changed together. Other residents, source notes, dates, random seed and expected
-outcomes remain unchanged. This is a deliberately authored demo scenario, not an empirical
-claim about the effect of dentures.
+The loader provisions seeded tenant0 importer/nurse and uid("0/patient-i") for i0..11. Only empty
+recognized six-patient seeds may be renamed. Every existing source must match the manifest's full
+system/document/version/payload hash; existing checks must match authored values and non-audio
+provenance. Foreign/unlisted data and revoked access fail closed. Admin access only provisions
+identities/assignments; ingestion, retrieval and scoring use pm_runtime scope and RLS.
 
-The amendment is proposed together with engine policy PR #60, which requires corroborating
-features for CUSUM alerts. Original +20% pause changes provide only one sufficiently strong
-feature and no longer yield the intended explained result under that policy. A copied +35%
-experiment produces provisional day 26 and change day 27, explained by the documented denture
-context, and recovery thereafter. Do not merge this amendment or claim BL-14 accepted until
-both the policy and scenario are explicitly reviewed. The loader branch retains the original
-fixture and strict mismatch report. Shared historical/latest snapshot presentation remains a
-separate decision; changing these multipliers does not move day 27 to the current day.
+All SourceInput records publish through immutable ingestion/worker before ANY assessment. Shared
+BL-10 backfill owns its transactions and finishes before scoring. Expected context must occur in
+the actual exact tag quote, covered by an exact linked canonical fact span. Medication orders
+remain order events;37.1C is a documented observation, not a fever tag or a diagnosis. Absence of
+other sources is unknown context, not a documented negative finding. Withdrawn sources cannot be
+revived by rerunning. Signature/source-revision matching reuses unchanged checks/assessments.
+Changed immutable inputs require a deliberate fresh/reset scope; old checks are never rewritten.
+
+Feature rows are synthetic, with quality provenance authored_synthetic_features and
+audio_validated:false; no transcripts or word timestamps are fabricated. Assessment service
+locks tenant then patient. Configured loader scoring deliberately keeps the service template;
+it does not make hundreds of post-commit SBAR model calls. --offline forces keyword/template
+paths with no network/model requests. Real-audio and runner acceptance remain separate.
+
+## Output and remaining readback gates
+
+Ignored artifacts/baseline-demo/report.json records exact source quotes, expected/actual declared
+snapshot and latest results, policy, row counts and retrospective semantics. Any mismatch exits
+nonzero; no verdict is coerced. The nurse token and12-patient roster go ONLY to ignored
+artifacts/baseline-demo/session.json, never stdout or Git. Hosted bootstrap must consume that
+roster instead of its older hard-coded six-patient list; use its token server-side as PM_DEMO_TOKEN.
+
+Passing historical fixture acceptance does not establish a current-time demo. Hosting/frontend/reset
+owners still need to agree on current-time/snapshot presentation and readback wiring; displaying
+Mrs. K's documented normal temperature in overview/UI remains a separate requirement. Public HTTPS,
+phone/latency checks, real recordings and runner clips are not validated by this loader. See
+decision008, accepted policy decision019 and the build tracker for actual remaining gates.
