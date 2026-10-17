@@ -5,8 +5,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="PM_", env_file=".env", extra="ignore")
     environment: str = "synthetic"
-    database_url: str = "postgresql://pm_runtime:synthetic-runtime@localhost:55432/patient_memory"
-    admin_database_url: str = "postgresql://postgres:synthetic-admin@localhost:55432/patient_memory"
+    database_url: str = "postgresql://pm_runtime:synthetic-runtime@127.0.0.1:55432/patient_memory?connect_timeout=5"
+    admin_database_url: str = "postgresql://postgres:synthetic-admin@127.0.0.1:55432/patient_memory?connect_timeout=5"
     jwt_secret: str = "synthetic-local-only-change-before-any-deployment"
     jwt_public_key: str = ""
     jwt_issuer: str = "patient-memory-synthetic"
