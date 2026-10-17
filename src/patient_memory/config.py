@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -29,6 +31,12 @@ class Settings(BaseSettings):
             raise ValueError("Only synthetic mode is supported until pilot decisions are approved")
         if self.provider not in {"stub", "compatible"}:
             raise ValueError("Unknown model provider")
+        if self.provider == "compatible":
+            url = urlparse(self.provider_url)
+            local = url.hostname in {"127.0.0.1", "localhost", "::1"}
+            if (not self.provider_model or not url.hostname or url.username or url.password
+                    or url.query or url.fragment or (url.scheme != "https" and not (local and url.scheme == "http"))):
+                raise ValueError("Configure a model and HTTPS provider URL (HTTP allowed only for loopback)")
         return self
 
 

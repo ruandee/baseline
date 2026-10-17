@@ -23,7 +23,7 @@ from patient_memory.domain import (
     now,
 )
 from patient_memory.errors import Problem
-from patient_memory.generation import ExtractiveGenerator, build_answer
+from patient_memory.generation import build_answer
 from patient_memory.ingestion import digest, lock_patient, submit
 from patient_memory.lifecycle import (
     assign,
@@ -34,6 +34,7 @@ from patient_memory.lifecycle import (
     scope_hash,
 )
 from patient_memory.objects import ObjectStore
+from patient_memory.providers import generator_for
 from patient_memory.retrieval import evidence, retrieve
 from patient_memory.storage import audit, patient_access, require_member, transaction
 
@@ -75,7 +76,7 @@ def create_app(cfg=None, objects=None, generator=None):
     app = FastAPI(title="Patient Memory — synthetic prototype", version="0.1.0")
     app.state.cfg = cfg
     app.state.objects = objects or ObjectStore(cfg)
-    app.state.generator = generator or ExtractiveGenerator()
+    app.state.generator = generator or generator_for(cfg)
     app.add_middleware(PayloadLimit, limit=cfg.max_payload_bytes)
     bearer = HTTPBearer(auto_error=False)
 
