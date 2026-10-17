@@ -19,12 +19,24 @@ def test_identity_rejects_wrong_signer():
         decode_token(synthetic_token(identity, cfg), Settings(jwt_secret="different" * 8))
 
 
-def test_synthetic_token_uses_configured_ttl():
+@pytest.mark.parametrize("ttl", [1, 7, 48, 72])
+def test_synthetic_token_uses_configured_ttl(ttl, monkeypatch):
     identity = Identity(uuid4(), uuid4())
-    cfg = Settings(token_ttl_hours=48)
+    monkeypatch.setenv("PM_TOKEN_TTL_HOURS", str(ttl))
+    cfg = Settings()
     token = synthetic_token(identity, cfg)
     decoded = jwt.decode(token, cfg.jwt_secret, algorithms=["HS256"], options={"verify_aud": False})
-    assert decoded["exp"] - decoded["iat"] == 48 * 60 * 60
+    assert decoded["exp"] - decoded["iat"] == ttl * 60 * 60
+
+
+def test_expired_synthetic_token_is_rejected(monkeypatch):
+    issued = now() - timedelta(hours=2)
+    monkeypatch.setattr("patient_memory.auth.now", lambda: issued)
+    cfg = Settings(token_ttl_hours=1)
+    token = synthetic_token(Identity(uuid4(), uuid4()), cfg)
+    with pytest.raises(Problem) as error:
+        decode_token(token, cfg)
+    assert error.value.status == 401
 
 
 def test_invalid_contracts():

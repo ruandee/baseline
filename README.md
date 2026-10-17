@@ -107,3 +107,4 @@ Validation: `uv run pytest tests` includes demo-origin and read-only authorizati
 checks. `node --check frontend/app.js` checks browser JavaScript syntax when Node is
 available. Browser verification covers patient switching, citations, handover,
 missing evidence, filtering, search, and responsive layout.
+

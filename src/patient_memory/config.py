@@ -1,6 +1,6 @@
 from urllib.parse import urlparse
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     jwt_public_key: str = ""
     jwt_issuer: str = "patient-memory-synthetic"
     jwt_audience: str = "patient-memory-api"
-    token_ttl_hours: int = 48
+    token_ttl_hours: int = Field(default=48, gt=0)
     object_endpoint: str = "http://localhost:59000"
     object_access_key: str = "synthetic-local"
     object_secret_key: str = "synthetic-local-secret"
@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     provider_model: str = ""
     provider_key: str = ""
     whisper_model: str = "base"
+    keep_audio: bool = False
 
     @model_validator(mode="after")
     def safe_mode(self):

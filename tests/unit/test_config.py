@@ -11,3 +11,8 @@ def test_production_cannot_use_synthetic_identity():
 
 def test_offline_default():
     assert Settings().provider == "stub"
+
+@pytest.mark.parametrize("ttl", [0, -1])
+def test_token_ttl_must_be_positive(ttl):
+    with pytest.raises(ValidationError):
+        Settings(token_ttl_hours=ttl)
