@@ -82,3 +82,20 @@ added. Local lint and frozen sync pass; unit suite 68 passed, 7 ffmpeg-dependent
 skips and 2 slow deselections. Previous live Gemini request returned HTTP 404;
 no saved key is available for a retry, so provider acceptance remains open.
 See decision 009 for recovery commands and the explicit unrun service checks.
+
+## BL-09 — Structured context and `POST /context`
+
+`baseline/context.py` holds the no-model rules: an `ordered` or `administered` medication event for
+a high-risk drug becomes `high_risk_med_new`, `temperature_c` of 37.8 or more becomes
+`fever_documented`, and a `context.<tag>` observation becomes that tag. The worker writes the tags
+in the same transaction that publishes the facts, quoting the record's own span.
+`POST /v1/patients/{id}/context` submits such an observation through normal ingestion and returns
+the tag with canonical text and fact published atomically, completing the queued job and bumping
+the patient revision once. Its citation resolves immediately without a worker. Generic context
+inputs reject check-only `language_change`; structured extraction skips it until check-linked
+metadata exists. Migration 004 lets purge delete tags so a purged source leaves no quote behind. See
+[decision 007](decisions/007-structured-context-tags.md).
+
+Not done here: Gemini free-text tags, and readers ignoring tags of retracted sources (verdict and
+overview tickets must do that join). Only importer-assigned callers can post context, because it
+goes through source ingestion.

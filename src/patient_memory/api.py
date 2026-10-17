@@ -18,6 +18,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import AwareDatetime
 
 from patient_memory.auth import decode_token
+from patient_memory.baseline.context import add_context
 from patient_memory.checks import care_gate, store_check
 from patient_memory.config import Settings
 from patient_memory.domain import (
@@ -25,6 +26,8 @@ from patient_memory.domain import (
     AssignmentInput,
     CheckMode,
     CheckResult,
+    ContextInput,
+    ContextTagOut,
     PatientInput,
     Question,
     Reason,
@@ -194,6 +197,14 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             result = submit(conn, actor, patient_id, body, idempotency_key, app.state.objects)
             audit(conn, actor, patient_id, "import_source", request.state.request_id)
             return result
+
+    @app.post("/v1/patients/{patient_id}/context", status_code=201, response_model=ContextTagOut)
+    def add_context_tag(patient_id: UUID, body: ContextInput, request: Request,
+                        idempotency_key: str | None = Header(default=None), actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            tag = add_context(conn, actor, patient_id, body, idempotency_key, app.state.objects)
+            audit(conn, actor, patient_id, "add_context", request.state.request_id)
+            return tag
 
     @app.get("/v1/patients/{patient_id}/jobs/{job_id}")
     def job_state(patient_id: UUID, job_id: UUID, actor=actor_dep):
