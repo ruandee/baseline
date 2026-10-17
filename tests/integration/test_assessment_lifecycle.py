@@ -108,3 +108,15 @@ def test_concurrent_checks_share_the_final_shift_budget_slot(sandbox):
     assert sum(not r.assessment["over_budget"] for r in results) == 1
     # Serialized scoring also lets the later checks see the first one's drift.
     assert sum(r.change["status"] == "change" for r in results) >= 3
+
+
+def test_other_prompt_enrollment_does_not_override_rolling_mode(sandbox):
+    seed_checks(sandbox, 3)
+    cfg, pid, _, _ = sandbox
+    with psycopg.connect(cfg.admin_database_url) as conn:
+        conn.execute("UPDATE voice_checks SET prompt_version='free-conversation-v1' "
+                     "WHERE patient_id=%s", (pid,))
+    seed_checks(sandbox, 6, base=False)
+    result = store(sandbox, BASE)
+    assert result.change["mode"] == "rolling"
+    assert result.change["status"] == "none"
