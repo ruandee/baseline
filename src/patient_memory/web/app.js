@@ -52,6 +52,7 @@ async function loadPatient(index){
 function appendTimeline(data){for(const item of data.events)$('timeline').append(card(item,showEvidence));if(!$('timeline').children.length)$('timeline').append(text('div','No observations available for this time.','empty'));cursor=data.next_cursor;$('more').hidden=!cursor;if(!data.coverage.index_complete)$('timeline').append(text('div','Some sources are still processing.','warning'));}
 function connect(entries){
   if(!Array.isArray(entries)||!entries.length||entries.length>100||entries.some(p=>typeof p.token!=='string'||typeof p.patient_id!=='string'||!p.profile))throw new Error('Invalid demo session. Import the fixture loader JSON.');
+  sessionStorage.setItem('patient-memory-demo',JSON.stringify(entries));
   patients=entries;$('patients').replaceChildren();entries.forEach((p,i)=>{const b=text('button','','patient-button');b.append(text('span',String(i+1).padStart(2,'0'),'avatar'));const name=text('span',p.name||human(p.profile));name.append(text('small','Fictional patient · View handoff'));b.append(name);b.onclick=()=>loadPatient(i);$('patients').append(b);});
   $('patient-count').textContent=entries.length;$('setup').hidden=true;$('workspace').hidden=false;loadPatient(0);
 }
@@ -59,10 +60,11 @@ $('session-file').onchange=async e=>{try{connect(JSON.parse(await e.target.files
 $('question-form').onsubmit=async e=>{e.preventDefault();if(!selected)return;const q=$('question').value.trim();if(!q)return;const own=epoch,b=$('question-form').querySelector('button');b.disabled=true;$('answer').replaceChildren(text('p','Finding supporting evidence…','muted'));try{const data=await request(root()+'/questions',{question:q,as_of:cutoffs().shift_end});if(own===epoch)renderAnswer($('answer'),data);}catch(err){if(own===epoch)$('answer').replaceChildren(text('div',err.message,'warning'));}finally{b.disabled=false;}};
 document.querySelectorAll('[data-question]').forEach(b=>b.onclick=()=>{$('question').value=b.dataset.question;$('question-form').requestSubmit();});
 $('refresh').onclick=()=>loadPatient(patients.indexOf(selected));$('shift-date').onchange=$('refresh').onclick;
-$('disconnect').onclick=()=>{++epoch;++evidenceEpoch;patients=[];selected=null;cursor=null;$('evidence-dialog').close();for(const id of ['summary','timeline','answer','evidence-body','patients'])$(id).replaceChildren();$('workspace').hidden=true;$('setup').hidden=false;notify('');};
+$('disconnect').onclick=()=>{sessionStorage.removeItem('patient-memory-demo');++epoch;++evidenceEpoch;patients=[];selected=null;cursor=null;$('evidence-dialog').close();for(const id of ['summary','timeline','answer','evidence-body','patients'])$(id).replaceChildren();$('workspace').hidden=true;$('setup').hidden=false;notify('');};
 $('close-evidence').onclick=()=>{$('evidence-dialog').close();++evidenceEpoch;};
 for(const kind of ['summary','timeline'])$(kind+'-tab').onclick=()=>{for(const k of ['summary','timeline']){$(k+'-tab').setAttribute('aria-selected',String(k===kind));$(k+'-panel').hidden=k!==kind;}};
 $('more').onclick=async()=>{const own=epoch;$('more').disabled=true;try{const data=await request(root()+'/timeline?cursor='+encodeURIComponent(cursor));if(own===epoch)appendTimeline(data);}catch(e){if(own===epoch)notify(e.message);}finally{$('more').disabled=false;}};
 function consumeSession(){if(location.hash){const fragment=location.hash.slice(1);history.replaceState(null,'',location.pathname);try{connect(JSON.parse(decodeURIComponent(fragment)));}catch(e){notify(e.message);}}}
 window.addEventListener('hashchange',consumeSession);
 consumeSession();
+if(!selected){try{const saved=sessionStorage.getItem('patient-memory-demo');if(saved)connect(JSON.parse(saved));}catch(e){sessionStorage.removeItem('patient-memory-demo');notify('Reconnect your demo session.');}}

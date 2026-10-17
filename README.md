@@ -38,7 +38,7 @@ uv run python -m scripts.frontend_demo --open
 
 This loads six fictional patient records and opens <http://127.0.0.1:8000/app/> with a nurse-scoped session. Select a patient, review the January 2 fixture shift, open source evidence, switch to the timeline, or ask about sleep, mobility, and undocumented allergies. All answers use the existing backend endpoints and deterministic stub provider, without model API costs.
 
-Without `--open`, the command prints a private session link. Do not share it. The fragment is removed after loading and credentials stay only in tab memory; reload requires reopening the link. Sessions expire after eight hours. The empty UI also supports importing JSON from `scripts.load_fixtures`. See [frontend design decisions](docs/decisions/003-frontend-walkthrough.md).
+Without `--open`, the command prints a private session link. Do not share it. The fragment is removed after loading and credentials stay in tab-scoped session storage so refresh works; Disconnect clears the session. Sessions expire after eight hours. The empty UI also supports importing JSON from `scripts.load_fixtures`. See [frontend design decisions](docs/decisions/003-frontend-walkthrough.md).
 
 ## Local Ollama
 

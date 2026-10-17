@@ -23,8 +23,10 @@ To reproduce, follow README from a clean clone, then run the tests/evaluation an
 
 ## B12: Synthetic frontend walkthrough
 
-Backend PR #1 was merged before this frontend milestone. The same-origin `/app/` interface now provides a six-patient directory, shift summaries, questions, source timeline and citation inspection. It connects to the existing authenticated endpoints and deterministic stub provider. The local launcher creates a nurse-scoped synthetic session; tokens stay in tab memory after the URL fragment is removed.
+Backend PR #1 was merged before this frontend milestone. The same-origin `/app/` interface now provides a six-patient directory, shift summaries, questions, source timeline and citation inspection. It connects to the existing authenticated endpoints and deterministic stub provider. The local launcher creates a nurse-scoped synthetic session; demo tokens stay in tab-scoped session storage after the URL fragment is removed; refresh preserves the session and Disconnect clears it.
 
 Validation: the existing 42-test suite passed, and both new frontend contract tests passed (44 total). The new tests cover the public shell, required API authentication, nurse access, cross-patient isolation and denied imports. Ruff and JavaScript syntax checks passed. Headless Chrome verified live summaries, six patients, citation retrieval, unsupported-question abstention, timeline, patient switching, disconnect/reconnect, a simulated service failure, and mobile layout without horizontal overflow or uncaught browser errors. Desktop and mobile screenshots were inspected.
 
 Remaining: Codex SDK integration, clinical quality evaluation, production identity and real-data handling are not implemented by this milestone. This is a synthetic evidence-selection walkthrough, not a validated prediction system. Live paid-provider checks were not run.
+
+B12 refresh fix: Chrome verified that a page reload restores the connected demo, and that Disconnect followed by reload leaves the workspace disconnected. JavaScript syntax and diff checks passed. Backend behavior is unchanged; the backend suite was not rerun for this browser-only fix.
