@@ -17,6 +17,7 @@ jobs:
         with:
           version: "0.13.1"
           python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: uv sync --frozen
       - run: uv run ruff check .
       - run: for f in frontend/*.js; do node --check "$f"; done
