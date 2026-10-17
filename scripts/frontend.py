@@ -49,6 +49,8 @@ def prepare_demo(cfg):
 
 
 LOOPBACK = {"localhost", "127.0.0.1", "::1"}
+SHELL_ROUTES = ("/unit", "/check", "/resident/{patient_id}")
+PAGE_ROUTES = {"/", "/demo/session", *SHELL_ROUTES}
 PAGE_CSP = (
     "default-src 'self'; script-src 'self'; style-src 'self'; "
     "img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; "
@@ -79,8 +81,7 @@ def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None):
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
-        page = request.url.path in {"/", "/demo/session", "/unit", "/check"} or (
-            request.url.path.startswith("/resident/"))
+        page = getattr(request.scope.get("route"), "path", None) in PAGE_ROUTES
         response.headers["Content-Security-Policy"] = PAGE_CSP if page else (
             response.headers.get("Content-Security-Policy", "frame-ancestors 'none'"))
         return response
@@ -96,11 +97,11 @@ def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None):
     def index():
         return FileResponse(ROOT / "frontend" / "index.html")
 
-    @app.get("/unit", include_in_schema=False)
-    @app.get("/check", include_in_schema=False)
-    @app.get("/resident/{patient_id}", include_in_schema=False)
     def baseline_shell(request: Request):
         return FileResponse(ROOT / "frontend" / "baseline.html")
+
+    for path in SHELL_ROUTES:
+        app.add_api_route(path, baseline_shell, methods=["GET"], include_in_schema=False)
 
     app.mount("/assets", StaticFiles(directory=ROOT / "frontend"), name="workspace-assets")
     return app

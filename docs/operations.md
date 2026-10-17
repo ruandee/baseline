@@ -43,6 +43,20 @@ Back up PostgreSQL with `pg_dump -Fc` to a file inside the DB container, then co
 
 LocalStack is a development emulator. Validate persistence in your installed edition and export objects before container replacement; a volume alone is not a backup guarantee. A durable pilot object-store choice remains a deployment decision.
 
+## Local toolchain on macOS
+
+`docker compose` needs a container engine. With Homebrew: `brew install colima docker-compose`,
+add `"cliPluginsExtraDirs": ["/opt/homebrew/lib/docker/cli-plugins"]` to `~/.docker/config.json`,
+then `colima start`. Agent shells may lack Homebrew on `PATH`; prefix commands with
+`export PATH=/opt/homebrew/bin:$HOME/.local/bin:$PATH`.
+
+The Colima VM clock drifts after sleep or restart. Tests compare host time with database time and
+stop at startup when the database clock is more than 10 ms ahead. Set it slightly behind the host:
+
+```sh
+colima ssh -- sudo date -u -s "@$(python3 -c 'import time;print("%.3f"%(time.time()+0.3))')"
+```
+
 ## Current limits
 
 - Free-text notes remain attributed source assertions with uncertain status. No validated clinical entity extraction or free-text contradiction classifier is implemented.
