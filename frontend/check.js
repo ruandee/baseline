@@ -42,7 +42,8 @@ async function uploadCheck(blob, fields, onStatus, {delays = CHECK_RETRY_MS, sen
       onStatus('Sent');
       return result;
     } catch (error) {
-      const final = /^4\d\d /.test(error.message) && !error.message.startsWith('401');
+      const status = error.status || 0;
+      const final = status >= 400 && status < 500 && ![401, 408, 429].includes(status);
       if (final || attempt >= delays.length) throw error;
       await sleep(delays[attempt]);
     }
@@ -56,18 +57,29 @@ async function postCheck(blob, fields) {
   try {
     return await api(`/v1/patients/${fields.patient_id}/checks`, {method: 'POST', body: form});
   } catch (error) {
-    if (!error.message.startsWith('401')) throw error;
+    if (error.status !== 401) throw error;
     await bootstrap();  // the demo token expired mid-session; the retry loop re-sends
     throw error;
   }
 }
 
-function mockCheck(fixture) {
-  const found = window.CHECK_FIXTURES && window.CHECK_FIXTURES[fixture];
-  return sleep(400).then(() => {
-    if (!found) throw new Error(`500 unknown fixture "${fixture}"`);
-    return JSON.parse(JSON.stringify(found));
+function loadFixtures() {
+  if (window.CHECK_FIXTURES) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = '/assets/check-fixtures.js';
+    script.onload = resolve;
+    script.onerror = () => reject(new Error('could not load check fixtures'));
+    document.head.append(script);
   });
+}
+
+async function mockCheck(fixture) {
+  await loadFixtures();
+  await sleep(400);
+  const found = window.CHECK_FIXTURES[fixture];
+  if (!found) throw new Error(`unknown fixture "${fixture}"`);
+  return JSON.parse(JSON.stringify(found));
 }
 
 async function drawWaveform(canvas, blob) {
@@ -76,11 +88,10 @@ async function drawWaveform(canvas, blob) {
   ctx.clearRect(0, 0, w, h);
   ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--chart-line') || '#236752';
   ctx.beginPath();
-  ctx.moveTo(0, h / 2);
   let peaks = null;
   try {
-    const Audio = window.AudioContext || window.webkitAudioContext;
-    const audio = new Audio();
+    const Context = window.AudioContext || window.webkitAudioContext;
+    const audio = new Context();
     const decoded = await audio.decodeAudioData(await blob.arrayBuffer());
     audio.close();
     const data = decoded.getChannelData(0);
@@ -103,6 +114,7 @@ async function drawWaveform(canvas, blob) {
       ctx.lineTo(x + 0.5, h / 2 + half);
     });
   } else {
+    ctx.moveTo(0, h / 2);
     ctx.lineTo(w, h / 2);
   }
   ctx.stroke();
@@ -111,7 +123,7 @@ async function drawWaveform(canvas, blob) {
 function timeline(result) {
   const end = Math.max(result.quality.duration_s || 0,
                        ...result.words.map((x) => x.end), ...result.pauses.map((x) => x.end), 1);
-  const [w, h] = [640, 96];
+  const [w, h] = [640, 150];
   const x = (t) => (t / end) * w;
   const svg = svgEl('svg', {viewBox: `0 0 ${w} ${h}`, class: 'bl-timeline', role: 'img',
     'aria-label': `${result.words.length} words and ${result.pauses.length} pauses over ${end.toFixed(1)} seconds`});
@@ -119,18 +131,30 @@ function timeline(result) {
                                                          height: h, class: 'bl-pause'})));
   result.words.forEach((word, i) => {
     const wx = x(word.start);
-    svg.append(svgEl('rect', {x: wx, y: 8 + (i % 3) * 26, width: Math.max(2, x(word.end) - wx), height: 20,
+    const row = i % 5;  // five staggered rows keep neighbouring labels from overlapping
+    svg.append(svgEl('rect', {x: wx, y: 6 + row * 22, width: Math.max(2, x(word.end) - wx), height: 18,
                               rx: 4, class: 'bl-word'}));
-    const label = svgEl('text', {x: wx, y: 22 + (i % 3) * 26, class: 'bl-word-text'});
+    const label = svgEl('text', {x: wx + 2, y: 19 + row * 22, class: 'bl-word-text'});
     label.textContent = word.w;
     svg.append(label);
   });
+  for (let t = 0; t <= Math.floor(end); t += 2) {
+    const tick = svgEl('text', {x: x(t), y: h - 4, class: 'bl-tick'});
+    tick.textContent = `${t}s`;
+    svg.append(tick);
+  }
   return svg;
+}
+
+function changeOf(result) {
+  const change = result.change || {};
+  return {status: change.status, count: change.baseline_count, perFeature: change.per_feature || {}};
 }
 
 function featureCell(feature, result) {
   const value = result.features[feature.key];
-  const stat = result.change && result.change.per_feature && result.change.per_feature[feature.key];
+  const change = changeOf(result);
+  const stat = change.perFeature[feature.key];
   const cell = el('div', '', {class: 'bl-feature'});
   const shown = typeof value === 'number' ? `${value.toFixed(feature.digits)} ${feature.unit}`.trim() : '—';
   cell.append(el('div', feature.label, {class: 'bl-muted'}), el('div', shown, {class: 'bl-feature-value'}));
@@ -140,9 +164,8 @@ function featureCell(feature, result) {
     cell.append(el('div', `${arrow} ${delta > 0 ? '+' : ''}${delta.toFixed(feature.digits)} vs baseline ` +
                           `${stat.median.toFixed(feature.digits)}`, {class: 'bl-delta'}));
   } else {
-    const status = result.change && result.change.status;
-    const n = result.change && result.change.baseline_count;
-    cell.append(el('div', status === 'enrolling'
+    const n = change.count;
+    cell.append(el('div', change.status === 'enrolling'
       ? `building baseline${Number.isInteger(n) ? ` ${n} of 3` : ''}` : 'no baseline yet',
       {class: 'bl-delta bl-muted'}));
   }
@@ -151,7 +174,7 @@ function featureCell(feature, result) {
 
 function checkVerdict(result) {
   const verdict = result.assessment ? result.assessment.verdict
-    : (result.change && result.change.status === 'enrolling' ? 'enrolling' : 'within_normal');
+    : (changeOf(result).status === 'enrolling' ? 'enrolling' : 'within_normal');
   const box = el('div', '', {class: 'bl-verdict'});
   box.append(chip(VERDICT_LABELS[verdict] || verdict, verdict));
   (result.assessment ? result.assessment.reasons : []).forEach((r) =>
@@ -165,6 +188,12 @@ function renderResult(host, result, blob) {
     const reasons = result.quality.reasons.map((r) => REASON_TEXT[r] || r);
     host.append(el('h2', 'That recording could not be used'),
                 ...reasons.map((r) => el('p', r)));
+    const again = el('button', 'Try again', {type: 'button', class: 'bl-retry'});
+    again.addEventListener('click', () => {  // back to a fresh prompt; the next Record is a new clip
+      host.replaceChildren();
+      document.querySelector('.bl-record').focus();
+    });
+    host.append(again);
     return;
   }
   const canvas = el('canvas', '', {width: 640, height: 80, class: 'bl-wave', role: 'img',
@@ -176,8 +205,6 @@ function renderResult(host, result, blob) {
               el('p', timings, {class: 'bl-muted bl-timings'}));
   if (blob) drawWaveform(canvas, blob);
 }
-
-function isSaturday() { return new Date().getDay() === 6; }
 
 async function renderCheck(main) {
   const params = checkParams();
@@ -193,21 +220,28 @@ async function renderCheck(main) {
   const baselineBox = el('input', '', {type: 'checkbox', id: 'is-baseline'});
   const baselineLabel = el('label', ' Mark as baseline', {for: 'is-baseline', class: 'bl-baseline'});
   baselineLabel.prepend(baselineBox);
-  baselineLabel.hidden = !(params.mode === 'runner' && isSaturday());
+  baselineLabel.hidden = !(params.mode === 'runner' && new Date().getDay() === 6);
   card.append(el('h1', 'Voice check'), prompt, button, countdown, status, retry, baselineLabel);
   main.append(card, result);
 
+  const resident = params.mode === 'resident';
+  // Residents never see technical errors (docs/06-baseline.md, BL-31); the detail goes to the console.
+  const failure = (text, error) => {
+    if (error) console.error(error);
+    setStatus(resident ? 'Something went wrong. Please ask a staff member.' : text, 'error');
+  };
   const setStatus = (text, kind = 'pending') => {
     status.textContent = text;
     status.dataset.state = kind;
     status.hidden = !text;
   };
-  if (!patientId) { setStatus('No resident selected.', 'error'); button.disabled = true; return; }
-  if (params.mock) setStatus('Mock mode: showing fixture results, nothing is uploaded.', 'pending');
+  if (!patientId) { failure('No resident selected.'); button.disabled = true; return; }
+  if (params.mock && !resident) setStatus('Mock mode: showing fixture results, nothing is uploaded.', 'pending');
 
   let recorder = null;
   let stream = null;
   let timer = null;
+  let limit = null;
   let lastBlob = null;
 
   async function submit(blob) {
@@ -220,13 +254,12 @@ async function renderCheck(main) {
       const data = params.mock
         ? await mockCheck(params.fixture)
         : await uploadCheck(blob, fields, (s) => setStatus(s));
-      setStatus(params.mock ? 'Sent (mock)' : 'Sent', 'ok');
+      setStatus(resident ? '' : params.mock ? 'Sent (mock)' : 'Sent', 'ok');
       if (params.mode === 'live') renderResult(result, data, blob);
-      else result.replaceChildren(el('p', data.usable ? 'Thank you.' : 'Please try again.',
+      else result.replaceChildren(el('p', data.usable ? 'Thank you.' : 'Please tap Record to try again.',
                                      {class: 'bl-thanks'}));
-      if (!data.usable) retry.hidden = false;
     } catch (error) {
-      setStatus(`Could not send the recording (${error.message}). It is kept here; tap Try again.`, 'error');
+      failure(`Could not send the recording (${error.message}). It is kept here; tap Try again.`, error);
       retry.hidden = false;
     } finally {
       button.disabled = false;
@@ -235,6 +268,7 @@ async function renderCheck(main) {
 
   function stop() {
     clearInterval(timer);
+    clearTimeout(limit);
     if (recorder && recorder.state !== 'inactive') recorder.stop();
   }
 
@@ -242,18 +276,19 @@ async function renderCheck(main) {
     if (recorder && recorder.state === 'recording') { stop(); return; }
     const mimeType = pickMimeType();
     if (mimeType === null || !navigator.mediaDevices) {
-      setStatus('This browser cannot record audio. Use HTTPS and a current browser.', 'error');
+      failure('This browser cannot record audio. Use HTTPS and a current browser.');
       return;
     }
     try {
       stream = await navigator.mediaDevices.getUserMedia({audio: true});  // permission on first tap
     } catch (error) {
-      setStatus('Microphone access was not allowed.', 'error');
+      failure('Microphone access was not allowed.', error);
       return;
     }
     const chunks = [];
     recorder = new MediaRecorder(stream, mimeType ? {mimeType} : undefined);
     recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    recorder.onerror = () => { stop(); failure('Recording failed.'); };
     recorder.onstop = () => {
       stream.getTracks().forEach((t) => t.stop());
       button.textContent = 'Record';
@@ -265,17 +300,17 @@ async function renderCheck(main) {
     setStatus('');
     recorder.start();
     button.textContent = 'Stop';
-    let left = CHECK_MAX_S;
-    countdown.textContent = `Listening… ${left} s`;
-    timer = setInterval(() => {
-      left -= 1;
+    const startedAt = Date.now();
+    const tick = () => {
+      const left = Math.max(0, Math.ceil(CHECK_MAX_S - (Date.now() - startedAt) / 1000));
       countdown.textContent = `Listening… ${left} s`;
-      if (left <= 0) stop();  // auto-stop at 15 s
-    }, 1000);
+    };
+    tick();
+    timer = setInterval(tick, 250);
+    limit = setTimeout(stop, CHECK_MAX_S * 1000);  // auto-stop at 15 s
   });
   retry.addEventListener('click', () => {
     result.replaceChildren();
-    if (lastBlob && status.dataset.state === 'error') submit(lastBlob);  // resend the kept clip
-    else { setStatus(''); retry.hidden = true; }
+    if (lastBlob) submit(lastBlob);  // resend the kept clip; shown only after a failed send
   });
 }

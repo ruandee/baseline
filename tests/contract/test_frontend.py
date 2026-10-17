@@ -115,6 +115,7 @@ def test_check_page_serves_its_scripts_before_the_shell_script(sandbox):
     page = client.get('/check?mode=live&mock=1')
     assert page.status_code == 200
     html = page.text
-    assert html.index('check-fixtures.js') < html.index('check.js') < html.index('baseline.js')
+    assert html.index('check.js') < html.index('baseline.js')
+    assert 'check-fixtures.js' not in html  # fixtures load lazily, only for ?mock=1
     for asset in ('check.js', 'check-fixtures.js'):
         assert client.get(f'/assets/{asset}').status_code == 200
