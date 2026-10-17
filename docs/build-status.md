@@ -19,3 +19,12 @@ Implemented on `build/backend-mvp` with separate commits. Read this alongside th
 The latest full local suite at this point passed 42 tests, including actual PostgreSQL/S3 integration; lint passed. The 60-question offline regression returned expected-source recall 48/48, correct abstention 12/12 and in-scope retrieval 60/60. Human support review is explicitly unmeasured. The first benchmark exposed a false relevance match; its failure is preserved in `docs/evaluation-results.md`.
 
 To reproduce, follow README from a clean clone, then run the tests/evaluation and demo. Optional live-model calls are not run by ordinary tests or CI. Review the changed behavior and limits before approving a pilot; no deployment has been performed.
+
+
+## B12: Synthetic frontend walkthrough
+
+Backend PR #1 was merged before this frontend milestone. The same-origin `/app/` interface now provides a six-patient directory, shift summaries, questions, source timeline and citation inspection. It connects to the existing authenticated endpoints and deterministic stub provider. The local launcher creates a nurse-scoped synthetic session; tokens stay in tab memory after the URL fragment is removed.
+
+Validation: the existing 42-test suite passed, and both new frontend contract tests passed (44 total). The new tests cover the public shell, required API authentication, nurse access, cross-patient isolation and denied imports. Ruff and JavaScript syntax checks passed. Headless Chrome verified live summaries, six patients, citation retrieval, unsupported-question abstention, timeline, patient switching, disconnect/reconnect, a simulated service failure, and mobile layout without horizontal overflow or uncaught browser errors. Desktop and mobile screenshots were inspected.
+
+Remaining: Codex SDK integration, clinical quality evaluation, production identity and real-data handling are not implemented by this milestone. This is a synthetic evidence-selection walkthrough, not a validated prediction system. Live paid-provider checks were not run.

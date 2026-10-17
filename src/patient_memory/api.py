@@ -1,6 +1,7 @@
 import logging
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Annotated
 from uuid import UUID, uuid4
 
@@ -10,6 +11,7 @@ from fastapi import Depends, FastAPI, Header, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.staticfiles import StaticFiles
 
 from patient_memory.auth import decode_token
 from patient_memory.config import Settings
@@ -318,6 +320,7 @@ def create_app(cfg=None, objects=None, generator=None):
             return paginate(conn, cfg, actor, patient, as_of, known_at, start, end, limit,
                             cursor, request.state.request_id)
 
+    app.mount("/app", StaticFiles(directory=Path(__file__).parent / "web", html=True), name="frontend")
     return app
 
 
