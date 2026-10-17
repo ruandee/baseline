@@ -4,9 +4,11 @@ import pytest
 
 from patient_memory.auth import Identity
 from patient_memory.errors import Problem
+from patient_memory.ingestion import submit
 from patient_memory.storage import transaction
+from patient_memory.worker import run_once
 from scripts.load_baseline_demo import DemoScope, LoaderError, load_demo
-from tests.contract.test_api import client_for
+from tests.contract.test_api import client_for, source_payload
 
 
 def scope_for(sandbox):
@@ -83,3 +85,42 @@ def test_other_tenant_and_revoked_assignment_cannot_load_or_read(sandbox):
         load_demo(cfg, objects=objects, scope=scope, offline=True,
                   presentation="scenario-snapshots")
     assert denied.value.status == 404
+
+
+def test_unlisted_source_with_the_same_system_stamp_is_rejected_before_rescoring(sandbox):
+    from patient_memory.domain import SourceInput
+    cfg, _, _, objects = sandbox
+    scope = scope_for(sandbox)
+    load_demo(cfg, objects=objects, scope=scope, offline=True, presentation="scenario-snapshots")
+    extra = SourceInput.model_validate(source_payload(
+        "New confusion noted.", source_system="synthetic-baseline"))
+    with transaction(cfg, scope.importer) as conn:
+        submit(conn, scope.importer, scope.patient_id(0), extra, "unlisted-synthetic-source", objects)
+    assert run_once(cfg, scope.importer, objects)
+    before = counts(sandbox, scope)
+    with pytest.raises(LoaderError, match="unlisted or conflicting"):
+        load_demo(cfg, objects=objects, scope=scope, offline=True,
+                  presentation="scenario-snapshots")
+    assert counts(sandbox, scope) == before
+
+
+@pytest.mark.parametrize("corruption", ["tag_quote", "linked_fact"])
+def test_invalid_context_support_is_not_reported_as_verified(sandbox, corruption):
+    cfg, _, _, objects = sandbox
+    scope = scope_for(sandbox)
+    load_demo(cfg, objects=objects, scope=scope, offline=True, presentation="scenario-snapshots")
+    with psycopg.connect(cfg.admin_database_url) as conn:
+        if corruption == "tag_quote":
+            conn.execute("UPDATE context_tags SET quote='Quiet at lunch',start_offset=0,end_offset=14 "
+                         "WHERE tenant_id=%s AND patient_id=%s AND tag='poor_intake'",
+                         (scope.tenant_id, scope.patient_id(0)))
+        else:
+            conn.execute(
+                "UPDATE context_tags t SET fact_id=(SELECT f.id FROM facts f WHERE "
+                "f.tenant_id=t.tenant_id AND f.patient_id=t.patient_id AND f.source_id=t.source_id "
+                "AND f.quote LIKE 'Not her usual%%' LIMIT 1) "
+                "WHERE t.tenant_id=%s AND t.patient_id=%s AND t.tag='poor_intake'",
+                (scope.tenant_id, scope.patient_id(0)))
+    with pytest.raises(LoaderError, match="context is incomplete"):
+        load_demo(cfg, objects=objects, scope=scope, offline=True,
+                  presentation="scenario-snapshots")

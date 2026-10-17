@@ -173,3 +173,10 @@ Local lint and unit suite: 187 passed with FFmpeg, 6 slow deselected. Three real
 idempotency, evidence and RLS tests are added; Docker is unavailable locally. BL-10's approved
 publication/backfill interface must integrate before CI acceptance. Migrations, database-backed
 suites and stub evaluation remain unrun locally; no live provider calls performed. BL-14 stays open.
+
+BL-14 review hardening: existing sources must match the complete manifest document/version and
+canonical payload hash, including same-system extras; bootstrap verifies this before granting
+access. Context acceptance requires the expected phrase inside the actual tag quote plus an
+exact canonical fact span covering that tag. Unresolvable or unrelated support is rejected.
+Immutable checks also retain their explicit non-audio provenance. Local full suite after BL-10
+integration: 242 passed, 6 slow deselected with FFmpeg; six DB loader cases await latest CI.

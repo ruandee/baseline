@@ -87,6 +87,22 @@ def selected_checks(resident, presentation):
     return [c for c in resident["checks"] if c["day"] <= end]
 
 
+def validate_existing_sources(rows, resident):
+    expected = {}
+    for raw in resident["sources"]:
+        payload = SourceInput.model_validate(raw).model_dump(mode="json")
+        key = tuple(payload[k] for k in (
+            "source_system", "external_document_id", "external_version_id"))
+        expected[key] = digest(payload)
+    for row in rows:
+        payload = row["payload"]
+        key = tuple(payload.get(k) for k in (
+            "source_system", "external_document_id", "external_version_id"))
+        if (key not in expected or row["external_version"] != key[2]
+                or row["payload_hash"] != expected[key] or digest(payload) != expected[key]):
+            raise LoaderError("Demo patient has an unlisted or conflicting immutable source/version")
+
+
 def provision(cfg, scope, residents):
     """Admin setup only; immutable sources/checks and all scoring use pm_runtime afterward."""
     with psycopg.connect(cfg.admin_database_url, row_factory=dict_row) as conn:
@@ -99,6 +115,12 @@ def provision(cfg, scope, residents):
             pid = scope.patient_id(index)
             old = conn.execute("SELECT external_id FROM patients WHERE tenant_id=%s AND id=%s",
                                (scope.tenant_id, pid)).fetchone()
+            if old:
+                # Reject unrelated sources before granting either demo principal access.
+                rows = conn.execute("SELECT payload,payload_hash,external_version FROM sources "
+                                    "WHERE tenant_id=%s AND patient_id=%s",
+                                    (scope.tenant_id, pid)).fetchall()
+                validate_existing_sources(rows, resident)
             if old and old["external_id"] != resident["display_name"]:
                 occupied = conn.execute(
                     "SELECT EXISTS(SELECT FROM sources WHERE tenant_id=%s AND patient_id=%s) "
@@ -127,12 +149,9 @@ def _preflight(cfg, scope, residents, presentation):
                                 (pid,)).fetchall()
             if any(not row["synthetic"] or row["id"] not in allowed for row in rows):
                 raise LoaderError("Existing checks exceed this mode; use a separate/reset demo scope")
-            foreign = conn.execute(
-                "SELECT 1 FROM sources WHERE patient_id=%s "
-                "AND (payload->>'source_system') IS DISTINCT FROM 'synthetic-baseline' LIMIT 1",
-                (pid,)).fetchone()
-            if foreign:
-                raise LoaderError("Demo patient contains unrelated source data")
+            sources = conn.execute("SELECT payload,payload_hash,external_version FROM sources "
+                                   "WHERE patient_id=%s", (pid,)).fetchall()
+            validate_existing_sources(sources, resident)
 
 
 def _publish_sources(cfg, scope, residents, objects):
@@ -174,6 +193,7 @@ def _context_report(cfg, scope, residents):
             for expected in resident["expected_context"]:
                 rows = conn.execute(
                     "SELECT t.tag,t.quote,t.start_offset,t.end_offset,t.fact_id,s.id AS source_id,"
+                    "f.quote AS fact_quote,f.start_offset AS fact_start,f.end_offset AS fact_end,"
                     "s.canonical_text FROM context_tags t JOIN sources s ON s.tenant_id=t.tenant_id "
                     "AND s.patient_id=t.patient_id AND s.id=t.source_id "
                     "JOIN facts f ON f.tenant_id=t.tenant_id AND f.patient_id=t.patient_id "
@@ -184,7 +204,9 @@ def _context_report(cfg, scope, residents):
                     (pid, expected["source_document_id"], expected["tag"])).fetchall()
                 matched = [r for r in rows if r["canonical_text"][r["start_offset"]:r["end_offset"]]
                            == r["quote"] and r["fact_id"]
-                           and expected.get("quote", "") in r["canonical_text"]]
+                           and r["canonical_text"][r["fact_start"]:r["fact_end"]] == r["fact_quote"]
+                           and r["fact_start"] <= r["start_offset"] < r["end_offset"] <= r["fact_end"]
+                           and expected.get("quote", "") in r["quote"]]
                 reports.append({"resident": resident["id"], "tag": expected["tag"],
                                 "source_document_id": expected["source_document_id"],
                                 "exact_span_verified": bool(matched),
@@ -246,7 +268,10 @@ def _score(cfg, scope, index, resident, check, signature):
         if old:
             expected = {**features, **{k: check[k] for k in (
                 "device_id", "mode", "prompt_version", "is_baseline", "usable", "synthetic")}}
-            if old["ts"] != ts or any(old[k] != value for k, value in expected.items()):
+            if (old["ts"] != ts or any(old[k] != value for k, value in expected.items())
+                    or old["quality"] != {"provenance": "authored_synthetic_features",
+                                          "audio_validated": False}
+                    or old["transcript"] is not None or old["words"] is not None):
                 raise LoaderError("Immutable authored check differs; reset or use a fresh demo scope")
         else:
             conn.execute(

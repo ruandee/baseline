@@ -1,5 +1,6 @@
 import copy
 import json
+from contextlib import contextmanager
 
 import pytest
 
@@ -50,3 +51,57 @@ def test_session_token_goes_only_to_ignored_artifact_and_mismatch_has_nonzero_ex
 def test_cli_requires_an_explicit_presentation():
     with pytest.raises(SystemExit):
         loader.main(["--offline"])
+
+
+@pytest.mark.parametrize("mutation", ["unlisted", "version", "hash", "payload"])
+def test_same_source_system_never_authorizes_extra_documents_or_changed_payloads(mutation):
+    resident = build_storylines()["residents"][0]
+    payload = loader.SourceInput.model_validate(resident["sources"][0]).model_dump(mode="json")
+    row = {"payload": payload, "external_version": payload["external_version_id"],
+           "payload_hash": loader.digest(payload)}
+    loader.validate_existing_sources([row], resident)
+    if mutation == "unlisted":
+        payload["external_document_id"] = "extra-context-same-synthetic-system"
+        row["payload_hash"] = loader.digest(payload)
+    elif mutation == "version":
+        row["external_version"] = "synthetic-v2"
+    elif mutation == "hash":
+        row["payload_hash"] = "0" * 64
+    else:
+        payload["records"][0]["value"] = "changed synthetic value"
+    with pytest.raises(loader.LoaderError, match="unlisted or conflicting"):
+        loader.validate_existing_sources([row], resident)
+
+
+@pytest.mark.parametrize("mutation,verified", [(None, True), ("unrelated_quote", False),
+                                             ("unrelated_fact", False), ("bad_fact_span", False)])
+def test_context_verification_requires_expected_phrase_in_tag_and_exact_covering_fact(
+        monkeypatch, mutation, verified):
+    canonical = "Quiet at lunch, didn't finish her soup."
+    row = {"canonical_text": canonical, "quote": canonical, "start_offset": 0,
+           "end_offset": len(canonical), "fact_id": "synthetic-fact", "fact_quote": canonical,
+           "fact_start": 0, "fact_end": len(canonical)}
+    if mutation == "unrelated_quote":
+        row.update(quote="Quiet at lunch", end_offset=14)
+    elif mutation == "unrelated_fact":
+        row.update(fact_quote="Quiet at lunch", fact_end=14)
+    elif mutation == "bad_fact_span":
+        row["fact_quote"] = "invented source text"
+
+    class Connection:
+        def execute(self, *args):
+            return self
+
+        def fetchall(self):
+            return [row]
+
+    @contextmanager
+    def transaction(*args):
+        yield Connection()
+
+    monkeypatch.setattr(loader, "transaction", transaction)
+    monkeypatch.setattr(loader, "patient_access", lambda *a, **k: None)
+    resident = {"id": "synthetic-test", "expected_context": [{"tag": "poor_intake",
+                "quote": "didn't finish her soup", "source_document_id": "synthetic-note"}]}
+    report = loader._context_report(None, loader.DemoScope(), [resident])
+    assert report[0]["exact_span_verified"] is verified
