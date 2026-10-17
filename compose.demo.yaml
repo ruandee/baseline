@@ -36,14 +36,19 @@ services:
     environment:
       <<: *environment
       PM_ADMIN_DATABASE_URL: ""
+      # Container-internal only: port 8001 is not published, Caddy is the sole public entry.
+      PM_BIND_HOST: 0.0.0.0
       PM_PROXY_TRUSTED_IPS: "*"
     volumes: ["whisper:/home/demo/.cache/huggingface"]
+    # Readiness, not just liveness: runtime DB role + bootstrapped nurse, bucket, ffmpeg and the
+    # app itself. Whisper loads before uvicorn accepts connections, so first boot downloads the
+    # model inside start_period; Caddy (the only public port) waits for this to pass.
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/v1/health/live', timeout=3)"]
-      interval: 10s
-      timeout: 5s
-      retries: 60
-      start_period: 30s
+      test: ["CMD", "python", "-m", "scripts.hosted_demo", "check"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 120s
   worker:
     <<: *demo
     restart: unless-stopped

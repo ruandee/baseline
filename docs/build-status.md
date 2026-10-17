@@ -137,7 +137,12 @@ See [deployment recipe](demo-hosting.md) and [decision 010](decisions/010-demo-h
 No public host was provisioned. Container/service validation, phone LTE recording/result and
 latency gates remain outstanding; issue #22 must stay open.
 
-Local validation on Windows/Python 3.14.2: ruff passed; unit tests 47 passed, 7 skipped, 2 slow
-tests deselected. Overlay YAML parsed and runtime port/admin-URL assertions passed. Docker is
-unavailable here, so image build, Compose runtime validation, migrations, DB-backed tests and
-stub evaluation were not run. Unit skips include missing ffmpeg; the container installs it.
+Completion branch `bl/bl-20-host-completion` (stacked on #54): the hosted session reads the
+roster the seeded nurse can see through the runtime role instead of a hard-coded six, so BL-14's
+loader (#53, same tenant-0 UUIDs) supplies the 12 residents; `serve`/`worker` refuse an admin
+database URL; `serve` binds loopback unless `PM_BIND_HOST` is set; the API healthcheck is a
+readiness probe; the image build imports ffmpeg and the speech stack; and a CI job
+(`demo-image.yml`) builds the image and smoke-tests the stack on localhost. No public host,
+DNS, ACME certificate, phone/LTE recording or latency measurement has been done, and the
+recording page itself arrives with BL-17 (#50). Real audio is on hold, so microphone/phone
+acceptance remains an open gate.

@@ -8,8 +8,15 @@ from patient_memory.auth import Identity, synthetic_token
 from patient_memory.config import Settings
 from patient_memory.domain import now
 from patient_memory.errors import Problem
-from scripts.hosted_demo import deployment_settings, hosted_app
+from scripts.hosted_demo import deployment_settings, hosted_app, runtime_only
 from scripts.seed import uid
+
+ROSTER = [{"id": str(uid(f"0/patient-{i}")), "name": f"synthetic-patient-{i}",
+           "reference": f"synthetic-patient-{i}", "questions": []} for i in range(6)]
+
+
+def app_for(cfg):
+    return hosted_app(cfg, ROSTER)
 
 
 def configure(monkeypatch, role="nurse"):
@@ -25,14 +32,14 @@ def test_hosted_startup_requires_explicit_hosts_and_nurse_token(monkeypatch):
     for hosts in ("", "*", "https://demo.example.com", "demo.example.com:443"):
         monkeypatch.setenv("PM_FRONTEND_HOSTS", hosts)
         with pytest.raises(ValueError):
-            hosted_app(cfg)
+            app_for(cfg)
     cfg, _ = configure(monkeypatch, "admin")
     with pytest.raises(ValueError, match="nurse token"):
-        hosted_app(cfg)
+        app_for(cfg)
     configure(monkeypatch)
     monkeypatch.delenv("PM_DEMO_TOKEN")
     with pytest.raises(ValueError):
-        hosted_app(cfg)
+        app_for(cfg)
 
 
 def test_expired_token_fails_before_server_starts(monkeypatch):
@@ -42,12 +49,12 @@ def test_expired_token_fails_before_server_starts(monkeypatch):
     claims["exp"] = now() - timedelta(seconds=1)
     monkeypatch.setenv("PM_DEMO_TOKEN", jwt.encode(claims, cfg.jwt_secret, algorithm="HS256"))
     with pytest.raises(Problem):
-        hosted_app(cfg)
+        app_for(cfg)
 
 
 def test_hosted_session_enforces_host_and_https_origin(monkeypatch):
     cfg, token = configure(monkeypatch)
-    client = TestClient(hosted_app(cfg), base_url="https://demo.example.com",
+    client = TestClient(app_for(cfg), base_url="https://demo.example.com",
                         client=("192.0.2.10", 1234))
     headers = {"X-PM-Demo": "1", "Origin": "https://demo.example.com"}
     response = client.get("/demo/session", headers=headers)
@@ -66,3 +73,12 @@ def test_hosted_settings_reject_default_signing_secret(monkeypatch):
         monkeypatch.setenv("PM_JWT_SECRET", secret)
         with pytest.raises(ValueError, match="deployment-only"):
             deployment_settings()
+
+
+def test_serve_and_worker_refuse_admin_database_url():
+    cfg = Settings(jwt_secret="deployment-only-test-secret-32-characters")
+    assert cfg.admin_database_url
+    with pytest.raises(ValueError, match="admin credentials"):
+        runtime_only(cfg)
+    blank = Settings(jwt_secret="deployment-only-test-secret-32-characters", admin_database_url="")
+    assert runtime_only(blank) is blank
