@@ -1,0 +1,6119 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "seed": 20261017,
+  "status": "storyline_inputs_only",
+  "start_date": "2026-09-18",
+  "days": 30,
+  "generation": "bounded_gaussian_sd_clipped_at_1.5; scripted_deltas_from_reference",
+  "residents": [
+    {
+      "id": "synthetic-mrs-k",
+      "display_name": "Mrs. K",
+      "synthetic": true,
+      "reference_features": {
+        "speech_rate_wpm": 132.622153,
+        "pause_ratio": 0.215678,
+        "mean_pause_s": 0.499043,
+        "f0_median_hz": 168.140788
+      },
+      "checks": [
+        {
+          "day": 1,
+          "ts": "2026-09-18T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 135.157979,
+            "pause_ratio": 0.185678,
+            "mean_pause_s": 0.448601,
+            "f0_median_hz": 167.281138
+          }
+        },
+        {
+          "day": 2,
+          "ts": "2026-09-19T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 129.243142,
+            "pause_ratio": 0.209787,
+            "mean_pause_s": 0.539731,
+            "f0_median_hz": 175.640788
+          }
+        },
+        {
+          "day": 3,
+          "ts": "2026-09-20T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 127.584383,
+            "pause_ratio": 0.213617,
+            "mean_pause_s": 0.552862,
+            "f0_median_hz": 172.199211
+          }
+        },
+        {
+          "day": 4,
+          "ts": "2026-09-21T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 134.419676,
+            "pause_ratio": 0.230572,
+            "mean_pause_s": 0.45003,
+            "f0_median_hz": 170.155031
+          }
+        },
+        {
+          "day": 5,
+          "ts": "2026-09-22T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 132.527641,
+            "pause_ratio": 0.213874,
+            "mean_pause_s": 0.559043,
+            "f0_median_hz": 166.853089
+          }
+        },
+        {
+          "day": 6,
+          "ts": "2026-09-23T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 126.622153,
+            "pause_ratio": 0.203842,
+            "mean_pause_s": 0.477839,
+            "f0_median_hz": 173.480406
+          }
+        },
+        {
+          "day": 7,
+          "ts": "2026-09-24T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 126.622153,
+            "pause_ratio": 0.217322,
+            "mean_pause_s": 0.502318,
+            "f0_median_hz": 164.453554
+          }
+        },
+        {
+          "day": 8,
+          "ts": "2026-09-25T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 130.838174,
+            "pause_ratio": 0.233852,
+            "mean_pause_s": 0.484402,
+            "f0_median_hz": 171.968626
+          }
+        },
+        {
+          "day": 9,
+          "ts": "2026-09-26T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 138.622153,
+            "pause_ratio": 0.230461,
+            "mean_pause_s": 0.439043,
+            "f0_median_hz": 163.936091
+          }
+        },
+        {
+          "day": 10,
+          "ts": "2026-09-27T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 130.958079,
+            "pause_ratio": 0.185678,
+            "mean_pause_s": 0.465312,
+            "f0_median_hz": 170.57632
+          }
+        },
+        {
+          "day": 11,
+          "ts": "2026-09-28T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 131.819349,
+            "pause_ratio": 0.231882,
+            "mean_pause_s": 0.549397,
+            "f0_median_hz": 175.640788
+          }
+        },
+        {
+          "day": 12,
+          "ts": "2026-09-29T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 127.227727,
+            "pause_ratio": 0.228988,
+            "mean_pause_s": 0.476596,
+            "f0_median_hz": 168.806303
+          }
+        },
+        {
+          "day": 13,
+          "ts": "2026-09-30T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 129.741298,
+            "pause_ratio": 0.223805,
+            "mean_pause_s": 0.508591,
+            "f0_median_hz": 160.640788
+          }
+        },
+        {
+          "day": 14,
+          "ts": "2026-10-01T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 134.696829,
+            "pause_ratio": 0.214457,
+            "mean_pause_s": 0.503456,
+            "f0_median_hz": 163.250959
+          }
+        },
+        {
+          "day": 15,
+          "ts": "2026-10-02T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 129.468141,
+            "pause_ratio": 0.24002,
+            "mean_pause_s": 0.506836,
+            "f0_median_hz": 166.714968
+          }
+        },
+        {
+          "day": 16,
+          "ts": "2026-10-03T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 126.622153,
+            "pause_ratio": 0.185678,
+            "mean_pause_s": 0.511337,
+            "f0_median_hz": 167.85844
+          }
+        },
+        {
+          "day": 17,
+          "ts": "2026-10-04T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 137.159314,
+            "pause_ratio": 0.226878,
+            "mean_pause_s": 0.521326,
+            "f0_median_hz": 169.564684
+          }
+        },
+        {
+          "day": 18,
+          "ts": "2026-10-05T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 130.83292,
+            "pause_ratio": 0.19353,
+            "mean_pause_s": 0.550264,
+            "f0_median_hz": 173.563705
+          }
+        },
+        {
+          "day": 19,
+          "ts": "2026-10-06T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 134.890121,
+            "pause_ratio": 0.203322,
+            "mean_pause_s": 0.439043,
+            "f0_median_hz": 168.039891
+          }
+        },
+        {
+          "day": 20,
+          "ts": "2026-10-07T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 136.687728,
+            "pause_ratio": 0.196358,
+            "mean_pause_s": 0.5004,
+            "f0_median_hz": 168.832718
+          }
+        },
+        {
+          "day": 21,
+          "ts": "2026-10-08T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 136.339979,
+            "pause_ratio": 0.200821,
+            "mean_pause_s": 0.539375,
+            "f0_median_hz": 165.81563
+          }
+        },
+        {
+          "day": 22,
+          "ts": "2026-10-09T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 133.051128,
+            "pause_ratio": 0.23409,
+            "mean_pause_s": 0.472308,
+            "f0_median_hz": 171.890983
+          }
+        },
+        {
+          "day": 23,
+          "ts": "2026-10-10T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 128.421003,
+            "pause_ratio": 0.224102,
+            "mean_pause_s": 0.453546,
+            "f0_median_hz": 171.682955
+          }
+        },
+        {
+          "day": 24,
+          "ts": "2026-10-11T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 132.274528,
+            "pause_ratio": 0.212784,
+            "mean_pause_s": 0.47053,
+            "f0_median_hz": 168.309078
+          }
+        },
+        {
+          "day": 25,
+          "ts": "2026-10-12T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 135.832588,
+            "pause_ratio": 0.235499,
+            "mean_pause_s": 0.439043,
+            "f0_median_hz": 170.684227
+          }
+        },
+        {
+          "day": 26,
+          "ts": "2026-10-13T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 103.445279,
+            "pause_ratio": 0.301949,
+            "mean_pause_s": 0.673708,
+            "f0_median_hz": 170.247938
+          }
+        },
+        {
+          "day": 27,
+          "ts": "2026-10-14T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 103.445279,
+            "pause_ratio": 0.301949,
+            "mean_pause_s": 0.673708,
+            "f0_median_hz": 169.543608
+          }
+        },
+        {
+          "day": 28,
+          "ts": "2026-10-15T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 131.887191,
+            "pause_ratio": 0.218313,
+            "mean_pause_s": 0.523874,
+            "f0_median_hz": 171.934755
+          }
+        },
+        {
+          "day": 29,
+          "ts": "2026-10-16T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 128.248881,
+            "pause_ratio": 0.209594,
+            "mean_pause_s": 0.501952,
+            "f0_median_hz": 171.4294
+          }
+        },
+        {
+          "day": 30,
+          "ts": "2026-10-17T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 126.622153,
+            "pause_ratio": 0.21106,
+            "mean_pause_s": 0.46946,
+            "f0_median_hz": 172.950511
+          }
+        }
+      ],
+      "sources": [
+        {
+          "external_document_id": "synthetic-mrs-k-oxybutynin-order",
+          "external_version_id": "synthetic-v1",
+          "source_system": "synthetic-baseline",
+          "kind": "medication_event",
+          "author_role": "system",
+          "visibility": "care_team",
+          "recorded_at": "2026-10-11T12:00:00+00:00",
+          "effective_from": "2026-10-11T12:00:00+00:00",
+          "records": [
+            {
+              "concept": "oxybutynin",
+              "value": "5 mg",
+              "polarity": "present",
+              "event_type": "ordered",
+              "order_id": "synthetic-mrs-k-oxybutynin-1",
+              "effective_from": "2026-10-11T12:00:00+00:00"
+            }
+          ]
+        },
+        {
+          "external_document_id": "synthetic-mrs-k-lunch-note",
+          "external_version_id": "synthetic-v1",
+          "source_system": "synthetic-baseline",
+          "kind": "nursing_note",
+          "author_role": "nurse",
+          "visibility": "care_team",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "effective_from": "2026-10-14T12:00:00+00:00",
+          "text": "Quiet at lunch, didn't finish her soup. Not her usual chatty self."
+        },
+        {
+          "external_document_id": "synthetic-mrs-k-temperature",
+          "external_version_id": "synthetic-v1",
+          "source_system": "synthetic-baseline",
+          "kind": "observation",
+          "author_role": "system",
+          "visibility": "care_team",
+          "recorded_at": "2026-10-14T12:00:00+00:00",
+          "effective_from": "2026-10-14T12:00:00+00:00",
+          "records": [
+            {
+              "concept": "temperature_c",
+              "value": 37.1,
+              "unit": "Cel",
+              "polarity": "present",
+              "effective_from": "2026-10-14T12:00:00+00:00"
+            }
+          ]
+        }
+      ],
+      "expected_context": [
+        {
+          "source_document_id": "synthetic-mrs-k-oxybutynin-order",
+          "tag": "high_risk_med_new"
+        },
+        {
+          "source_document_id": "synthetic-mrs-k-lunch-note",
+          "tag": "poor_intake",
+          "quote": "didn't finish her soup"
+        },
+        {
+          "source_document_id": "synthetic-mrs-k-lunch-note",
+          "tag": "new_confusion_noted",
+          "quote": "Not her usual chatty self"
+        }
+      ],
+      "expected_assessment": {
+        "day": 27,
+        "as_of": "2026-10-14T14:00:00+00:00",
+        "verdict": "escalate",
+        "suggested_action": "4at_now",
+        "verification_status": "pending_bl11_loader"
+      }
+    },
+    {
+      "id": "synthetic-mr-t",
+      "display_name": "Mr. T",
+      "synthetic": true,
+      "reference_features": {
+        "speech_rate_wpm": 138.894682,
+        "pause_ratio": 0.236558,
+        "mean_pause_s": 0.409526,
+        "f0_median_hz": 168.127195
+      },
+      "checks": [
+        {
+          "day": 1,
+          "ts": "2026-09-18T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 144.894682,
+            "pause_ratio": 0.206558,
+            "mean_pause_s": 0.371598,
+            "f0_median_hz": 164.539889
+          }
+        },
+        {
+          "day": 2,
+          "ts": "2026-09-19T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 134.571098,
+            "pause_ratio": 0.233064,
+            "mean_pause_s": 0.457472,
+            "f0_median_hz": 168.4719
+          }
+        },
+        {
+          "day": 3,
+          "ts": "2026-09-20T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 138.379554,
+            "pause_ratio": 0.233325,
+            "mean_pause_s": 0.416325,
+            "f0_median_hz": 162.348484
+          }
+        },
+        {
+          "day": 4,
+          "ts": "2026-09-21T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 137.336609,
+            "pause_ratio": 0.266558,
+            "mean_pause_s": 0.424034,
+            "f0_median_hz": 162.30132
+          }
+        },
+        {
+          "day": 5,
+          "ts": "2026-09-22T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 133.045003,
+            "pause_ratio": 0.222975,
+            "mean_pause_s": 0.350012,
+            "f0_median_hz": 175.627195
+          }
+        },
+        {
+          "day": 6,
+          "ts": "2026-09-23T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 144.894682,
+            "pause_ratio": 0.215839,
+            "mean_pause_s": 0.426555,
+            "f0_median_hz": 173.717045
+          }
+        },
+        {
+          "day": 7,
+          "ts": "2026-09-24T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 144.039946,
+            "pause_ratio": 0.260515,
+            "mean_pause_s": 0.386685,
+            "f0_median_hz": 169.642031
+          }
+        },
+        {
+          "day": 8,
+          "ts": "2026-09-25T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 138.540468,
+            "pause_ratio": 0.258785,
+            "mean_pause_s": 0.361759,
+            "f0_median_hz": 165.203154
+          }
+        },
+        {
+          "day": 9,
+          "ts": "2026-09-26T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 132.917495,
+            "pause_ratio": 0.242964,
+            "mean_pause_s": 0.447955,
+            "f0_median_hz": 166.765446
+          }
+        },
+        {
+          "day": 10,
+          "ts": "2026-09-27T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 135.225323,
+            "pause_ratio": 0.250074,
+            "mean_pause_s": 0.430778,
+            "f0_median_hz": 163.483477
+          }
+        },
+        {
+          "day": 11,
+          "ts": "2026-09-28T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 137.063448,
+            "pause_ratio": 0.241311,
+            "mean_pause_s": 0.382292,
+            "f0_median_hz": 173.990348
+          }
+        },
+        {
+          "day": 12,
+          "ts": "2026-09-29T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 134.677567,
+            "pause_ratio": 0.229936,
+            "mean_pause_s": 0.455426,
+            "f0_median_hz": 165.226374
+          }
+        },
+        {
+          "day": 13,
+          "ts": "2026-09-30T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 140.668887,
+            "pause_ratio": 0.206558,
+            "mean_pause_s": 0.359098,
+            "f0_median_hz": 172.09904
+          }
+        },
+        {
+          "day": 14,
+          "ts": "2026-10-01T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 138.990392,
+            "pause_ratio": 0.219579,
+            "mean_pause_s": 0.439564,
+            "f0_median_hz": 164.674552
+          }
+        },
+        {
+          "day": 15,
+          "ts": "2026-10-02T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 133.321616,
+            "pause_ratio": 0.253036,
+            "mean_pause_s": 0.410494,
+            "f0_median_hz": 172.965081
+          }
+        },
+        {
+          "day": 16,
+          "ts": "2026-10-03T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 134.803917,
+            "pause_ratio": 0.23119,
+            "mean_pause_s": 0.469526,
+            "f0_median_hz": 163.279439
+          }
+        },
+        {
+          "day": 17,
+          "ts": "2026-10-04T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 132.894682,
+            "pause_ratio": 0.248949,
+            "mean_pause_s": 0.375776,
+            "f0_median_hz": 171.764828
+          }
+        },
+        {
+          "day": 18,
+          "ts": "2026-10-05T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 139.630766,
+            "pause_ratio": 0.264426,
+            "mean_pause_s": 0.365409,
+            "f0_median_hz": 168.073792
+          }
+        },
+        {
+          "day": 19,
+          "ts": "2026-10-06T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 139.237318,
+            "pause_ratio": 0.232853,
+            "mean_pause_s": 0.37352,
+            "f0_median_hz": 169.164603
+          }
+        },
+        {
+          "day": 20,
+          "ts": "2026-10-07T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 139.285681,
+            "pause_ratio": 0.266558,
+            "mean_pause_s": 0.459281,
+            "f0_median_hz": 169.11832
+          }
+        },
+        {
+          "day": 21,
+          "ts": "2026-10-08T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.306196,
+            "pause_ratio": 0.206558,
+            "mean_pause_s": 0.449483,
+            "f0_median_hz": 171.497411
+          }
+        },
+        {
+          "day": 22,
+          "ts": "2026-10-09T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 142.370131,
+            "pause_ratio": 0.266558,
+            "mean_pause_s": 0.434728,
+            "f0_median_hz": 161.309816
+          }
+        },
+        {
+          "day": 23,
+          "ts": "2026-10-10T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 137.439988,
+            "pause_ratio": 0.238024,
+            "mean_pause_s": 0.427366,
+            "f0_median_hz": 172.965019
+          }
+        },
+        {
+          "day": 24,
+          "ts": "2026-10-11T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 138.097536,
+            "pause_ratio": 0.245882,
+            "mean_pause_s": 0.363408,
+            "f0_median_hz": 168.834544
+          }
+        },
+        {
+          "day": 25,
+          "ts": "2026-10-12T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 140.715284,
+            "pause_ratio": 0.206558,
+            "mean_pause_s": 0.369297,
+            "f0_median_hz": 163.050327
+          }
+        },
+        {
+          "day": 26,
+          "ts": "2026-10-13T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 118.06048,
+            "pause_ratio": 0.28387,
+            "mean_pause_s": 0.491431,
+            "f0_median_hz": 162.425686
+          }
+        },
+        {
+          "day": 27,
+          "ts": "2026-10-14T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 118.06048,
+            "pause_ratio": 0.28387,
+            "mean_pause_s": 0.491431,
+            "f0_median_hz": 165.886038
+          }
+        },
+        {
+          "day": 28,
+          "ts": "2026-10-15T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 142.219529,
+            "pause_ratio": 0.207292,
+            "mean_pause_s": 0.415209,
+            "f0_median_hz": 170.542405
+          }
+        },
+        {
+          "day": 29,
+          "ts": "2026-10-16T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 137.065581,
+            "pause_ratio": 0.206558,
+            "mean_pause_s": 0.433265,
+            "f0_median_hz": 164.031861
+          }
+        },
+        {
+          "day": 30,
+          "ts": "2026-10-17T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.850444,
+            "pause_ratio": 0.263367,
+            "mean_pause_s": 0.443755,
+            "f0_median_hz": 166.934481
+          }
+        }
+      ],
+      "sources": [
+        {
+          "external_document_id": "synthetic-mr-t-denture-note",
+          "external_version_id": "synthetic-v1",
+          "source_system": "synthetic-baseline",
+          "kind": "nursing_note",
+          "author_role": "nurse",
+          "visibility": "care_team",
+          "recorded_at": "2026-10-12T09:00:00+00:00",
+          "effective_from": "2026-10-12T09:00:00+00:00",
+          "text": "New upper denture fitted this morning, says it feels loose."
+        }
+      ],
+      "expected_context": [
+        {
+          "source_document_id": "synthetic-mr-t-denture-note",
+          "tag": "dentures",
+          "quote": "New upper denture fitted this morning, says it feels loose."
+        }
+      ],
+      "expected_assessment": {
+        "day": 27,
+        "as_of": "2026-10-14T14:00:00+00:00",
+        "verdict": "explained",
+        "suggested_action": "none",
+        "verification_status": "pending_bl11_loader"
+      }
+    },
+    {
+      "id": "synthetic-mrs-l",
+      "display_name": "Mrs. L",
+      "synthetic": true,
+      "reference_features": {
+        "speech_rate_wpm": 152.573653,
+        "pause_ratio": 0.292659,
+        "mean_pause_s": 0.387473,
+        "f0_median_hz": 130.275992
+      },
+      "checks": [
+        {
+          "day": 1,
+          "ts": "2026-09-18T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 152.949319,
+            "pause_ratio": 0.277011,
+            "mean_pause_s": 0.373821,
+            "f0_median_hz": 129.679772
+          }
+        },
+        {
+          "day": 2,
+          "ts": "2026-09-19T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 150.236152,
+            "pause_ratio": 0.299084,
+            "mean_pause_s": 0.406176,
+            "f0_median_hz": 137.775992
+          }
+        },
+        {
+          "day": 3,
+          "ts": "2026-09-20T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.573653,
+            "pause_ratio": 0.315073,
+            "mean_pause_s": 0.327473,
+            "f0_median_hz": 126.650366
+          }
+        },
+        {
+          "day": 4,
+          "ts": "2026-09-21T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 147.263508,
+            "pause_ratio": 0.306156,
+            "mean_pause_s": 0.43504,
+            "f0_median_hz": 122.775992
+          }
+        },
+        {
+          "day": 5,
+          "ts": "2026-09-22T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 154.230922,
+            "pause_ratio": 0.295963,
+            "mean_pause_s": 0.433241,
+            "f0_median_hz": 130.401939
+          }
+        },
+        {
+          "day": 6,
+          "ts": "2026-09-23T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 149.171086,
+            "pause_ratio": 0.301959,
+            "mean_pause_s": 0.41225,
+            "f0_median_hz": 124.572343
+          }
+        },
+        {
+          "day": 7,
+          "ts": "2026-09-24T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 155.920031,
+            "pause_ratio": 0.27558,
+            "mean_pause_s": 0.352449,
+            "f0_median_hz": 137.775992
+          }
+        },
+        {
+          "day": 8,
+          "ts": "2026-09-25T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 152.100549,
+            "pause_ratio": 0.303379,
+            "mean_pause_s": 0.327473,
+            "f0_median_hz": 130.605003
+          }
+        },
+        {
+          "day": 9,
+          "ts": "2026-09-26T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 148.508087,
+            "pause_ratio": 0.317046,
+            "mean_pause_s": 0.407263,
+            "f0_median_hz": 128.843364
+          }
+        },
+        {
+          "day": 10,
+          "ts": "2026-09-27T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 158.573653,
+            "pause_ratio": 0.298377,
+            "mean_pause_s": 0.436017,
+            "f0_median_hz": 134.535562
+          }
+        },
+        {
+          "day": 11,
+          "ts": "2026-09-28T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.573653,
+            "pause_ratio": 0.301491,
+            "mean_pause_s": 0.397823,
+            "f0_median_hz": 133.423564
+          }
+        },
+        {
+          "day": 12,
+          "ts": "2026-09-29T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 151.08986,
+            "pause_ratio": 0.316782,
+            "mean_pause_s": 0.435431,
+            "f0_median_hz": 137.139752
+          }
+        },
+        {
+          "day": 13,
+          "ts": "2026-09-30T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 151.339791,
+            "pause_ratio": 0.275693,
+            "mean_pause_s": 0.447473,
+            "f0_median_hz": 135.860833
+          }
+        },
+        {
+          "day": 14,
+          "ts": "2026-10-01T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 155.900012,
+            "pause_ratio": 0.309314,
+            "mean_pause_s": 0.41132,
+            "f0_median_hz": 127.369062
+          }
+        },
+        {
+          "day": 15,
+          "ts": "2026-10-02T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.865453,
+            "pause_ratio": 0.273273,
+            "mean_pause_s": 0.371805,
+            "f0_median_hz": 132.527518
+          }
+        },
+        {
+          "day": 16,
+          "ts": "2026-10-03T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 152.729831,
+            "pause_ratio": 0.322659,
+            "mean_pause_s": 0.347036,
+            "f0_median_hz": 131.596137
+          }
+        },
+        {
+          "day": 17,
+          "ts": "2026-10-04T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 156.386352,
+            "pause_ratio": 0.281259,
+            "mean_pause_s": 0.409146,
+            "f0_median_hz": 130.056242
+          }
+        },
+        {
+          "day": 18,
+          "ts": "2026-10-05T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 152.26371,
+            "pause_ratio": 0.287081,
+            "mean_pause_s": 0.403258,
+            "f0_median_hz": 126.160043
+          }
+        },
+        {
+          "day": 19,
+          "ts": "2026-10-06T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 153.812909,
+            "pause_ratio": 0.275551,
+            "mean_pause_s": 0.403987,
+            "f0_median_hz": 128.918175
+          }
+        },
+        {
+          "day": 20,
+          "ts": "2026-10-07T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 153.878196,
+            "pause_ratio": 0.262659,
+            "mean_pause_s": 0.445555,
+            "f0_median_hz": 132.44022
+          }
+        },
+        {
+          "day": 21,
+          "ts": "2026-10-08T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 154.801885,
+            "pause_ratio": 0.299666,
+            "mean_pause_s": 0.327473,
+            "f0_median_hz": 130.239285
+          }
+        },
+        {
+          "day": 22,
+          "ts": "2026-10-09T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 156.533281,
+            "pause_ratio": 0.263505,
+            "mean_pause_s": 0.423398,
+            "f0_median_hz": 124.401162
+          }
+        },
+        {
+          "day": 23,
+          "ts": "2026-10-10T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 149.498084,
+            "pause_ratio": 0.309061,
+            "mean_pause_s": 0.410918,
+            "f0_median_hz": 123.728974
+          }
+        },
+        {
+          "day": 24,
+          "ts": "2026-10-11T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 149.948204,
+            "pause_ratio": 0.322659,
+            "mean_pause_s": 0.364709,
+            "f0_median_hz": 131.177125
+          }
+        },
+        {
+          "day": 25,
+          "ts": "2026-10-12T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 157.442501,
+            "pause_ratio": 0.263128,
+            "mean_pause_s": 0.344695,
+            "f0_median_hz": 133.999044
+          }
+        },
+        {
+          "day": 26,
+          "ts": "2026-10-13T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 149.296147,
+            "pause_ratio": 0.268612,
+            "mean_pause_s": 0.36511,
+            "f0_median_hz": 125.457878
+          }
+        },
+        {
+          "day": 27,
+          "ts": "2026-10-14T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 149.476635,
+            "pause_ratio": 0.305149,
+            "mean_pause_s": 0.381506,
+            "f0_median_hz": 133.916391
+          }
+        },
+        {
+          "day": 28,
+          "ts": "2026-10-15T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 147.638697,
+            "pause_ratio": 0.291648,
+            "mean_pause_s": 0.362434,
+            "f0_median_hz": 130.493087
+          }
+        },
+        {
+          "day": 29,
+          "ts": "2026-10-16T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 106.801557,
+            "pause_ratio": 0.438989,
+            "mean_pause_s": 0.398408,
+            "f0_median_hz": 135.334243
+          }
+        },
+        {
+          "day": 30,
+          "ts": "2026-10-17T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 153.034287,
+            "pause_ratio": 0.322659,
+            "mean_pause_s": 0.39529,
+            "f0_median_hz": 129.798037
+          }
+        }
+      ],
+      "sources": [],
+      "expected_context": [],
+      "expected_assessment": {
+        "day": 29,
+        "as_of": "2026-10-16T14:00:00+00:00",
+        "verdict": "watch",
+        "suggested_action": "recheck_1h",
+        "verification_status": "pending_bl11_loader"
+      }
+    },
+    {
+      "id": "synthetic-resident-04",
+      "display_name": "Synthetic Resident 04",
+      "synthetic": true,
+      "reference_features": {
+        "speech_rate_wpm": 120.223949,
+        "pause_ratio": 0.260734,
+        "mean_pause_s": 0.362857,
+        "f0_median_hz": 144.808007
+      },
+      "checks": [
+        {
+          "day": 1,
+          "ts": "2026-09-18T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 118.500435,
+            "pause_ratio": 0.290734,
+            "mean_pause_s": 0.329421,
+            "f0_median_hz": 137.308007
+          }
+        },
+        {
+          "day": 2,
+          "ts": "2026-09-19T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 120.500901,
+            "pause_ratio": 0.27508,
+            "mean_pause_s": 0.37086,
+            "f0_median_hz": 152.308007
+          }
+        },
+        {
+          "day": 3,
+          "ts": "2026-09-20T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 119.596662,
+            "pause_ratio": 0.261075,
+            "mean_pause_s": 0.389181,
+            "f0_median_hz": 145.550827
+          }
+        },
+        {
+          "day": 4,
+          "ts": "2026-09-21T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 122.326503,
+            "pause_ratio": 0.23874,
+            "mean_pause_s": 0.383701,
+            "f0_median_hz": 145.396035
+          }
+        },
+        {
+          "day": 5,
+          "ts": "2026-09-22T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 114.223949,
+            "pause_ratio": 0.268863,
+            "mean_pause_s": 0.382286,
+            "f0_median_hz": 149.345547
+          }
+        },
+        {
+          "day": 6,
+          "ts": "2026-09-23T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 117.972852,
+            "pause_ratio": 0.290734,
+            "mean_pause_s": 0.329384,
+            "f0_median_hz": 147.96264
+          }
+        },
+        {
+          "day": 7,
+          "ts": "2026-09-24T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 119.527368,
+            "pause_ratio": 0.233242,
+            "mean_pause_s": 0.374193,
+            "f0_median_hz": 140.161067
+          }
+        },
+        {
+          "day": 8,
+          "ts": "2026-09-25T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 121.151372,
+            "pause_ratio": 0.230734,
+            "mean_pause_s": 0.372523,
+            "f0_median_hz": 143.31555
+          }
+        },
+        {
+          "day": 9,
+          "ts": "2026-09-26T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 122.176439,
+            "pause_ratio": 0.250584,
+            "mean_pause_s": 0.343712,
+            "f0_median_hz": 144.293509
+          }
+        },
+        {
+          "day": 10,
+          "ts": "2026-09-27T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 121.832958,
+            "pause_ratio": 0.277578,
+            "mean_pause_s": 0.321879,
+            "f0_median_hz": 139.95474
+          }
+        },
+        {
+          "day": 11,
+          "ts": "2026-09-28T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 115.585207,
+            "pause_ratio": 0.272142,
+            "mean_pause_s": 0.391002,
+            "f0_median_hz": 144.112033
+          }
+        },
+        {
+          "day": 12,
+          "ts": "2026-09-29T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 114.223949,
+            "pause_ratio": 0.249391,
+            "mean_pause_s": 0.302857,
+            "f0_median_hz": 140.596835
+          }
+        },
+        {
+          "day": 13,
+          "ts": "2026-09-30T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 126.223949,
+            "pause_ratio": 0.242831,
+            "mean_pause_s": 0.37085,
+            "f0_median_hz": 146.295108
+          }
+        },
+        {
+          "day": 14,
+          "ts": "2026-10-01T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 122.653746,
+            "pause_ratio": 0.247978,
+            "mean_pause_s": 0.422857,
+            "f0_median_hz": 137.308007
+          }
+        },
+        {
+          "day": 15,
+          "ts": "2026-10-02T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 114.223949,
+            "pause_ratio": 0.290734,
+            "mean_pause_s": 0.328935,
+            "f0_median_hz": 149.434132
+          }
+        },
+        {
+          "day": 16,
+          "ts": "2026-10-03T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 126.223949,
+            "pause_ratio": 0.286426,
+            "mean_pause_s": 0.355981,
+            "f0_median_hz": 137.308007
+          }
+        },
+        {
+          "day": 17,
+          "ts": "2026-10-04T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 124.983772,
+            "pause_ratio": 0.231724,
+            "mean_pause_s": 0.365744,
+            "f0_median_hz": 140.254927
+          }
+        },
+        {
+          "day": 18,
+          "ts": "2026-10-05T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 125.698039,
+            "pause_ratio": 0.281586,
+            "mean_pause_s": 0.354284,
+            "f0_median_hz": 146.490585
+          }
+        },
+        {
+          "day": 19,
+          "ts": "2026-10-06T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 119.813215,
+            "pause_ratio": 0.281281,
+            "mean_pause_s": 0.397234,
+            "f0_median_hz": 143.441929
+          }
+        },
+        {
+          "day": 20,
+          "ts": "2026-10-07T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 125.314439,
+            "pause_ratio": 0.265756,
+            "mean_pause_s": 0.390769,
+            "f0_median_hz": 146.675405
+          }
+        },
+        {
+          "day": 21,
+          "ts": "2026-10-08T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 125.808022,
+            "pause_ratio": 0.255964,
+            "mean_pause_s": 0.315295,
+            "f0_median_hz": 152.308007
+          }
+        },
+        {
+          "day": 22,
+          "ts": "2026-10-09T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 114.223949,
+            "pause_ratio": 0.257968,
+            "mean_pause_s": 0.304256,
+            "f0_median_hz": 144.43463
+          }
+        },
+        {
+          "day": 23,
+          "ts": "2026-10-10T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 119.554003,
+            "pause_ratio": 0.232699,
+            "mean_pause_s": 0.422857,
+            "f0_median_hz": 140.71547
+          }
+        },
+        {
+          "day": 24,
+          "ts": "2026-10-11T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 125.690038,
+            "pause_ratio": 0.257831,
+            "mean_pause_s": 0.324514,
+            "f0_median_hz": 138.659257
+          }
+        },
+        {
+          "day": 25,
+          "ts": "2026-10-12T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 115.436458,
+            "pause_ratio": 0.244238,
+            "mean_pause_s": 0.401056,
+            "f0_median_hz": 144.614615
+          }
+        },
+        {
+          "day": 26,
+          "ts": "2026-10-13T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 118.095396,
+            "pause_ratio": 0.270559,
+            "mean_pause_s": 0.350218,
+            "f0_median_hz": 152.308007
+          }
+        },
+        {
+          "day": 27,
+          "ts": "2026-10-14T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 121.715501,
+            "pause_ratio": 0.230734,
+            "mean_pause_s": 0.388892,
+            "f0_median_hz": 140.53816
+          }
+        },
+        {
+          "day": 28,
+          "ts": "2026-10-15T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 116.96692,
+            "pause_ratio": 0.25643,
+            "mean_pause_s": 0.302857,
+            "f0_median_hz": 142.348855
+          }
+        },
+        {
+          "day": 29,
+          "ts": "2026-10-16T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 118.863607,
+            "pause_ratio": 0.263995,
+            "mean_pause_s": 0.376144,
+            "f0_median_hz": 137.308007
+          }
+        },
+        {
+          "day": 30,
+          "ts": "2026-10-17T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 124.203232,
+            "pause_ratio": 0.279958,
+            "mean_pause_s": 0.359879,
+            "f0_median_hz": 149.61869
+          }
+        }
+      ],
+      "sources": [],
+      "expected_context": [],
+      "expected_assessment": {
+        "day": 30,
+        "as_of": "2026-10-17T14:00:00+00:00",
+        "verdict": "within_normal",
+        "suggested_action": "none",
+        "verification_status": "pending_bl11_loader"
+      }
+    },
+    {
+      "id": "synthetic-resident-05",
+      "display_name": "Synthetic Resident 05",
+      "synthetic": true,
+      "reference_features": {
+        "speech_rate_wpm": 158.503519,
+        "pause_ratio": 0.252942,
+        "mean_pause_s": 0.372507,
+        "f0_median_hz": 117.730496
+      },
+      "checks": [
+        {
+          "day": 1,
+          "ts": "2026-09-18T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 157.844512,
+            "pause_ratio": 0.255715,
+            "mean_pause_s": 0.35568,
+            "f0_median_hz": 113.250144
+          }
+        },
+        {
+          "day": 2,
+          "ts": "2026-09-19T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 152.565359,
+            "pause_ratio": 0.242261,
+            "mean_pause_s": 0.333587,
+            "f0_median_hz": 120.803112
+          }
+        },
+        {
+          "day": 3,
+          "ts": "2026-09-20T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 162.221788,
+            "pause_ratio": 0.248234,
+            "mean_pause_s": 0.338223,
+            "f0_median_hz": 117.019048
+          }
+        },
+        {
+          "day": 4,
+          "ts": "2026-09-21T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 153.136134,
+            "pause_ratio": 0.222942,
+            "mean_pause_s": 0.400865,
+            "f0_median_hz": 121.735206
+          }
+        },
+        {
+          "day": 5,
+          "ts": "2026-09-22T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 152.503519,
+            "pause_ratio": 0.273179,
+            "mean_pause_s": 0.388463,
+            "f0_median_hz": 123.980949
+          }
+        },
+        {
+          "day": 6,
+          "ts": "2026-09-23T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 157.993827,
+            "pause_ratio": 0.282942,
+            "mean_pause_s": 0.386839,
+            "f0_median_hz": 118.037569
+          }
+        },
+        {
+          "day": 7,
+          "ts": "2026-09-24T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 153.15577,
+            "pause_ratio": 0.252289,
+            "mean_pause_s": 0.361239,
+            "f0_median_hz": 122.769318
+          }
+        },
+        {
+          "day": 8,
+          "ts": "2026-09-25T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 163.921066,
+            "pause_ratio": 0.253768,
+            "mean_pause_s": 0.381643,
+            "f0_median_hz": 116.668564
+          }
+        },
+        {
+          "day": 9,
+          "ts": "2026-09-26T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 159.014337,
+            "pause_ratio": 0.243886,
+            "mean_pause_s": 0.372162,
+            "f0_median_hz": 118.519741
+          }
+        },
+        {
+          "day": 10,
+          "ts": "2026-09-27T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 163.745753,
+            "pause_ratio": 0.231651,
+            "mean_pause_s": 0.314898,
+            "f0_median_hz": 117.405387
+          }
+        },
+        {
+          "day": 11,
+          "ts": "2026-09-28T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 152.503519,
+            "pause_ratio": 0.259396,
+            "mean_pause_s": 0.374534,
+            "f0_median_hz": 124.587531
+          }
+        },
+        {
+          "day": 12,
+          "ts": "2026-09-29T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 162.066083,
+            "pause_ratio": 0.2642,
+            "mean_pause_s": 0.401704,
+            "f0_median_hz": 113.926984
+          }
+        },
+        {
+          "day": 13,
+          "ts": "2026-09-30T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 163.145142,
+            "pause_ratio": 0.249551,
+            "mean_pause_s": 0.432507,
+            "f0_median_hz": 114.212398
+          }
+        },
+        {
+          "day": 14,
+          "ts": "2026-10-01T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 159.107051,
+            "pause_ratio": 0.233715,
+            "mean_pause_s": 0.416101,
+            "f0_median_hz": 121.052102
+          }
+        },
+        {
+          "day": 15,
+          "ts": "2026-10-02T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 157.316313,
+            "pause_ratio": 0.256461,
+            "mean_pause_s": 0.344641,
+            "f0_median_hz": 115.341327
+          }
+        },
+        {
+          "day": 16,
+          "ts": "2026-10-03T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 159.394858,
+            "pause_ratio": 0.282942,
+            "mean_pause_s": 0.312507,
+            "f0_median_hz": 110.552857
+          }
+        },
+        {
+          "day": 17,
+          "ts": "2026-10-04T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 164.503519,
+            "pause_ratio": 0.234104,
+            "mean_pause_s": 0.432507,
+            "f0_median_hz": 115.688772
+          }
+        },
+        {
+          "day": 18,
+          "ts": "2026-10-05T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 163.759481,
+            "pause_ratio": 0.26154,
+            "mean_pause_s": 0.35494,
+            "f0_median_hz": 112.981684
+          }
+        },
+        {
+          "day": 19,
+          "ts": "2026-10-06T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 154.268459,
+            "pause_ratio": 0.241434,
+            "mean_pause_s": 0.360475,
+            "f0_median_hz": 120.08577
+          }
+        },
+        {
+          "day": 20,
+          "ts": "2026-10-07T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 162.897005,
+            "pause_ratio": 0.247441,
+            "mean_pause_s": 0.312507,
+            "f0_median_hz": 112.876152
+          }
+        },
+        {
+          "day": 21,
+          "ts": "2026-10-08T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 161.039152,
+            "pause_ratio": 0.260412,
+            "mean_pause_s": 0.403712,
+            "f0_median_hz": 112.900746
+          }
+        },
+        {
+          "day": 22,
+          "ts": "2026-10-09T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 162.170608,
+            "pause_ratio": 0.275276,
+            "mean_pause_s": 0.407679,
+            "f0_median_hz": 116.250549
+          }
+        },
+        {
+          "day": 23,
+          "ts": "2026-10-10T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 161.055635,
+            "pause_ratio": 0.247798,
+            "mean_pause_s": 0.3534,
+            "f0_median_hz": 113.213666
+          }
+        },
+        {
+          "day": 24,
+          "ts": "2026-10-11T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 153.913546,
+            "pause_ratio": 0.276216,
+            "mean_pause_s": 0.369932,
+            "f0_median_hz": 124.095413
+          }
+        },
+        {
+          "day": 25,
+          "ts": "2026-10-12T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 163.838999,
+            "pause_ratio": 0.260324,
+            "mean_pause_s": 0.432507,
+            "f0_median_hz": 113.707777
+          }
+        },
+        {
+          "day": 26,
+          "ts": "2026-10-13T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 153.340885,
+            "pause_ratio": 0.238976,
+            "mean_pause_s": 0.399307,
+            "f0_median_hz": 119.557862
+          }
+        },
+        {
+          "day": 27,
+          "ts": "2026-10-14T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 159.01974,
+            "pause_ratio": 0.264506,
+            "mean_pause_s": 0.339081,
+            "f0_median_hz": 120.337177
+          }
+        },
+        {
+          "day": 28,
+          "ts": "2026-10-15T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 159.86971,
+            "pause_ratio": 0.280598,
+            "mean_pause_s": 0.432507,
+            "f0_median_hz": 112.178855
+          }
+        },
+        {
+          "day": 29,
+          "ts": "2026-10-16T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 154.710908,
+            "pause_ratio": 0.226151,
+            "mean_pause_s": 0.390938,
+            "f0_median_hz": 116.023961
+          }
+        },
+        {
+          "day": 30,
+          "ts": "2026-10-17T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 162.552795,
+            "pause_ratio": 0.273707,
+            "mean_pause_s": 0.423968,
+            "f0_median_hz": 119.194728
+          }
+        }
+      ],
+      "sources": [],
+      "expected_context": [],
+      "expected_assessment": {
+        "day": 30,
+        "as_of": "2026-10-17T14:00:00+00:00",
+        "verdict": "within_normal",
+        "suggested_action": "none",
+        "verification_status": "pending_bl11_loader"
+      }
+    },
+    {
+      "id": "synthetic-resident-06",
+      "display_name": "Synthetic Resident 06",
+      "synthetic": true,
+      "reference_features": {
+        "speech_rate_wpm": 144.053429,
+        "pause_ratio": 0.208918,
+        "mean_pause_s": 0.457237,
+        "f0_median_hz": 123.039105
+      },
+      "checks": [
+        {
+          "day": 1,
+          "ts": "2026-09-18T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.280076,
+            "pause_ratio": 0.216371,
+            "mean_pause_s": 0.421025,
+            "f0_median_hz": 117.542206
+          }
+        },
+        {
+          "day": 2,
+          "ts": "2026-09-19T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.985142,
+            "pause_ratio": 0.221311,
+            "mean_pause_s": 0.483863,
+            "f0_median_hz": 123.212651
+          }
+        },
+        {
+          "day": 3,
+          "ts": "2026-09-20T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.564096,
+            "pause_ratio": 0.223154,
+            "mean_pause_s": 0.452309,
+            "f0_median_hz": 115.539105
+          }
+        },
+        {
+          "day": 4,
+          "ts": "2026-09-21T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.583435,
+            "pause_ratio": 0.185104,
+            "mean_pause_s": 0.505883,
+            "f0_median_hz": 129.716705
+          }
+        },
+        {
+          "day": 5,
+          "ts": "2026-09-22T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 140.468369,
+            "pause_ratio": 0.201305,
+            "mean_pause_s": 0.490404,
+            "f0_median_hz": 124.155622
+          }
+        },
+        {
+          "day": 6,
+          "ts": "2026-09-23T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.5212,
+            "pause_ratio": 0.212217,
+            "mean_pause_s": 0.465021,
+            "f0_median_hz": 121.462245
+          }
+        },
+        {
+          "day": 7,
+          "ts": "2026-09-24T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 139.270321,
+            "pause_ratio": 0.218768,
+            "mean_pause_s": 0.492675,
+            "f0_median_hz": 128.264915
+          }
+        },
+        {
+          "day": 8,
+          "ts": "2026-09-25T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 150.053429,
+            "pause_ratio": 0.238918,
+            "mean_pause_s": 0.397237,
+            "f0_median_hz": 115.539105
+          }
+        },
+        {
+          "day": 9,
+          "ts": "2026-09-26T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 149.403035,
+            "pause_ratio": 0.186532,
+            "mean_pause_s": 0.490666,
+            "f0_median_hz": 119.737514
+          }
+        },
+        {
+          "day": 10,
+          "ts": "2026-09-27T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 142.976801,
+            "pause_ratio": 0.1859,
+            "mean_pause_s": 0.397237,
+            "f0_median_hz": 119.828447
+          }
+        },
+        {
+          "day": 11,
+          "ts": "2026-09-28T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 139.870125,
+            "pause_ratio": 0.183206,
+            "mean_pause_s": 0.428954,
+            "f0_median_hz": 119.028772
+          }
+        },
+        {
+          "day": 12,
+          "ts": "2026-09-29T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.339156,
+            "pause_ratio": 0.206499,
+            "mean_pause_s": 0.517237,
+            "f0_median_hz": 120.227338
+          }
+        },
+        {
+          "day": 13,
+          "ts": "2026-09-30T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 141.415435,
+            "pause_ratio": 0.199222,
+            "mean_pause_s": 0.438098,
+            "f0_median_hz": 123.528001
+          }
+        },
+        {
+          "day": 14,
+          "ts": "2026-10-01T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.365972,
+            "pause_ratio": 0.198351,
+            "mean_pause_s": 0.476036,
+            "f0_median_hz": 126.025377
+          }
+        },
+        {
+          "day": 15,
+          "ts": "2026-10-02T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.18802,
+            "pause_ratio": 0.217886,
+            "mean_pause_s": 0.431299,
+            "f0_median_hz": 119.004552
+          }
+        },
+        {
+          "day": 16,
+          "ts": "2026-10-03T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 145.3238,
+            "pause_ratio": 0.224673,
+            "mean_pause_s": 0.487128,
+            "f0_median_hz": 115.857361
+          }
+        },
+        {
+          "day": 17,
+          "ts": "2026-10-04T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 144.033591,
+            "pause_ratio": 0.212758,
+            "mean_pause_s": 0.46798,
+            "f0_median_hz": 115.99369
+          }
+        },
+        {
+          "day": 18,
+          "ts": "2026-10-05T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 141.859943,
+            "pause_ratio": 0.221062,
+            "mean_pause_s": 0.446127,
+            "f0_median_hz": 130.539105
+          }
+        },
+        {
+          "day": 19,
+          "ts": "2026-10-06T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 139.539758,
+            "pause_ratio": 0.188679,
+            "mean_pause_s": 0.412658,
+            "f0_median_hz": 118.787295
+          }
+        },
+        {
+          "day": 20,
+          "ts": "2026-10-07T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 141.279298,
+            "pause_ratio": 0.238918,
+            "mean_pause_s": 0.517237,
+            "f0_median_hz": 126.058345
+          }
+        },
+        {
+          "day": 21,
+          "ts": "2026-10-08T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 142.727537,
+            "pause_ratio": 0.190337,
+            "mean_pause_s": 0.41965,
+            "f0_median_hz": 120.925296
+          }
+        },
+        {
+          "day": 22,
+          "ts": "2026-10-09T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.500526,
+            "pause_ratio": 0.182711,
+            "mean_pause_s": 0.517237,
+            "f0_median_hz": 120.083891
+          }
+        },
+        {
+          "day": 23,
+          "ts": "2026-10-10T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 141.982748,
+            "pause_ratio": 0.192911,
+            "mean_pause_s": 0.432769,
+            "f0_median_hz": 120.234085
+          }
+        },
+        {
+          "day": 24,
+          "ts": "2026-10-11T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 138.053429,
+            "pause_ratio": 0.1976,
+            "mean_pause_s": 0.515285,
+            "f0_median_hz": 123.937865
+          }
+        },
+        {
+          "day": 25,
+          "ts": "2026-10-12T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 150.053429,
+            "pause_ratio": 0.212397,
+            "mean_pause_s": 0.442898,
+            "f0_median_hz": 130.397796
+          }
+        },
+        {
+          "day": 26,
+          "ts": "2026-10-13T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 141.704906,
+            "pause_ratio": 0.222857,
+            "mean_pause_s": 0.420611,
+            "f0_median_hz": 126.895636
+          }
+        },
+        {
+          "day": 27,
+          "ts": "2026-10-14T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 144.845874,
+            "pause_ratio": 0.178918,
+            "mean_pause_s": 0.50192,
+            "f0_median_hz": 128.186327
+          }
+        },
+        {
+          "day": 28,
+          "ts": "2026-10-15T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.254705,
+            "pause_ratio": 0.22525,
+            "mean_pause_s": 0.477681,
+            "f0_median_hz": 128.506599
+          }
+        },
+        {
+          "day": 29,
+          "ts": "2026-10-16T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.947876,
+            "pause_ratio": 0.216222,
+            "mean_pause_s": 0.479925,
+            "f0_median_hz": 128.885272
+          }
+        },
+        {
+          "day": 30,
+          "ts": "2026-10-17T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 138.053429,
+            "pause_ratio": 0.202658,
+            "mean_pause_s": 0.487086,
+            "f0_median_hz": 125.483843
+          }
+        }
+      ],
+      "sources": [],
+      "expected_context": [],
+      "expected_assessment": {
+        "day": 30,
+        "as_of": "2026-10-17T14:00:00+00:00",
+        "verdict": "within_normal",
+        "suggested_action": "none",
+        "verification_status": "pending_bl11_loader"
+      }
+    },
+    {
+      "id": "synthetic-resident-07",
+      "display_name": "Synthetic Resident 07",
+      "synthetic": true,
+      "reference_features": {
+        "speech_rate_wpm": 123.167868,
+        "pause_ratio": 0.27432,
+        "mean_pause_s": 0.438462,
+        "f0_median_hz": 122.665902
+      },
+      "checks": [
+        {
+          "day": 1,
+          "ts": "2026-09-18T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 117.167868,
+            "pause_ratio": 0.283606,
+            "mean_pause_s": 0.42325,
+            "f0_median_hz": 126.670505
+          }
+        },
+        {
+          "day": 2,
+          "ts": "2026-09-19T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 125.830107,
+            "pause_ratio": 0.275114,
+            "mean_pause_s": 0.438374,
+            "f0_median_hz": 128.701819
+          }
+        },
+        {
+          "day": 3,
+          "ts": "2026-09-20T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 127.540034,
+            "pause_ratio": 0.26202,
+            "mean_pause_s": 0.433166,
+            "f0_median_hz": 116.520373
+          }
+        },
+        {
+          "day": 4,
+          "ts": "2026-09-21T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 128.248015,
+            "pause_ratio": 0.288727,
+            "mean_pause_s": 0.476078,
+            "f0_median_hz": 116.579053
+          }
+        },
+        {
+          "day": 5,
+          "ts": "2026-09-22T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 122.411811,
+            "pause_ratio": 0.266327,
+            "mean_pause_s": 0.400176,
+            "f0_median_hz": 127.089771
+          }
+        },
+        {
+          "day": 6,
+          "ts": "2026-09-23T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 119.660888,
+            "pause_ratio": 0.260907,
+            "mean_pause_s": 0.498462,
+            "f0_median_hz": 116.404008
+          }
+        },
+        {
+          "day": 7,
+          "ts": "2026-09-24T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 117.167868,
+            "pause_ratio": 0.282308,
+            "mean_pause_s": 0.48525,
+            "f0_median_hz": 120.629457
+          }
+        },
+        {
+          "day": 8,
+          "ts": "2026-09-25T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 122.650323,
+            "pause_ratio": 0.24432,
+            "mean_pause_s": 0.378462,
+            "f0_median_hz": 128.57357
+          }
+        },
+        {
+          "day": 9,
+          "ts": "2026-09-26T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 123.938167,
+            "pause_ratio": 0.275376,
+            "mean_pause_s": 0.466309,
+            "f0_median_hz": 115.670838
+          }
+        },
+        {
+          "day": 10,
+          "ts": "2026-09-27T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 124.830157,
+            "pause_ratio": 0.262421,
+            "mean_pause_s": 0.409075,
+            "f0_median_hz": 123.931224
+          }
+        },
+        {
+          "day": 11,
+          "ts": "2026-09-28T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 123.887118,
+            "pause_ratio": 0.285749,
+            "mean_pause_s": 0.429859,
+            "f0_median_hz": 119.331798
+          }
+        },
+        {
+          "day": 12,
+          "ts": "2026-09-29T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 129.167868,
+            "pause_ratio": 0.275361,
+            "mean_pause_s": 0.447509,
+            "f0_median_hz": 121.43752
+          }
+        },
+        {
+          "day": 13,
+          "ts": "2026-09-30T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 129.167868,
+            "pause_ratio": 0.269337,
+            "mean_pause_s": 0.407881,
+            "f0_median_hz": 117.349541
+          }
+        },
+        {
+          "day": 14,
+          "ts": "2026-10-01T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 126.122574,
+            "pause_ratio": 0.268127,
+            "mean_pause_s": 0.465822,
+            "f0_median_hz": 127.749768
+          }
+        },
+        {
+          "day": 15,
+          "ts": "2026-10-02T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 125.394948,
+            "pause_ratio": 0.249779,
+            "mean_pause_s": 0.498462,
+            "f0_median_hz": 120.763214
+          }
+        },
+        {
+          "day": 16,
+          "ts": "2026-10-03T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 118.937896,
+            "pause_ratio": 0.292138,
+            "mean_pause_s": 0.450877,
+            "f0_median_hz": 128.23373
+          }
+        },
+        {
+          "day": 17,
+          "ts": "2026-10-04T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 121.062393,
+            "pause_ratio": 0.263051,
+            "mean_pause_s": 0.38431,
+            "f0_median_hz": 122.273402
+          }
+        },
+        {
+          "day": 18,
+          "ts": "2026-10-05T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 124.173119,
+            "pause_ratio": 0.299831,
+            "mean_pause_s": 0.4794,
+            "f0_median_hz": 121.957077
+          }
+        },
+        {
+          "day": 19,
+          "ts": "2026-10-06T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 123.255628,
+            "pause_ratio": 0.260243,
+            "mean_pause_s": 0.449585,
+            "f0_median_hz": 130.165902
+          }
+        },
+        {
+          "day": 20,
+          "ts": "2026-10-07T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 124.688125,
+            "pause_ratio": 0.30432,
+            "mean_pause_s": 0.45778,
+            "f0_median_hz": 127.432035
+          }
+        },
+        {
+          "day": 21,
+          "ts": "2026-10-08T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 119.811284,
+            "pause_ratio": 0.283282,
+            "mean_pause_s": 0.455667,
+            "f0_median_hz": 118.19582
+          }
+        },
+        {
+          "day": 22,
+          "ts": "2026-10-09T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 120.276193,
+            "pause_ratio": 0.266558,
+            "mean_pause_s": 0.495923,
+            "f0_median_hz": 121.170147
+          }
+        },
+        {
+          "day": 23,
+          "ts": "2026-10-10T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 125.838902,
+            "pause_ratio": 0.254556,
+            "mean_pause_s": 0.459377,
+            "f0_median_hz": 129.079526
+          }
+        },
+        {
+          "day": 24,
+          "ts": "2026-10-11T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 118.973816,
+            "pause_ratio": 0.256951,
+            "mean_pause_s": 0.390459,
+            "f0_median_hz": 125.893624
+          }
+        },
+        {
+          "day": 25,
+          "ts": "2026-10-12T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 118.442158,
+            "pause_ratio": 0.255181,
+            "mean_pause_s": 0.451935,
+            "f0_median_hz": 115.165902
+          }
+        },
+        {
+          "day": 26,
+          "ts": "2026-10-13T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 121.236601,
+            "pause_ratio": 0.286256,
+            "mean_pause_s": 0.44079,
+            "f0_median_hz": 123.257532
+          }
+        },
+        {
+          "day": 27,
+          "ts": "2026-10-14T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 127.632093,
+            "pause_ratio": 0.260188,
+            "mean_pause_s": 0.429524,
+            "f0_median_hz": 126.03562
+          }
+        },
+        {
+          "day": 28,
+          "ts": "2026-10-15T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 121.031669,
+            "pause_ratio": 0.30432,
+            "mean_pause_s": 0.438704,
+            "f0_median_hz": 126.380388
+          }
+        },
+        {
+          "day": 29,
+          "ts": "2026-10-16T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 124.897007,
+            "pause_ratio": 0.25812,
+            "mean_pause_s": 0.397959,
+            "f0_median_hz": 124.247118
+          }
+        },
+        {
+          "day": 30,
+          "ts": "2026-10-17T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 120.846418,
+            "pause_ratio": 0.273687,
+            "mean_pause_s": 0.419676,
+            "f0_median_hz": 123.51114
+          }
+        }
+      ],
+      "sources": [],
+      "expected_context": [],
+      "expected_assessment": {
+        "day": 30,
+        "as_of": "2026-10-17T14:00:00+00:00",
+        "verdict": "within_normal",
+        "suggested_action": "none",
+        "verification_status": "pending_bl11_loader"
+      }
+    },
+    {
+      "id": "synthetic-resident-08",
+      "display_name": "Synthetic Resident 08",
+      "synthetic": true,
+      "reference_features": {
+        "speech_rate_wpm": 128.254012,
+        "pause_ratio": 0.175855,
+        "mean_pause_s": 0.370731,
+        "f0_median_hz": 228.522285
+      },
+      "checks": [
+        {
+          "day": 1,
+          "ts": "2026-09-18T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 122.254012,
+            "pause_ratio": 0.150381,
+            "mean_pause_s": 0.360203,
+            "f0_median_hz": 232.982183
+          }
+        },
+        {
+          "day": 2,
+          "ts": "2026-09-19T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 133.892293,
+            "pause_ratio": 0.182017,
+            "mean_pause_s": 0.381786,
+            "f0_median_hz": 229.90687
+          }
+        },
+        {
+          "day": 3,
+          "ts": "2026-09-20T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 125.149463,
+            "pause_ratio": 0.205851,
+            "mean_pause_s": 0.412977,
+            "f0_median_hz": 232.761568
+          }
+        },
+        {
+          "day": 4,
+          "ts": "2026-09-21T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 122.254012,
+            "pause_ratio": 0.157424,
+            "mean_pause_s": 0.430731,
+            "f0_median_hz": 226.375675
+          }
+        },
+        {
+          "day": 5,
+          "ts": "2026-09-22T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 127.995955,
+            "pause_ratio": 0.145855,
+            "mean_pause_s": 0.430183,
+            "f0_median_hz": 222.680176
+          }
+        },
+        {
+          "day": 6,
+          "ts": "2026-09-23T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 128.723006,
+            "pause_ratio": 0.165582,
+            "mean_pause_s": 0.412036,
+            "f0_median_hz": 221.022285
+          }
+        },
+        {
+          "day": 7,
+          "ts": "2026-09-24T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 124.563856,
+            "pause_ratio": 0.175831,
+            "mean_pause_s": 0.360811,
+            "f0_median_hz": 223.800581
+          }
+        },
+        {
+          "day": 8,
+          "ts": "2026-09-25T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 128.021342,
+            "pause_ratio": 0.183788,
+            "mean_pause_s": 0.398079,
+            "f0_median_hz": 221.022285
+          }
+        },
+        {
+          "day": 9,
+          "ts": "2026-09-26T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 127.606582,
+            "pause_ratio": 0.173052,
+            "mean_pause_s": 0.37699,
+            "f0_median_hz": 222.382106
+          }
+        },
+        {
+          "day": 10,
+          "ts": "2026-09-27T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 127.408488,
+            "pause_ratio": 0.176663,
+            "mean_pause_s": 0.41951,
+            "f0_median_hz": 231.37734
+          }
+        },
+        {
+          "day": 11,
+          "ts": "2026-09-28T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 122.254012,
+            "pause_ratio": 0.173539,
+            "mean_pause_s": 0.339835,
+            "f0_median_hz": 229.608459
+          }
+        },
+        {
+          "day": 12,
+          "ts": "2026-09-29T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 129.208449,
+            "pause_ratio": 0.198782,
+            "mean_pause_s": 0.417063,
+            "f0_median_hz": 223.217272
+          }
+        },
+        {
+          "day": 13,
+          "ts": "2026-09-30T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 130.050302,
+            "pause_ratio": 0.145855,
+            "mean_pause_s": 0.369178,
+            "f0_median_hz": 231.434749
+          }
+        },
+        {
+          "day": 14,
+          "ts": "2026-10-01T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 131.139479,
+            "pause_ratio": 0.145855,
+            "mean_pause_s": 0.337621,
+            "f0_median_hz": 232.914265
+          }
+        },
+        {
+          "day": 15,
+          "ts": "2026-10-02T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 124.884393,
+            "pause_ratio": 0.180631,
+            "mean_pause_s": 0.391757,
+            "f0_median_hz": 228.050018
+          }
+        },
+        {
+          "day": 16,
+          "ts": "2026-10-03T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 123.070893,
+            "pause_ratio": 0.202372,
+            "mean_pause_s": 0.33418,
+            "f0_median_hz": 235.594652
+          }
+        },
+        {
+          "day": 17,
+          "ts": "2026-10-04T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 129.236327,
+            "pause_ratio": 0.187643,
+            "mean_pause_s": 0.326104,
+            "f0_median_hz": 226.582093
+          }
+        },
+        {
+          "day": 18,
+          "ts": "2026-10-05T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 133.459714,
+            "pause_ratio": 0.174901,
+            "mean_pause_s": 0.369657,
+            "f0_median_hz": 227.570056
+          }
+        },
+        {
+          "day": 19,
+          "ts": "2026-10-06T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 130.885491,
+            "pause_ratio": 0.182792,
+            "mean_pause_s": 0.317001,
+            "f0_median_hz": 234.986124
+          }
+        },
+        {
+          "day": 20,
+          "ts": "2026-10-07T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 125.513432,
+            "pause_ratio": 0.175397,
+            "mean_pause_s": 0.324839,
+            "f0_median_hz": 233.934364
+          }
+        },
+        {
+          "day": 21,
+          "ts": "2026-10-08T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 128.050735,
+            "pause_ratio": 0.16966,
+            "mean_pause_s": 0.31948,
+            "f0_median_hz": 236.022285
+          }
+        },
+        {
+          "day": 22,
+          "ts": "2026-10-09T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 134.254012,
+            "pause_ratio": 0.192148,
+            "mean_pause_s": 0.386726,
+            "f0_median_hz": 221.298512
+          }
+        },
+        {
+          "day": 23,
+          "ts": "2026-10-10T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 122.254012,
+            "pause_ratio": 0.167981,
+            "mean_pause_s": 0.404809,
+            "f0_median_hz": 231.457554
+          }
+        },
+        {
+          "day": 24,
+          "ts": "2026-10-11T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 133.518109,
+            "pause_ratio": 0.17419,
+            "mean_pause_s": 0.345774,
+            "f0_median_hz": 230.208206
+          }
+        },
+        {
+          "day": 25,
+          "ts": "2026-10-12T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 129.239933,
+            "pause_ratio": 0.187002,
+            "mean_pause_s": 0.387679,
+            "f0_median_hz": 226.429134
+          }
+        },
+        {
+          "day": 26,
+          "ts": "2026-10-13T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 132.423044,
+            "pause_ratio": 0.178427,
+            "mean_pause_s": 0.37929,
+            "f0_median_hz": 223.638562
+          }
+        },
+        {
+          "day": 27,
+          "ts": "2026-10-14T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 124.665356,
+            "pause_ratio": 0.190619,
+            "mean_pause_s": 0.310731,
+            "f0_median_hz": 231.89431
+          }
+        },
+        {
+          "day": 28,
+          "ts": "2026-10-15T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 127.304693,
+            "pause_ratio": 0.185827,
+            "mean_pause_s": 0.351458,
+            "f0_median_hz": 226.740002
+          }
+        },
+        {
+          "day": 29,
+          "ts": "2026-10-16T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 133.754642,
+            "pause_ratio": 0.171182,
+            "mean_pause_s": 0.377308,
+            "f0_median_hz": 224.674518
+          }
+        },
+        {
+          "day": 30,
+          "ts": "2026-10-17T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 127.881524,
+            "pause_ratio": 0.201014,
+            "mean_pause_s": 0.394335,
+            "f0_median_hz": 225.202295
+          }
+        }
+      ],
+      "sources": [],
+      "expected_context": [],
+      "expected_assessment": {
+        "day": 30,
+        "as_of": "2026-10-17T14:00:00+00:00",
+        "verdict": "within_normal",
+        "suggested_action": "none",
+        "verification_status": "pending_bl11_loader"
+      }
+    },
+    {
+      "id": "synthetic-resident-09",
+      "display_name": "Synthetic Resident 09",
+      "synthetic": true,
+      "reference_features": {
+        "speech_rate_wpm": 140.898796,
+        "pause_ratio": 0.208375,
+        "mean_pause_s": 0.465657,
+        "f0_median_hz": 204.675338
+      },
+      "checks": [
+        {
+          "day": 1,
+          "ts": "2026-09-18T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 145.284684,
+            "pause_ratio": 0.194613,
+            "mean_pause_s": 0.405657,
+            "f0_median_hz": 202.879101
+          }
+        },
+        {
+          "day": 2,
+          "ts": "2026-09-19T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.269404,
+            "pause_ratio": 0.207698,
+            "mean_pause_s": 0.466196,
+            "f0_median_hz": 201.72845
+          }
+        },
+        {
+          "day": 3,
+          "ts": "2026-09-20T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 145.838992,
+            "pause_ratio": 0.178375,
+            "mean_pause_s": 0.457111,
+            "f0_median_hz": 203.08438
+          }
+        },
+        {
+          "day": 4,
+          "ts": "2026-09-21T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 142.039387,
+            "pause_ratio": 0.178375,
+            "mean_pause_s": 0.405657,
+            "f0_median_hz": 201.594163
+          }
+        },
+        {
+          "day": 5,
+          "ts": "2026-09-22T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 136.772761,
+            "pause_ratio": 0.210702,
+            "mean_pause_s": 0.430535,
+            "f0_median_hz": 212.175338
+          }
+        },
+        {
+          "day": 6,
+          "ts": "2026-09-23T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.898796,
+            "pause_ratio": 0.210617,
+            "mean_pause_s": 0.409504,
+            "f0_median_hz": 209.318324
+          }
+        },
+        {
+          "day": 7,
+          "ts": "2026-09-24T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 142.980141,
+            "pause_ratio": 0.220484,
+            "mean_pause_s": 0.441778,
+            "f0_median_hz": 204.018169
+          }
+        },
+        {
+          "day": 8,
+          "ts": "2026-09-25T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 141.603794,
+            "pause_ratio": 0.187502,
+            "mean_pause_s": 0.485561,
+            "f0_median_hz": 197.175338
+          }
+        },
+        {
+          "day": 9,
+          "ts": "2026-09-26T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 142.228473,
+            "pause_ratio": 0.198113,
+            "mean_pause_s": 0.48561,
+            "f0_median_hz": 201.57114
+          }
+        },
+        {
+          "day": 10,
+          "ts": "2026-09-27T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 140.98942,
+            "pause_ratio": 0.193305,
+            "mean_pause_s": 0.437742,
+            "f0_median_hz": 203.826724
+          }
+        },
+        {
+          "day": 11,
+          "ts": "2026-09-28T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.898796,
+            "pause_ratio": 0.178375,
+            "mean_pause_s": 0.421172,
+            "f0_median_hz": 205.206558
+          }
+        },
+        {
+          "day": 12,
+          "ts": "2026-09-29T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 141.838807,
+            "pause_ratio": 0.191838,
+            "mean_pause_s": 0.469972,
+            "f0_median_hz": 204.219956
+          }
+        },
+        {
+          "day": 13,
+          "ts": "2026-09-30T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 137.29112,
+            "pause_ratio": 0.229252,
+            "mean_pause_s": 0.424335,
+            "f0_median_hz": 206.727114
+          }
+        },
+        {
+          "day": 14,
+          "ts": "2026-10-01T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 137.676388,
+            "pause_ratio": 0.230231,
+            "mean_pause_s": 0.525657,
+            "f0_median_hz": 210.270085
+          }
+        },
+        {
+          "day": 15,
+          "ts": "2026-10-02T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.898796,
+            "pause_ratio": 0.218771,
+            "mean_pause_s": 0.445254,
+            "f0_median_hz": 201.86781
+          }
+        },
+        {
+          "day": 16,
+          "ts": "2026-10-03T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 140.019491,
+            "pause_ratio": 0.220206,
+            "mean_pause_s": 0.455846,
+            "f0_median_hz": 205.498085
+          }
+        },
+        {
+          "day": 17,
+          "ts": "2026-10-04T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 144.672127,
+            "pause_ratio": 0.193197,
+            "mean_pause_s": 0.460404,
+            "f0_median_hz": 206.666956
+          }
+        },
+        {
+          "day": 18,
+          "ts": "2026-10-05T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.353422,
+            "pause_ratio": 0.22253,
+            "mean_pause_s": 0.454078,
+            "f0_median_hz": 203.393592
+          }
+        },
+        {
+          "day": 19,
+          "ts": "2026-10-06T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 138.425053,
+            "pause_ratio": 0.209735,
+            "mean_pause_s": 0.513608,
+            "f0_median_hz": 212.175338
+          }
+        },
+        {
+          "day": 20,
+          "ts": "2026-10-07T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 135.751942,
+            "pause_ratio": 0.185823,
+            "mean_pause_s": 0.507924,
+            "f0_median_hz": 212.175338
+          }
+        },
+        {
+          "day": 21,
+          "ts": "2026-10-08T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 145.402025,
+            "pause_ratio": 0.213022,
+            "mean_pause_s": 0.415196,
+            "f0_median_hz": 202.170944
+          }
+        },
+        {
+          "day": 22,
+          "ts": "2026-10-09T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 140.394026,
+            "pause_ratio": 0.222034,
+            "mean_pause_s": 0.454543,
+            "f0_median_hz": 211.898187
+          }
+        },
+        {
+          "day": 23,
+          "ts": "2026-10-10T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 139.616343,
+            "pause_ratio": 0.198093,
+            "mean_pause_s": 0.48376,
+            "f0_median_hz": 203.927011
+          }
+        },
+        {
+          "day": 24,
+          "ts": "2026-10-11T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 141.257359,
+            "pause_ratio": 0.206626,
+            "mean_pause_s": 0.485268,
+            "f0_median_hz": 201.480042
+          }
+        },
+        {
+          "day": 25,
+          "ts": "2026-10-12T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.778636,
+            "pause_ratio": 0.200849,
+            "mean_pause_s": 0.465276,
+            "f0_median_hz": 197.175338
+          }
+        },
+        {
+          "day": 26,
+          "ts": "2026-10-13T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.574064,
+            "pause_ratio": 0.201285,
+            "mean_pause_s": 0.443281,
+            "f0_median_hz": 200.796137
+          }
+        },
+        {
+          "day": 27,
+          "ts": "2026-10-14T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 140.138801,
+            "pause_ratio": 0.20349,
+            "mean_pause_s": 0.446016,
+            "f0_median_hz": 210.667547
+          }
+        },
+        {
+          "day": 28,
+          "ts": "2026-10-15T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.722641,
+            "pause_ratio": 0.221192,
+            "mean_pause_s": 0.431859,
+            "f0_median_hz": 201.86778
+          }
+        },
+        {
+          "day": 29,
+          "ts": "2026-10-16T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.244228,
+            "pause_ratio": 0.178375,
+            "mean_pause_s": 0.474597,
+            "f0_median_hz": 200.534979
+          }
+        },
+        {
+          "day": 30,
+          "ts": "2026-10-17T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 142.659917,
+            "pause_ratio": 0.185537,
+            "mean_pause_s": 0.405657,
+            "f0_median_hz": 197.175338
+          }
+        }
+      ],
+      "sources": [],
+      "expected_context": [],
+      "expected_assessment": {
+        "day": 30,
+        "as_of": "2026-10-17T14:00:00+00:00",
+        "verdict": "within_normal",
+        "suggested_action": "none",
+        "verification_status": "pending_bl11_loader"
+      }
+    },
+    {
+      "id": "synthetic-resident-10",
+      "display_name": "Synthetic Resident 10",
+      "synthetic": true,
+      "reference_features": {
+        "speech_rate_wpm": 149.503599,
+        "pause_ratio": 0.17314,
+        "mean_pause_s": 0.378831,
+        "f0_median_hz": 218.567644
+      },
+      "checks": [
+        {
+          "day": 1,
+          "ts": "2026-09-18T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 155.503599,
+            "pause_ratio": 0.186113,
+            "mean_pause_s": 0.383039,
+            "f0_median_hz": 219.64356
+          }
+        },
+        {
+          "day": 2,
+          "ts": "2026-09-19T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 145.964938,
+            "pause_ratio": 0.169074,
+            "mean_pause_s": 0.371361,
+            "f0_median_hz": 221.308757
+          }
+        },
+        {
+          "day": 3,
+          "ts": "2026-09-20T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 148.427556,
+            "pause_ratio": 0.156391,
+            "mean_pause_s": 0.318831,
+            "f0_median_hz": 226.067644
+          }
+        },
+        {
+          "day": 4,
+          "ts": "2026-09-21T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 145.294143,
+            "pause_ratio": 0.150479,
+            "mean_pause_s": 0.318831,
+            "f0_median_hz": 217.323851
+          }
+        },
+        {
+          "day": 5,
+          "ts": "2026-09-22T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 150.792487,
+            "pause_ratio": 0.148539,
+            "mean_pause_s": 0.38833,
+            "f0_median_hz": 212.475985
+          }
+        },
+        {
+          "day": 6,
+          "ts": "2026-09-23T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 151.900783,
+            "pause_ratio": 0.161343,
+            "mean_pause_s": 0.438831,
+            "f0_median_hz": 216.806855
+          }
+        },
+        {
+          "day": 7,
+          "ts": "2026-09-24T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.219864,
+            "pause_ratio": 0.184285,
+            "mean_pause_s": 0.41184,
+            "f0_median_hz": 211.067644
+          }
+        },
+        {
+          "day": 8,
+          "ts": "2026-09-25T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.503599,
+            "pause_ratio": 0.172031,
+            "mean_pause_s": 0.378054,
+            "f0_median_hz": 226.067644
+          }
+        },
+        {
+          "day": 9,
+          "ts": "2026-09-26T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 147.78592,
+            "pause_ratio": 0.14314,
+            "mean_pause_s": 0.380473,
+            "f0_median_hz": 213.559932
+          }
+        },
+        {
+          "day": 10,
+          "ts": "2026-09-27T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 148.499976,
+            "pause_ratio": 0.181116,
+            "mean_pause_s": 0.428956,
+            "f0_median_hz": 217.889872
+          }
+        },
+        {
+          "day": 11,
+          "ts": "2026-09-28T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.825964,
+            "pause_ratio": 0.200798,
+            "mean_pause_s": 0.426535,
+            "f0_median_hz": 222.459961
+          }
+        },
+        {
+          "day": 12,
+          "ts": "2026-09-29T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 154.57081,
+            "pause_ratio": 0.148738,
+            "mean_pause_s": 0.375627,
+            "f0_median_hz": 224.013358
+          }
+        },
+        {
+          "day": 13,
+          "ts": "2026-09-30T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 153.899936,
+            "pause_ratio": 0.164617,
+            "mean_pause_s": 0.366731,
+            "f0_median_hz": 222.141978
+          }
+        },
+        {
+          "day": 14,
+          "ts": "2026-10-01T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 148.118028,
+            "pause_ratio": 0.171304,
+            "mean_pause_s": 0.331214,
+            "f0_median_hz": 225.955752
+          }
+        },
+        {
+          "day": 15,
+          "ts": "2026-10-02T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 148.922612,
+            "pause_ratio": 0.14314,
+            "mean_pause_s": 0.435013,
+            "f0_median_hz": 220.745923
+          }
+        },
+        {
+          "day": 16,
+          "ts": "2026-10-03T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.503599,
+            "pause_ratio": 0.177887,
+            "mean_pause_s": 0.361731,
+            "f0_median_hz": 218.045288
+          }
+        },
+        {
+          "day": 17,
+          "ts": "2026-10-04T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.503599,
+            "pause_ratio": 0.20314,
+            "mean_pause_s": 0.36789,
+            "f0_median_hz": 223.453939
+          }
+        },
+        {
+          "day": 18,
+          "ts": "2026-10-05T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 155.37964,
+            "pause_ratio": 0.184815,
+            "mean_pause_s": 0.328467,
+            "f0_median_hz": 220.082318
+          }
+        },
+        {
+          "day": 19,
+          "ts": "2026-10-06T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 154.94555,
+            "pause_ratio": 0.159845,
+            "mean_pause_s": 0.373019,
+            "f0_median_hz": 226.067644
+          }
+        },
+        {
+          "day": 20,
+          "ts": "2026-10-07T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 155.328629,
+            "pause_ratio": 0.198479,
+            "mean_pause_s": 0.352753,
+            "f0_median_hz": 219.25213
+          }
+        },
+        {
+          "day": 21,
+          "ts": "2026-10-08T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 148.620574,
+            "pause_ratio": 0.150355,
+            "mean_pause_s": 0.355811,
+            "f0_median_hz": 213.127901
+          }
+        },
+        {
+          "day": 22,
+          "ts": "2026-10-09T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 151.024255,
+            "pause_ratio": 0.14314,
+            "mean_pause_s": 0.39051,
+            "f0_median_hz": 221.045674
+          }
+        },
+        {
+          "day": 23,
+          "ts": "2026-10-10T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 150.581697,
+            "pause_ratio": 0.166052,
+            "mean_pause_s": 0.42771,
+            "f0_median_hz": 218.868538
+          }
+        },
+        {
+          "day": 24,
+          "ts": "2026-10-11T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 151.978795,
+            "pause_ratio": 0.174434,
+            "mean_pause_s": 0.371363,
+            "f0_median_hz": 215.862971
+          }
+        },
+        {
+          "day": 25,
+          "ts": "2026-10-12T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 145.983212,
+            "pause_ratio": 0.193903,
+            "mean_pause_s": 0.389058,
+            "f0_median_hz": 211.811252
+          }
+        },
+        {
+          "day": 26,
+          "ts": "2026-10-13T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 152.41565,
+            "pause_ratio": 0.159452,
+            "mean_pause_s": 0.3916,
+            "f0_median_hz": 213.854818
+          }
+        },
+        {
+          "day": 27,
+          "ts": "2026-10-14T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 147.986301,
+            "pause_ratio": 0.176136,
+            "mean_pause_s": 0.434124,
+            "f0_median_hz": 220.728231
+          }
+        },
+        {
+          "day": 28,
+          "ts": "2026-10-15T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 152.032567,
+            "pause_ratio": 0.172375,
+            "mean_pause_s": 0.419503,
+            "f0_median_hz": 223.159138
+          }
+        },
+        {
+          "day": 29,
+          "ts": "2026-10-16T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 152.585795,
+            "pause_ratio": 0.175283,
+            "mean_pause_s": 0.378105,
+            "f0_median_hz": 219.940074
+          }
+        },
+        {
+          "day": 30,
+          "ts": "2026-10-17T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 144.350994,
+            "pause_ratio": 0.20314,
+            "mean_pause_s": 0.38054,
+            "f0_median_hz": 212.657773
+          }
+        }
+      ],
+      "sources": [],
+      "expected_context": [],
+      "expected_assessment": {
+        "day": 30,
+        "as_of": "2026-10-17T14:00:00+00:00",
+        "verdict": "within_normal",
+        "suggested_action": "none",
+        "verification_status": "pending_bl11_loader"
+      }
+    },
+    {
+      "id": "synthetic-resident-11",
+      "display_name": "Synthetic Resident 11",
+      "synthetic": true,
+      "reference_features": {
+        "speech_rate_wpm": 126.488843,
+        "pause_ratio": 0.224189,
+        "mean_pause_s": 0.492406,
+        "f0_median_hz": 142.613793
+      },
+      "checks": [
+        {
+          "day": 1,
+          "ts": "2026-09-18T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 129.512978,
+            "pause_ratio": 0.217753,
+            "mean_pause_s": 0.471978,
+            "f0_median_hz": 144.407994
+          }
+        },
+        {
+          "day": 2,
+          "ts": "2026-09-19T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 129.795141,
+            "pause_ratio": 0.232687,
+            "mean_pause_s": 0.494482,
+            "f0_median_hz": 148.995617
+          }
+        },
+        {
+          "day": 3,
+          "ts": "2026-09-20T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 124.652812,
+            "pause_ratio": 0.211776,
+            "mean_pause_s": 0.432406,
+            "f0_median_hz": 141.619447
+          }
+        },
+        {
+          "day": 4,
+          "ts": "2026-09-21T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 125.099862,
+            "pause_ratio": 0.225815,
+            "mean_pause_s": 0.501773,
+            "f0_median_hz": 147.192816
+          }
+        },
+        {
+          "day": 5,
+          "ts": "2026-09-22T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 120.488843,
+            "pause_ratio": 0.224524,
+            "mean_pause_s": 0.464639,
+            "f0_median_hz": 140.169446
+          }
+        },
+        {
+          "day": 6,
+          "ts": "2026-09-23T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 130.242842,
+            "pause_ratio": 0.230528,
+            "mean_pause_s": 0.470061,
+            "f0_median_hz": 140.256599
+          }
+        },
+        {
+          "day": 7,
+          "ts": "2026-09-24T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 123.995962,
+            "pause_ratio": 0.244189,
+            "mean_pause_s": 0.509847,
+            "f0_median_hz": 137.34704
+          }
+        },
+        {
+          "day": 8,
+          "ts": "2026-09-25T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 132.488843,
+            "pause_ratio": 0.216764,
+            "mean_pause_s": 0.5251,
+            "f0_median_hz": 147.611852
+          }
+        },
+        {
+          "day": 9,
+          "ts": "2026-09-26T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 126.856713,
+            "pause_ratio": 0.240698,
+            "mean_pause_s": 0.546637,
+            "f0_median_hz": 137.724633
+          }
+        },
+        {
+          "day": 10,
+          "ts": "2026-09-27T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 131.383807,
+            "pause_ratio": 0.224023,
+            "mean_pause_s": 0.48113,
+            "f0_median_hz": 140.909381
+          }
+        },
+        {
+          "day": 11,
+          "ts": "2026-09-28T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 122.45394,
+            "pause_ratio": 0.223134,
+            "mean_pause_s": 0.475247,
+            "f0_median_hz": 140.395018
+          }
+        },
+        {
+          "day": 12,
+          "ts": "2026-09-29T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 129.543722,
+            "pause_ratio": 0.233227,
+            "mean_pause_s": 0.476879,
+            "f0_median_hz": 136.22204
+          }
+        },
+        {
+          "day": 13,
+          "ts": "2026-09-30T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 123.912044,
+            "pause_ratio": 0.194189,
+            "mean_pause_s": 0.517553,
+            "f0_median_hz": 144.677552
+          }
+        },
+        {
+          "day": 14,
+          "ts": "2026-10-01T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 128.373167,
+            "pause_ratio": 0.206273,
+            "mean_pause_s": 0.462976,
+            "f0_median_hz": 142.065296
+          }
+        },
+        {
+          "day": 15,
+          "ts": "2026-10-02T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 128.387516,
+            "pause_ratio": 0.230561,
+            "mean_pause_s": 0.517274,
+            "f0_median_hz": 139.855159
+          }
+        },
+        {
+          "day": 16,
+          "ts": "2026-10-03T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 123.40792,
+            "pause_ratio": 0.21478,
+            "mean_pause_s": 0.518455,
+            "f0_median_hz": 142.091292
+          }
+        },
+        {
+          "day": 17,
+          "ts": "2026-10-04T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 123.345303,
+            "pause_ratio": 0.248859,
+            "mean_pause_s": 0.518486,
+            "f0_median_hz": 145.053894
+          }
+        },
+        {
+          "day": 18,
+          "ts": "2026-10-05T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 125.383369,
+            "pause_ratio": 0.242763,
+            "mean_pause_s": 0.460392,
+            "f0_median_hz": 143.646055
+          }
+        },
+        {
+          "day": 19,
+          "ts": "2026-10-06T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 129.448146,
+            "pause_ratio": 0.20736,
+            "mean_pause_s": 0.484767,
+            "f0_median_hz": 147.719203
+          }
+        },
+        {
+          "day": 20,
+          "ts": "2026-10-07T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 132.488843,
+            "pause_ratio": 0.214942,
+            "mean_pause_s": 0.453768,
+            "f0_median_hz": 146.137997
+          }
+        },
+        {
+          "day": 21,
+          "ts": "2026-10-08T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 120.488843,
+            "pause_ratio": 0.196873,
+            "mean_pause_s": 0.504135,
+            "f0_median_hz": 137.480754
+          }
+        },
+        {
+          "day": 22,
+          "ts": "2026-10-09T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 124.116395,
+            "pause_ratio": 0.239344,
+            "mean_pause_s": 0.552406,
+            "f0_median_hz": 138.451186
+          }
+        },
+        {
+          "day": 23,
+          "ts": "2026-10-10T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 126.08308,
+            "pause_ratio": 0.194189,
+            "mean_pause_s": 0.510253,
+            "f0_median_hz": 139.998047
+          }
+        },
+        {
+          "day": 24,
+          "ts": "2026-10-11T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 125.400023,
+            "pause_ratio": 0.248084,
+            "mean_pause_s": 0.512473,
+            "f0_median_hz": 141.047634
+          }
+        },
+        {
+          "day": 25,
+          "ts": "2026-10-12T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 132.488843,
+            "pause_ratio": 0.219207,
+            "mean_pause_s": 0.43528,
+            "f0_median_hz": 137.216965
+          }
+        },
+        {
+          "day": 26,
+          "ts": "2026-10-13T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 123.099796,
+            "pause_ratio": 0.194189,
+            "mean_pause_s": 0.432406,
+            "f0_median_hz": 144.462395
+          }
+        },
+        {
+          "day": 27,
+          "ts": "2026-10-14T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 130.782961,
+            "pause_ratio": 0.209697,
+            "mean_pause_s": 0.498616,
+            "f0_median_hz": 141.698616
+          }
+        },
+        {
+          "day": 28,
+          "ts": "2026-10-15T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 125.022837,
+            "pause_ratio": 0.2356,
+            "mean_pause_s": 0.432406,
+            "f0_median_hz": 140.617289
+          }
+        },
+        {
+          "day": 29,
+          "ts": "2026-10-16T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 125.916177,
+            "pause_ratio": 0.242106,
+            "mean_pause_s": 0.524256,
+            "f0_median_hz": 135.113793
+          }
+        },
+        {
+          "day": 30,
+          "ts": "2026-10-17T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 122.503493,
+            "pause_ratio": 0.254189,
+            "mean_pause_s": 0.51115,
+            "f0_median_hz": 138.975049
+          }
+        }
+      ],
+      "sources": [],
+      "expected_context": [],
+      "expected_assessment": {
+        "day": 30,
+        "as_of": "2026-10-17T14:00:00+00:00",
+        "verdict": "within_normal",
+        "suggested_action": "none",
+        "verification_status": "pending_bl11_loader"
+      }
+    },
+    {
+      "id": "synthetic-resident-12",
+      "display_name": "Synthetic Resident 12",
+      "synthetic": true,
+      "reference_features": {
+        "speech_rate_wpm": 140.747055,
+        "pause_ratio": 0.299736,
+        "mean_pause_s": 0.496404,
+        "f0_median_hz": 118.37398
+      },
+      "checks": [
+        {
+          "day": 1,
+          "ts": "2026-09-18T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 134.747055,
+            "pause_ratio": 0.297213,
+            "mean_pause_s": 0.521281,
+            "f0_median_hz": 124.012255
+          }
+        },
+        {
+          "day": 2,
+          "ts": "2026-09-19T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 134.756028,
+            "pause_ratio": 0.309149,
+            "mean_pause_s": 0.440324,
+            "f0_median_hz": 117.790057
+          }
+        },
+        {
+          "day": 3,
+          "ts": "2026-09-20T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 139.174116,
+            "pause_ratio": 0.269736,
+            "mean_pause_s": 0.485367,
+            "f0_median_hz": 125.87398
+          }
+        },
+        {
+          "day": 4,
+          "ts": "2026-09-21T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 134.747055,
+            "pause_ratio": 0.307981,
+            "mean_pause_s": 0.520287,
+            "f0_median_hz": 119.793347
+          }
+        },
+        {
+          "day": 5,
+          "ts": "2026-09-22T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 139.599516,
+            "pause_ratio": 0.297586,
+            "mean_pause_s": 0.524143,
+            "f0_median_hz": 118.033963
+          }
+        },
+        {
+          "day": 6,
+          "ts": "2026-09-23T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 134.747055,
+            "pause_ratio": 0.279094,
+            "mean_pause_s": 0.509126,
+            "f0_median_hz": 122.100275
+          }
+        },
+        {
+          "day": 7,
+          "ts": "2026-09-24T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 139.269266,
+            "pause_ratio": 0.274368,
+            "mean_pause_s": 0.450877,
+            "f0_median_hz": 115.866265
+          }
+        },
+        {
+          "day": 8,
+          "ts": "2026-09-25T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 144.501059,
+            "pause_ratio": 0.305249,
+            "mean_pause_s": 0.48424,
+            "f0_median_hz": 117.790249
+          }
+        },
+        {
+          "day": 9,
+          "ts": "2026-09-26T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 142.309969,
+            "pause_ratio": 0.302613,
+            "mean_pause_s": 0.529475,
+            "f0_median_hz": 114.343497
+          }
+        },
+        {
+          "day": 10,
+          "ts": "2026-09-27T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 134.747055,
+            "pause_ratio": 0.324022,
+            "mean_pause_s": 0.493989,
+            "f0_median_hz": 110.87398
+          }
+        },
+        {
+          "day": 11,
+          "ts": "2026-09-28T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 137.359643,
+            "pause_ratio": 0.289177,
+            "mean_pause_s": 0.556404,
+            "f0_median_hz": 112.101537
+          }
+        },
+        {
+          "day": 12,
+          "ts": "2026-09-29T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.415287,
+            "pause_ratio": 0.289926,
+            "mean_pause_s": 0.514184,
+            "f0_median_hz": 116.083405
+          }
+        },
+        {
+          "day": 13,
+          "ts": "2026-09-30T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 144.01409,
+            "pause_ratio": 0.329736,
+            "mean_pause_s": 0.507819,
+            "f0_median_hz": 110.87398
+          }
+        },
+        {
+          "day": 14,
+          "ts": "2026-10-01T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 139.604619,
+            "pause_ratio": 0.288405,
+            "mean_pause_s": 0.470378,
+            "f0_median_hz": 125.491441
+          }
+        },
+        {
+          "day": 15,
+          "ts": "2026-10-02T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.747055,
+            "pause_ratio": 0.276044,
+            "mean_pause_s": 0.485919,
+            "f0_median_hz": 117.912386
+          }
+        },
+        {
+          "day": 16,
+          "ts": "2026-10-03T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 140.539928,
+            "pause_ratio": 0.329736,
+            "mean_pause_s": 0.49824,
+            "f0_median_hz": 118.970066
+          }
+        },
+        {
+          "day": 17,
+          "ts": "2026-10-04T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 146.747055,
+            "pause_ratio": 0.312332,
+            "mean_pause_s": 0.544199,
+            "f0_median_hz": 111.997403
+          }
+        },
+        {
+          "day": 18,
+          "ts": "2026-10-05T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 135.247086,
+            "pause_ratio": 0.329736,
+            "mean_pause_s": 0.521396,
+            "f0_median_hz": 110.87398
+          }
+        },
+        {
+          "day": 19,
+          "ts": "2026-10-06T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 137.051159,
+            "pause_ratio": 0.284941,
+            "mean_pause_s": 0.448834,
+            "f0_median_hz": 116.366383
+          }
+        },
+        {
+          "day": 20,
+          "ts": "2026-10-07T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.147161,
+            "pause_ratio": 0.293201,
+            "mean_pause_s": 0.556404,
+            "f0_median_hz": 117.597929
+          }
+        },
+        {
+          "day": 21,
+          "ts": "2026-10-08T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 142.103982,
+            "pause_ratio": 0.306131,
+            "mean_pause_s": 0.556404,
+            "f0_median_hz": 117.844287
+          }
+        },
+        {
+          "day": 22,
+          "ts": "2026-10-09T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 142.301971,
+            "pause_ratio": 0.296027,
+            "mean_pause_s": 0.482131,
+            "f0_median_hz": 125.87398
+          }
+        },
+        {
+          "day": 23,
+          "ts": "2026-10-10T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 139.492896,
+            "pause_ratio": 0.329736,
+            "mean_pause_s": 0.552322,
+            "f0_median_hz": 121.70142
+          }
+        },
+        {
+          "day": 24,
+          "ts": "2026-10-11T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 143.723158,
+            "pause_ratio": 0.314438,
+            "mean_pause_s": 0.516315,
+            "f0_median_hz": 123.957199
+          }
+        },
+        {
+          "day": 25,
+          "ts": "2026-10-12T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 135.037388,
+            "pause_ratio": 0.329316,
+            "mean_pause_s": 0.436404,
+            "f0_median_hz": 116.6251
+          }
+        },
+        {
+          "day": 26,
+          "ts": "2026-10-13T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 135.461847,
+            "pause_ratio": 0.297075,
+            "mean_pause_s": 0.522722,
+            "f0_median_hz": 116.623615
+          }
+        },
+        {
+          "day": 27,
+          "ts": "2026-10-14T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 138.59562,
+            "pause_ratio": 0.311931,
+            "mean_pause_s": 0.507008,
+            "f0_median_hz": 110.87398
+          }
+        },
+        {
+          "day": 28,
+          "ts": "2026-10-15T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 145.809859,
+            "pause_ratio": 0.29712,
+            "mean_pause_s": 0.456243,
+            "f0_median_hz": 111.851613
+          }
+        },
+        {
+          "day": 29,
+          "ts": "2026-10-16T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 138.581604,
+            "pause_ratio": 0.289739,
+            "mean_pause_s": 0.517647,
+            "f0_median_hz": 115.930034
+          }
+        },
+        {
+          "day": 30,
+          "ts": "2026-10-17T14:00:00+00:00",
+          "mode": "resident",
+          "device_id": "unit-tablet-1",
+          "prompt_version": "count20-days-v1",
+          "is_baseline": false,
+          "synthetic": true,
+          "usable": true,
+          "features": {
+            "speech_rate_wpm": 139.169238,
+            "pause_ratio": 0.288199,
+            "mean_pause_s": 0.510956,
+            "f0_median_hz": 122.135681
+          }
+        }
+      ],
+      "sources": [],
+      "expected_context": [],
+      "expected_assessment": {
+        "day": 30,
+        "as_of": "2026-10-17T14:00:00+00:00",
+        "verdict": "within_normal",
+        "suggested_action": "none",
+        "verification_status": "pending_bl11_loader"
+      }
+    }
+  ]
+}

@@ -215,3 +215,31 @@ L watch/recheck1h). Both datasets have zero flags across all270 control checks a
 recovery. This is engineering fixture evidence, not clinical validation. Latest local lint and
 269 unit tests pass with FFmpeg;6 slow tests deselected. Full integrated CI still precedes merge.
 No live model or real-audio calls were made; loader/presentation acceptance is tracked separately.
+
+## BL-14 ? Scoped loader and explicit historical presentations
+
+`scripts.load_baseline_demo` provisions twelve known synthetic residents, publishes immutable
+SourceInput records and shared BL-10 note context BEFORE runtime-role scoring, and verifies exact
+source/fact/tag support. Existing source identities/versions/payload hashes must match the full
+manifest; synthetic system stamps alone never authorize extra context. Revoked assignments stay
+revoked. Immutable authored checks retain synthetic/non-audio provenance, no transcript/words.
+Unchanged checks and source-revision/signature-matching assessments are reused on rerun.
+
+Explicit all-history loads360 rows; scenario-snapshots loads353 prefixes (K/Tthroughday27,
+Lthroughday29, controlsday30). The report distinguishes retrospective event-time/current-knowledge
+replay from a shared/current-time unit. Fuller histories cannot be destructively truncated.
+Expected/actual snapshot and latest results are reported strictly; mismatches return nonzero.
+The nurse token/roster are written only to ignored artifacts, never stdout or Git.
+
+Approved policy#60 is integrated; original +20% Mr. T fixture remains here until separately
+reviewable approved scenario#61 adoption. Mr. T is the sole remaining declared-snapshot mismatch;
+K escalates, L watches/rechecks1h and controls remain quiet. Configured loader scoring deliberately
+stores the service template instead of issuing hundreds of historical SBAR model calls. Offline
+mode uses no provider calls. See decision008 and the fixture README for commands/integration.
+
+Latest integrated local lint/unit:289 passed withFFmpeg,6 slow deselected. Previous loader CI
+head2023ec7 passed242 unit/119 DB cases withzero skips; new combined-head fullCI is pending.
+Six loader DB cases cover idempotency, publication/evidence support, prefix/full history,
+RLS/revocation and injected context. Local Docker/DB/migrations/eval remain unrun. BL-14 remains
+open for accepted scenario adoption, final strict DB acceptance and current-time/readback wiring.
+Real-audio/runner, hosting/reset and normal-temperature display are separate outstanding gates.
