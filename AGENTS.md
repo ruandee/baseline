@@ -2,7 +2,7 @@
 
 ## Scope
 
-Build the patient-memory backend described in `docs/01-product.md` through `docs/05-build-plan.md`. This repository begins as a reviewed specification, not a runnable app. Keep that status accurate as features land. Concrete choices in this spec are proposed defaults; record substantive changes in `docs/decisions/` with rationale and affected contracts.
+Maintain the patient-memory backend described in `docs/01-product.md` through `docs/05-build-plan.md`. Read `docs/build-status.md` for implemented behavior and outstanding gates before selecting work. The original specification is a target; keep runtime status accurate and record substantive changes in `docs/decisions/` with rationale and affected contracts.
 
 ## Execution
 
