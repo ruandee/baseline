@@ -1,5 +1,5 @@
 // Baseline shell: path router, shared demo-session bootstrap and API health check.
-// /unit lives here (BL-18); /resident/:id and /check land with BL-19 and BL-17.
+// /unit lives here (BL-18); /check is in check.js (BL-17); /resident/:id lands with BL-19.
 const POLL_MS = 10000;
 const VERDICT_LABELS = {escalate: 'Escalate', watch: 'Watch', explained: 'Explained',
                         within_normal: 'Within normal', enrolling: 'Enrolling'};
@@ -203,6 +203,20 @@ async function render() {
     try {
       await bootstrap();
       await renderUnit(main);
+    } catch (error) {
+      main.replaceChildren(el('h1', current.title),
+        el('div', `API check failed: ${error.message}`, {class: 'bl-status', 'data-state': 'error'}));
+    }
+    return;
+  }
+  if (current.name === 'check') {
+    document.querySelectorAll('[data-route]').forEach((a) => {
+      if (a.dataset.route === current.name) a.setAttribute('aria-current', 'page');
+    });
+    const main = document.getElementById('bl-main');
+    try {
+      await bootstrap();
+      await renderCheck(main);
     } catch (error) {
       main.replaceChildren(el('h1', current.title),
         el('div', `API check failed: ${error.message}`, {class: 'bl-status', 'data-state': 'error'}));
