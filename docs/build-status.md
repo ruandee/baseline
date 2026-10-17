@@ -66,3 +66,20 @@ Not done here: `change` and `assessment` are `null` and `timings_ms` has no `eng
 keys until the change engine (BL-08) and the verdict table (BL-11) exist. Clips over 30 s are
 refused (the prompt stops at 15 s) so a crafted upload cannot hold Whisper for minutes. The
 p95 under 5 s target has not been measured on the demo host.
+
+## BL-09 — Structured context and `POST /context`
+
+`baseline/context.py` holds the no-model rules: an `ordered` or `administered` medication event for
+a high-risk drug becomes `high_risk_med_new`, `temperature_c` of 37.8 or more becomes
+`fever_documented`, and a `context.<tag>` observation becomes that tag. The worker writes the tags
+in the same transaction that publishes the facts, quoting the record's own span.
+`POST /v1/patients/{id}/context` submits such an observation through normal ingestion and returns
+the tag with canonical text and fact published atomically, completing the queued job and bumping
+the patient revision once. Its citation resolves immediately without a worker. Generic context
+inputs reject check-only `language_change`; structured extraction skips it until check-linked
+metadata exists. Migration 004 lets purge delete tags so a purged source leaves no quote behind. See
+[decision 007](decisions/007-structured-context-tags.md).
+
+Not done here: Gemini free-text tags, and readers ignoring tags of retracted sources (verdict and
+overview tickets must do that join). Only importer-assigned callers can post context, because it
+goes through source ingestion.

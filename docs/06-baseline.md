@@ -244,7 +244,9 @@ Returns `series` (daily `time_bucket` medians per feature plus raw checks), `bas
  "valid_from": "2026-10-18T12:00:00Z", "valid_to": "2026-10-18T18:00:00Z"}
 ```
 
-Creates an `observation` source through the existing ingestion path (record `concept: "context.exertion"`), then a `context_tags` row with `extracted_by: "structured"` pointing at that source's span. Returns 201 with the tag.
+Creates an `observation` source through the existing ingestion path (record `concept: "context.exertion"`), then a `context_tags` row with `extracted_by: "structured"` pointing at that source's span. Returns 201 with the tag (`id`, `kind`, `tag`, `label`, `quote`, `start_offset`, `end_offset`, `source_id`, `valid_from`, `valid_to`, `extracted_by`).
+
+`valid_from` is required and becomes the source's `recorded_at`; `valid_to` defaults to the taxonomy window (none for `exertion`). `language_change` is check-only and is rejected here until check-linked metadata support exists; generic structured sources do not create that tag either. `tag` must be in the taxonomy and `kind` must match it, else 422 `invalid_request`. An optional `Idempotency-Key` header makes retries safe (same key and body replays the same tag; same key and different body is 409). The endpoint synchronously publishes canonical source text, its fact and tag, completes the source job, and bumps the patient revision in one transaction before returning 201; no worker pass is needed for evidence access. Replays do not bump the revision. Writing goes through ingestion, so only importer-assigned callers may post; anyone else, or another patient, gets 404.
 
 ## Speech pipeline
 

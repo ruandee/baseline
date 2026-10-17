@@ -98,6 +98,7 @@ def purge_once(cfg, actor, objects):
                          "purge_after=now()+interval '30 seconds' WHERE id=%s", (source["id"],))
             return True
         conn.execute("DELETE FROM facts WHERE source_id=%s", (source["id"],))
+        conn.execute("DELETE FROM context_tags WHERE source_id=%s", (source["id"],))
         conn.execute("DELETE FROM answers WHERE patient_id=%s", (source["patient_id"],))
         conn.execute("UPDATE sources SET payload='{}',canonical_text='',purged_at=clock_timestamp(),"
                      "purge_error=NULL WHERE id=%s", (source["id"],))
