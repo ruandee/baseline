@@ -541,6 +541,61 @@
         }
       }
     },
+    "/v1/patients/{patient_id}/checks": {
+      "post": {
+        "summary": "Create Check",
+        "operationId": "create_check_v1_patients__patient_id__checks_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_create_check_v1_patients__patient_id__checks_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/patients/{patient_id}/questions": {
       "post": {
         "summary": "Question",
@@ -968,6 +1023,281 @@
           "role"
         ],
         "title": "AssignmentInput"
+      },
+      "Body_create_check_v1_patients__patient_id__checks_post": {
+        "properties": {
+          "audio": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Audio"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "resident",
+              "runner",
+              "live"
+            ],
+            "title": "Mode"
+          },
+          "device_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Device Id"
+          },
+          "device_ts": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Ts"
+          },
+          "is_baseline": {
+            "type": "boolean",
+            "title": "Is Baseline",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "audio",
+          "mode",
+          "device_id"
+        ],
+        "title": "Body_create_check_v1_patients__patient_id__checks_post"
+      },
+      "CheckFeatures": {
+        "properties": {
+          "speech_rate_wpm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speech Rate Wpm"
+          },
+          "pause_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pause Ratio"
+          },
+          "mean_pause_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Pause S"
+          },
+          "f0_median_hz": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "F0 Median Hz"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "speech_rate_wpm",
+          "pause_ratio",
+          "mean_pause_s",
+          "f0_median_hz"
+        ],
+        "title": "CheckFeatures",
+        "description": "None means the feature is undefined for this clip, which is not the same as zero."
+      },
+      "CheckPause": {
+        "properties": {
+          "start": {
+            "type": "number",
+            "title": "Start"
+          },
+          "end": {
+            "type": "number",
+            "title": "End"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "start",
+          "end"
+        ],
+        "title": "CheckPause"
+      },
+      "CheckQuality": {
+        "properties": {
+          "duration_s": {
+            "type": "number",
+            "title": "Duration S"
+          },
+          "speech_s": {
+            "type": "number",
+            "title": "Speech S"
+          },
+          "snr_db": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snr Db"
+          },
+          "clipped": {
+            "type": "boolean",
+            "title": "Clipped"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "duration_s",
+          "speech_s",
+          "snr_db",
+          "clipped",
+          "reasons"
+        ],
+        "title": "CheckQuality"
+      },
+      "CheckResult": {
+        "properties": {
+          "check_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Check Id"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "usable": {
+            "type": "boolean",
+            "title": "Usable"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/CheckQuality"
+          },
+          "features": {
+            "$ref": "#/components/schemas/CheckFeatures"
+          },
+          "words": {
+            "items": {
+              "$ref": "#/components/schemas/CheckWord"
+            },
+            "type": "array",
+            "title": "Words"
+          },
+          "pauses": {
+            "items": {
+              "$ref": "#/components/schemas/CheckPause"
+            },
+            "type": "array",
+            "title": "Pauses"
+          },
+          "change": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change"
+          },
+          "assessment": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assessment"
+          },
+          "timings_ms": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Timings Ms"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "check_id",
+          "ts",
+          "usable",
+          "quality",
+          "features",
+          "words",
+          "pauses",
+          "timings_ms"
+        ],
+        "title": "CheckResult"
+      },
+      "CheckWord": {
+        "properties": {
+          "w": {
+            "type": "string",
+            "title": "W"
+          },
+          "start": {
+            "type": "number",
+            "title": "Start"
+          },
+          "end": {
+            "type": "number",
+            "title": "End"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "w",
+          "start",
+          "end"
+        ],
+        "title": "CheckWord"
       },
       "Claim": {
         "properties": {

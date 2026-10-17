@@ -158,3 +158,49 @@ class Answer(Contract):
     conflicts: list[Conflict]
     coverage: Coverage
     versions: dict[str, str]
+
+
+CheckMode = Literal["resident", "runner", "live"]
+
+
+class CheckQuality(Contract):
+    duration_s: float
+    speech_s: float
+    snr_db: float | None
+    clipped: bool
+    reasons: list[str]
+
+
+class CheckFeatures(Contract):
+    """None means the feature is undefined for this clip, which is not the same as zero."""
+
+    speech_rate_wpm: float | None
+    pause_ratio: float | None
+    mean_pause_s: float | None
+    f0_median_hz: float | None
+
+
+class CheckWord(Contract):
+    w: str
+    start: float
+    end: float
+
+
+class CheckPause(Contract):
+    start: float
+    end: float
+
+
+class CheckResult(Contract):
+    check_id: UUID
+    ts: AwareDatetime
+    usable: bool
+    quality: CheckQuality
+    features: CheckFeatures
+    words: list[CheckWord]
+    pauses: list[CheckPause]
+    # Stay null until the change engine (BL-08) and verdict table (BL-11) exist; unusable
+    # clips never get either.
+    change: dict | None = None
+    assessment: dict | None = None
+    timings_ms: dict[str, int]
