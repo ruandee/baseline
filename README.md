@@ -79,3 +79,31 @@ FastAPI/Pydantic + PostgreSQL 17/pgvector + a leased jobs worker + S3 source sto
 - [Agent instructions](AGENTS.md)
 
 Implementation commits are separated by milestone on `build/backend-mvp`. The review handoff records completion and remaining work; the original specification stays available for comparison.
+
+## Local patient workspace (F01)
+
+After starting Docker services and applying migrations, launch the frontend:
+
+```sh
+uv run python -m scripts.frontend
+```
+
+Open <http://127.0.0.1:8001>. This command seeds 12 fictional profiles idempotently
+and serves a responsive patient list, filtered timeline, cited questions, source
+inspection, and shift handover summaries. The same FastAPI backend serves the UI
+and API on port 8001; the original API on port 8000 can remain running independently.
+No Node build or external assets are required.
+
+The workspace is **local-only and synthetic-only**. It uses an assigned read-only
+nurse identity, an in-memory browser bearer token, and the offline provider. The
+session endpoint rejects remote clients, non-loopback Host headers, and cross-origin
+requests. Do not expose this developer server through a tunnel or use real records.
+Display names are fictional UI aliases; they are not demographics from source data.
+The initial record snapshot is January 2, 2026; all UI times and shift inputs are UTC.
+Refreshing the page renews the eight-hour synthetic token. Patient edits, imports,
+production sign-in, and live model integration are outside this frontend milestone.
+
+Validation: `uv run pytest tests` includes demo-origin and read-only authorization
+checks. `node --check frontend/app.js` checks browser JavaScript syntax when Node is
+available. Browser verification covers patient switching, citations, handover,
+missing evidence, filtering, search, and responsive layout.

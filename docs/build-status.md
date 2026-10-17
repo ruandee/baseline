@@ -19,3 +19,12 @@ Implemented on `build/backend-mvp` with separate commits. Read this alongside th
 The latest full local suite at this point passed 42 tests, including actual PostgreSQL/S3 integration; lint passed. The 60-question offline regression returned expected-source recall 48/48, correct abstention 12/12 and in-scope retrieval 60/60. Human support review is explicitly unmeasured. The first benchmark exposed a false relevance match; its failure is preserved in `docs/evaluation-results.md`.
 
 To reproduce, follow README from a clean clone, then run the tests/evaluation and demo. Optional live-model calls are not run by ordinary tests or CI. Review the changed behavior and limits before approving a pilot; no deployment has been performed.
+
+## F01 — Local patient workspace
+
+Added a local-only frontend extension after B11: fictional patient roster, timeline
+filters, cited questions, evidence inspection and UTC shift handovers. Launch with
+`uv run python -m scripts.frontend` and open <http://127.0.0.1:8001>. Browser sessions
+use a read-only nurse account. No production API/schema changes. Full suite: 44
+passed; lint and JavaScript syntax checks pass. See
+[decision 003](decisions/003-local-patient-workspace.md) for boundaries and rationale.
