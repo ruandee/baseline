@@ -65,15 +65,15 @@
         change: {status: 'change', mode: 'enrolled', fused_z: 3.1,
           params: {z_threshold: 2.0, provisional_z: 3.0, min_features: 2, consecutive: 2, mad_floor_pct: 0.05},
           per_feature: {
-            speech_rate_wpm: {value: 123, median: 158, mad: 6.1, z: -3.7, ewma: -2.9, cusum: 5.1},
-            pause_ratio: {value: 0.29, median: 0.21, mad: 0.02, z: 3.3, ewma: 2.4, cusum: 4.2},
-            mean_pause_s: {value: 0.54, median: 0.4, mad: 0.04, z: 2.9, ewma: 2.0, cusum: 3.5},
-            f0_median_hz: {value: 213, median: 212, mad: 4, z: 0.2, ewma: 0.1, cusum: 0.0}}},
+            speech_rate_wpm: {value: 123, median: 158, scale: 9.1, z: -3.7, ewma: -2.9, cusum: 5.1},
+            pause_ratio: {value: 0.29, median: 0.21, scale: 0.02, z: 3.3, ewma: 2.4, cusum: 4.2},
+            mean_pause_s: {value: 0.54, median: 0.4, scale: 0.05, z: 2.9, ewma: 2.0, cusum: 3.5},
+            f0_median_hz: {value: 213, median: 212, scale: 5, z: 0.2, ewma: 0.1, cusum: 0.0}}},
         sbar: {source: 'template', sentences: [
-          {section: 'S', text: "Mrs. K's speech differs from her usual: speech rate 123 vs 158 words per minute, pauses 29% vs 21%.", evidence_ids: ['asm-1']},
+          {section: 'S', text: "Mrs. K's speech differs from her usual: speech rate 123 vs 158 words per minute, pauses 29% vs 21%.", evidence_ids: ['check:asm-1']},
           {section: 'B', text: 'High-risk medication new; poor intake at lunch; new confusion noted.', evidence_ids: [EV.med, EV.note]},
-          {section: 'A', text: 'Meets the change threshold; high-risk medication, poor intake and new confusion present.', evidence_ids: ['asm-1']},
-          {section: 'R', text: 'Suggest Run 4AT now.', evidence_ids: ['asm-1']}]}},
+          {section: 'A', text: 'Meets the change threshold; high-risk medication, poor intake and new confusion present.', evidence_ids: ['check:asm-1']},
+          {section: 'R', text: 'Suggest Run 4AT now.', evidence_ids: ['check:asm-1']}]}},
     },
   };
   // An enrolling resident: no series, no baseline, no assessment. Exercises every empty state.

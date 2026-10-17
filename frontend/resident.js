@@ -147,7 +147,7 @@
     section.append(h.el('h2', 'SBAR draft'),
                    h.el('span', SBAR_BADGE[sbar.source] || sbar.source, {class: 'bl-badge', 'data-source': sbar.source}));
     const sourcePanel = h.el('div', '', {class: 'bl-source', hidden: ''});
-    const order = [...new Set(sbar.sentences.flatMap((s) => s.evidence_ids).filter((id) => !id.startsWith('asm')))];
+    const order = [...new Set(sbar.sentences.flatMap((s) => s.evidence_ids).filter((id) => !id.startsWith('check:')))];
     Object.entries(SECTIONS).forEach(([key, label]) => {
       const lines = sbar.sentences.filter((s) => s.section === key);
       if (!lines.length) return;
@@ -155,7 +155,7 @@
       lines.forEach((s) => {
         const p = h.el('p', s.text);
         s.evidence_ids.forEach((id) => {
-          if (id.startsWith('asm')) {  // the check itself, not a source document
+          if (id.startsWith('check:')) {  // the check itself, not a source document
             p.append(' ', h.el('span', 'check', {class: 'bl-cite', title: id}));
             return;
           }
@@ -185,16 +185,15 @@
     const table = document.createElement('table');
     table.className = 'bl-table';
     const head = document.createElement('tr');
-    ['Feature', 'Value', 'Median', 'MAD', 'Scale', 'z', 'EWMA', 'CUSUM']
+    ['Feature', 'Value', 'Median', 'Scale', 'z', 'EWMA', 'CUSUM']
       .forEach((t) => head.append(h.el('th', t, {scope: 'col'})));
     const thead = document.createElement('thead');
     thead.append(head);
     const body = document.createElement('tbody');
     Object.entries(a.change.per_feature).forEach(([name, f]) => {
       const tr = document.createElement('tr');
-      const scale = data.baseline && data.baseline.features && data.baseline.features[name];
       [((data.features || {})[name] || {}).label || name, fmt(name, f.value), fmt(name, f.median),
-       fmtSpread(name, f.mad), fmtSpread(name, scale && scale.scale), num(f.z, 2), num(f.ewma, 2),
+       fmtSpread(name, f.scale), num(f.z, 2), num(f.ewma, 2),
        num(f.cusum, 2)].forEach((t) => tr.append(h.el('td', t)));
       body.append(tr);
     });
