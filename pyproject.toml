@@ -7,6 +7,8 @@ dependencies = [
   "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "pydantic-settings>=2.8,<3",
   "psycopg[binary]>=3.2,<4", "alembic>=1.15,<2", "sqlalchemy>=2.0,<3",
   "boto3>=1.37,<2", "pyjwt[crypto]>=2.10,<3", "httpx>=0.28,<1",
+  "faster-whisper>=1.2,<2", "praat-parselmouth>=0.4.7,<1", "webrtcvad-wheels>=2.0.14,<3",
+  "numpy>=2.0,<3", "soundfile>=0.13,<1", "python-multipart>=0.0.20,<1",
 ]
 
 [dependency-groups]
@@ -22,6 +24,8 @@ packages = ["src/patient_memory"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = ["slow: needs the Whisper model; excluded by default, run with -m slow"]
+addopts = "-m 'not slow'"
 
 [tool.ruff]
 line-length = 100

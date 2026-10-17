@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     provider_url: str = ""
     provider_key: str = ""
     provider_model: str = ""
+    whisper_model: str = "base"
 
     @model_validator(mode="after")
     def safe_mode(self):
