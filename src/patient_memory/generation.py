@@ -9,6 +9,9 @@ from patient_memory.retrieval import evidence
 class ExtractiveGenerator:
     model_id = "extractive-stub-v1"
 
+    def version(self):
+        return self.model_id
+
     def generate(self, question, facts, as_of, shift_start=None):
         claims = []
         for f in facts:

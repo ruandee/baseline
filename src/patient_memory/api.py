@@ -211,6 +211,7 @@ def create_app(cfg=None, objects=None, generator=None):
         if not allowed:
             raise Problem(429, "rate_limited")
         for attempt in range(2):
+            model_version = app.state.generator.version()
             with transaction(cfg, actor) as conn:
                 lock_patient(conn, patient_id)
                 patient = patient_access(conn, patient_id)
@@ -222,7 +223,7 @@ def create_app(cfg=None, objects=None, generator=None):
                               "scope": initial_scope, "revision": revision, "asof": as_of,
                               "known": known_at, "question": question,
                               "shift_start": body.shift_start if summary else None,
-                              "model": app.state.generator.model_id, "prompt": "verbatim-v1",
+                              "model": model_version, "prompt": "verbatim-v1",
                               "retriever": "rrf-hash-v1", "embedding": "hash64-v1",
                               "max_evidence": cfg.max_evidence, "coverage": coverage})
                 cached = cache_get(conn, patient_id, key)
@@ -234,10 +235,12 @@ def create_app(cfg=None, objects=None, generator=None):
             result = build_answer(app.state.generator, question, facts, coverage, patient_id,
                                   revision, as_of, known_at, request.state.request_id,
                                   body.shift_start if summary else None)
+            latest_model = app.state.generator.version()
             with transaction(cfg, actor) as conn:
                 lock_patient(conn, patient_id)
                 latest = patient_access(conn, patient_id)
-                if latest["revision"] != revision or scope_hash(conn, actor, patient_id) != initial_scope:
+                if (latest["revision"] != revision or latest_model != model_version
+                        or scope_hash(conn, actor, patient_id) != initial_scope):
                     if attempt == 0:
                         continue
                     raise Problem(409, "memory_changed")
