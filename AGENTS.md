@@ -65,3 +65,17 @@ FastAPI + Pydantic, PostgreSQL (source of truth for metadata, jobs and derived m
 Schema lives in `migrations/versions/` as paired `NNN_name.py` + `NNN_name.sql` files. When adding a migration, keep the pair and make sure RLS/forced-RLS and the composite tenant/patient foreign keys cover any new patient-owned table.
 
 Tests are layered `unit` / `integration` (real Postgres and S3, including `test_rls.py` against the runtime role) / `contract` (API) / `e2e` (`test_safety_cases.py`). The `sandbox` fixture in `tests/conftest.py` creates an isolated tenant, patient and four role identities through the admin connection.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `ruandee/patient-memory-backend`, via `gh`. Baseline work is issues `[BL-01]`–`[BL-35]` with tracker #38. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` at the repo root, ADRs in `docs/decisions/` (not `docs/adr/`). See `docs/agents/domain.md`.
