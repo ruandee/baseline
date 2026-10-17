@@ -110,3 +110,17 @@ metadata exists. Migration 004 lets purge delete tags so a purged source leaves 
 Not done here: Gemini free-text tags, and readers ignoring tags of retracted sources (verdict and
 overview tickets must do that join). Only importer-assigned callers can post context, because it
 goes through source ingestion.
+
+## Verdicts, assessments and the two read endpoints (BL-11, BL-13)
+
+Every usable check is scored when it is stored and gets an `assessments` row, returned as `change`
+and `assessment` by `POST /checks`. `baseline/verdict.py` is the pure verdict table plus the shift
+escalation budget (`PM_ESCALATION_BUDGET`, default 3 per 8-hour shift), the no-escalate list
+(`PM_NO_ESCALATE_PATIENTS`) and the template SBAR. `GET /v1/watchlist` and
+`GET /v1/patients/{id}/overview?days=30` read the stored rows; both are care-team only and apply
+RLS. See [decision 012](decisions/012-verdict-assessments-and-overview.md).
+
+Not done: Gemini note extraction and SBAR drafting (BL-10, BL-12), the cohort loader (BL-14), and
+the "temperature documented normal" reader. The ffmpeg-dependent contract tests in
+`tests/contract/test_checks.py` skip where ffmpeg is not installed, so the audio path into
+`store_check` is covered only by `tests/integration/test_assessments.py`, which calls it directly.
