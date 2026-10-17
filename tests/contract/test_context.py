@@ -3,6 +3,7 @@ from uuid import uuid4
 import psycopg
 import pytest
 
+from patient_memory.baseline import context
 from patient_memory.storage import transaction
 from patient_memory.worker import run_once
 from tests.contract.test_api import client_for
@@ -97,3 +98,27 @@ def test_publication_failure_rolls_back_source_fact_tag_and_revision(sandbox, mo
             assert conn.execute(f"SELECT count(*) AS n FROM {table}").fetchone()["n"] == 0
         assert conn.execute("SELECT revision FROM patients WHERE id=%s",
                             (sandbox[1],)).fetchone()["revision"] == 0
+
+
+def test_synchronous_publication_invalidates_an_existing_worker_lease(sandbox, monkeypatch):
+    original_submit = context.submit
+    stale_token = uuid4()
+
+    def submit_with_existing_lease(conn, *args):
+        result = original_submit(conn, *args)
+        conn.execute(
+            "UPDATE jobs SET status='processing',lease_token=%s,lease_until=now()+interval '1 minute' "
+            "WHERE id=%s", (stale_token, result["job_id"]))
+        return result
+
+    monkeypatch.setattr(context, "submit", submit_with_existing_lease)
+    response = post(sandbox)
+    assert response.status_code == 201, response.text
+    with transaction(sandbox[0], sandbox[2]["importer"]) as conn:
+        job = conn.execute("SELECT * FROM jobs WHERE source_id=%s",
+                           (response.json()["source_id"],)).fetchone()
+        assert job["status"] == "completed"
+        assert job["lease_token"] is None
+        # A stale failure handler carrying the previous token cannot revive this completed job.
+        assert conn.execute("UPDATE jobs SET status='queued' WHERE id=%s AND lease_token=%s",
+                            (job["id"], stale_token)).rowcount == 0

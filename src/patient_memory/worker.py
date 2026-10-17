@@ -50,7 +50,8 @@ def run_once(cfg: Settings, identity: Identity, objects=None):
         with transaction(cfg, identity) as conn:
             conn.execute(
                 "UPDATE jobs SET status=%s,error_code=%s,lease_until=NULL,"
-                "next_attempt_at=now()+(%s * interval '1 second') WHERE id=%s AND lease_token=%s",
+                "next_attempt_at=now()+(%s * interval '1 second') WHERE id=%s AND lease_token=%s "
+                "AND status='processing'",
                 ("failed" if permanent or job["attempt"] >= 5 else "queued",
                  "invalid_extraction" if permanent else "dependency_unavailable",
                  2 ** min(job["attempt"], 5), job["id"], job["lease_token"]),

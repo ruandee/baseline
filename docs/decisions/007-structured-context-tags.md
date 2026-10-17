@@ -57,3 +57,5 @@ leaving citations unavailable until a worker ran. Synchronous publication now pr
 atomicity and revision/cache invalidation. Regression contracts check immediate evidence resolution,
 rollback of every database derivative, and replay without a second revision. Language-change
 rejection prevents an open-ended explainer from suppressing future unrelated changes.
+Synchronous completion clears any prior job lease; worker failure updates also require a processing
+job, so an in-flight worker cannot requeue a source completed by a context replay.

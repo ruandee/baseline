@@ -124,7 +124,8 @@ def add_context(conn, identity, patient_id, body: ContextInput, key, objects):
         store_tags(conn, identity.tenant_id, patient_id, source_id, [tag])
         store_relations(conn, patient_id)
         conn.execute(
-            "UPDATE jobs SET status='completed',stage='published',lease_until=NULL,error_code=NULL "
+            "UPDATE jobs SET status='completed',stage='published',lease_until=NULL,"
+            "lease_token=NULL,error_code=NULL "
             "WHERE source_id=%s", (source_id,))
         bump(conn, patient_id)
     return ContextTagOut(
