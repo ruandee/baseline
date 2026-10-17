@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     provider_key: str = ""
     provider_model: str = ""
     whisper_model: str = "base"
+    keep_audio: bool = False
 
     @model_validator(mode="after")
     def safe_mode(self):

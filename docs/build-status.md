@@ -37,3 +37,19 @@ BL-17), verdict colour tokens and an API check (liveness plus a nurse-token pati
 (`PM_FRONTEND_HOSTS`, `PM_DEMO_TOKEN`) lets a phone reach it over HTTPS. See
 [decision 005](decisions/005-baseline-frontend-location.md). Contract tests were added in
 `tests/contract/test_frontend.py`; they need the database services.
+
+## BL-07 — Voice check upload
+
+`POST /v1/patients/{id}/checks` takes `multipart/form-data` (`audio`, `mode`, `device_id`, optional
+`device_ts` and `is_baseline`), runs normalize, VAD, ASR, prosody and the quality gate
+(`speech/pipeline.py`) and stores the row in `voice_checks`, unusable clips included. Only care-team
+roles (`nurse`, `importer`) may write; anyone else, and any other patient, gets 404 before the audio
+is touched. `PayloadLimit` accepts multipart on this one route only, and its 2 MB cap still applies
+to the whole body, so the audio itself must be a little under 2 MB. Temp audio is deleted in a
+`finally` unless `PM_KEEP_AUDIO=true`. Whisper loads at startup; a load failure is logged and retried
+on the first check rather than stopping the API.
+
+Not done here: `change` and `assessment` are `null` and `timings_ms` has no `engine` or `verdict`
+keys until the change engine (BL-08) and the verdict table (BL-11) exist. Clips over 30 s are
+refused (the prompt stops at 15 s) so a crafted upload cannot hold Whisper for minutes. The
+p95 under 5 s target has not been measured on the demo host.
