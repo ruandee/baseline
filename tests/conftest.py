@@ -8,6 +8,11 @@ from patient_memory.config import Settings
 from patient_memory.objects import ObjectStore
 
 
+@pytest.fixture(autouse=True)
+def offline_models(monkeypatch):
+    monkeypatch.setenv("PM_PROVIDER", "stub")
+
+
 @pytest.fixture
 def sandbox():
     cfg = Settings()

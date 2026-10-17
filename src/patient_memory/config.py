@@ -29,9 +29,9 @@ class Settings(BaseSettings):
     def safe_mode(self):
         if self.environment != "synthetic":
             raise ValueError("Only synthetic mode is supported until pilot decisions are approved")
-        if self.provider not in {"stub", "compatible"}:
+        if self.provider not in {"stub", "compatible", "ollama"}:
             raise ValueError("Unknown model provider")
-        if self.provider == "compatible":
+        if self.provider in {"compatible", "ollama"}:
             url = urlparse(self.provider_url)
             local = url.hostname in {"127.0.0.1", "localhost", "::1"}
             if (not self.provider_model or not url.hostname or url.username or url.password

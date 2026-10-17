@@ -19,7 +19,7 @@ class CompatibleSelector(ExtractiveGenerator):
     def __init__(self, cfg, transport=None):
         self.cfg = cfg
         self.transport = transport
-        self.model_id = "compatible/" + cfg.provider_model
+        self.model_id = cfg.provider + "/" + cfg.provider_model
 
     def generate(self, question, facts, as_of, shift_start=None):
         if not facts:
@@ -40,12 +40,20 @@ class CompatibleSelector(ExtractiveGenerator):
                       "effective_from": str(f["valid_from"]), "effective_to": str(f["valid_to"])} for f in facts]})},
             ],
         }
+        native = self.cfg.provider == "ollama"
+        endpoint = "/api/chat" if native else "/chat/completions"
+        if native:
+            payload.pop("response_format")
+            payload.pop("temperature")
+            payload.pop("max_tokens")
+            payload.update(format=Selection.model_json_schema(), stream=False, think=False,
+                           options={"temperature": 0, "num_predict": 600, "num_ctx": 8192})
         headers = {"Authorization": "Bearer " + self.cfg.provider_key} if self.cfg.provider_key else {}
         started = time.monotonic()
         try:
             with httpx.Client(timeout=httpx.Timeout(10, connect=3), follow_redirects=False,
                               transport=self.transport, trust_env=False) as client:
-                with client.stream("POST", self.cfg.provider_url.rstrip("/") + "/chat/completions",
+                with client.stream("POST", self.cfg.provider_url.rstrip("/") + endpoint,
                                    json=payload, headers=headers) as response:
                     if response.status_code >= 400:
                         raise Problem(503, "provider_unavailable")
@@ -57,7 +65,8 @@ class CompatibleSelector(ExtractiveGenerator):
                         if time.monotonic() - started > 10:
                             raise Problem(504, "provider_timeout")
             data = json.loads(raw)
-            selection = Selection.model_validate_json(data["choices"][0]["message"]["content"])
+            content = data["message"]["content"] if native else data["choices"][0]["message"]["content"]
+            selection = Selection.model_validate_json(content)
         except httpx.TimeoutException as exc:
             raise Problem(504, "provider_timeout") from exc
         except httpx.HTTPError as exc:
@@ -78,4 +87,4 @@ class CompatibleSelector(ExtractiveGenerator):
 
 
 def generator_for(cfg):
-    return CompatibleSelector(cfg) if cfg.provider == "compatible" else ExtractiveGenerator()
+    return CompatibleSelector(cfg) if cfg.provider in {"compatible", "ollama"} else ExtractiveGenerator()
