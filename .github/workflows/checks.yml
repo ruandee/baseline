@@ -1,0 +1,18 @@
+name: Backend checks
+on: [push, pull_request]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.1"
+          python-version: "3.12"
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run pytest tests/unit
+      - run: docker compose up -d --wait db object-store
+      - run: uv run alembic upgrade head
+      - run: uv run pytest tests/integration tests/contract tests/e2e
+      - run: uv run python -m evals.run --suite synthetic --provider stub --output artifacts/eval.json

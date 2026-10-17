@@ -2,7 +2,20 @@
 
 Agent-ready build specification for a patient-specific memory service: ingest nursing notes and records, preserve their history and provenance, and return evidence-backed handover summaries and answers.
 
-**Status: specification only. No application has been implemented or clinically validated.** The initial deliverable is a synthetic-data research prototype.
+**Status: synthetic-data backend under implementation.** No clinical validation has been performed.
+
+## Local setup
+
+Prerequisites: Python 3.12–3.14, uv 0.13.1 and Docker Compose v2+. On Windows, `python -m pip install --user uv` installs uv; use `python -m uv` if its executable is outside PATH.
+
+```powershell
+uv sync --frozen
+docker compose up -d --wait db object-store
+uv run alembic upgrade head
+uv run pytest tests/unit
+```
+
+Compose binds synthetic services to loopback only. The checked-in passwords are synthetic local development credentials. Dependency resolution is captured in `uv.lock`.
 
 ## Read and review
 
