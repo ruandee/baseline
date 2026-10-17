@@ -16,6 +16,8 @@ SEQUENCE = 20
 CONSECUTIVE_WITHIN = timedelta(hours=24)
 MAD_SCALE = 1.4826
 REL_FLOOR = 0.05
+POLICY_VERSION = "multifeature-cusum-v2"
+CUSUM_MIN_FEATURES = 2
 
 # direction: -1 slower is concerning, +1 higher is concerning, 0 two-sided.
 FEATURES = {
@@ -100,11 +102,19 @@ def evaluate(check: Check, history: Sequence[Check], mode: Mode, cfg: Settings) 
         "rolling_guard_hours": ROLLING_GUARD.total_seconds() / 3600,
         "sequence_checks": SEQUENCE,
         "consecutive_hours": CONSECUTIVE_WITHIN.total_seconds() / 3600,
+        "policy_version": POLICY_VERSION,
+        "cusum_min_features": CUSUM_MIN_FEATURES,
+        "cusum_confirmation_hours": CONSECUTIVE_WITHIN.total_seconds() / 3600,
+        "cusum_requires_ongoing_deviation": True,
+        "pitch_cusum": "separate_signed_streams",
+        "instantaneous_requires_same_features": True,
+        "instantaneous_requires_same_pitch_direction": True,
     }
     if len(baseline) < MIN_BASELINE:
         return Assessment("enrolling", {}, None, (), params)
     sequence = _prefer_device(check, usable)[-(SEQUENCE - 1):] + [check]
-    scores, previous_dz = {}, {}
+    scores, previous_dz, previous_direction = {}, {}, {}
+    supported, previous_supported = {}, {}
     for name in FEATURES:
         values = [c.features[name] for c in baseline if c.features.get(name) is not None]
         if len(values) < MIN_BASELINE:
@@ -112,28 +122,50 @@ def evaluate(check: Check, history: Sequence[Check], mode: Mode, cfg: Settings) 
         m = median(values)
         scale = max(MAD_SCALE * median(abs(v - m) for v in values), REL_FLOOR * abs(m),
                     FEATURES[name][1])
-        ewma = cusum = 0.0
+        ewma = cusum = negative_cusum = 0.0
         for c in sequence:
             value = c.features.get(name)
             if value is None:
                 continue
             z, dz = _dz(name, value, m, scale)
             ewma = cfg.ewma_lambda * dz + (1 - cfg.ewma_lambda) * ewma
-            cusum = max(0.0, cusum + dz - cfg.cusum_k)
+            if FEATURES[name][0] == 0:
+                # Pooling abs(z) into one stream accumulates alternating pitch noise.
+                cusum = max(0.0, cusum + z - cfg.cusum_k)
+                negative_cusum = max(0.0, negative_cusum - z - cfg.cusum_k)
+                ongoing = ((cusum >= cfg.cusum_h and z > cfg.cusum_k)
+                           or (negative_cusum >= cfg.cusum_h and -z > cfg.cusum_k))
+                direction = 1 if z > 0 else -1
+            else:
+                cusum = max(0.0, cusum + dz - cfg.cusum_k)
+                ongoing = cusum >= cfg.cusum_h and dz > cfg.cusum_k
+                direction = 1
             if c is check:
-                scores[name] = FeatureScore(value, m, scale, z, dz, ewma, cusum)
+                scores[name] = FeatureScore(value, m, scale, z, dz, ewma,
+                                            max(cusum, negative_cusum))
+                if ongoing:
+                    supported[name] = direction
             elif c.ts >= check.ts - CONSECUTIVE_WITHIN and c is sequence[-2]:
                 previous_dz[name] = dz
+                previous_direction[name] = direction
+                if ongoing:
+                    previous_supported[name] = direction
     if not scores:  # no feature has enough baseline values: still enrolling, not a negative
         return Assessment("enrolling", {}, None, tuple(c.id for c in baseline), params)
     dzs = [s.dz for s in scores.values()]
     fused = mean(dzs)
-    alarm = any(s.cusum >= cfg.cusum_h for s in scores.values())
-    confirmed = (_over(cfg.z_threshold, dzs, cfg.min_features)
-                 and _over(cfg.z_threshold, previous_dz.values(), cfg.min_features))
-    if alarm or confirmed:
+    # Accumulated values remain visible as diagnostics after recovery, but cannot alone
+    # maintain a status. Confirm the same supported features and pitch direction twice.
+    alarm = len(supported) >= CUSUM_MIN_FEATURES
+    sustained = sum(previous_supported.get(name) == direction
+                    for name, direction in supported.items()) >= CUSUM_MIN_FEATURES
+    confirmed = sum(
+        s.dz > cfg.z_threshold and previous_dz.get(name, float("-inf")) > cfg.z_threshold
+        and (FEATURES[name][0] != 0 or previous_direction.get(name) == (1 if s.z > 0 else -1))
+        for name, s in scores.items()) >= cfg.min_features
+    if sustained or confirmed:
         status = "change"
-    elif _over(cfg.provisional_z, dzs, cfg.min_features):
+    elif alarm or _over(cfg.provisional_z, dzs, cfg.min_features):
         status = "provisional"
     else:
         status = "none"
