@@ -5,6 +5,7 @@ from uuid import NAMESPACE_URL, uuid5
 import psycopg
 
 from patient_memory.auth import Identity, synthetic_token
+from patient_memory.check_profiles import seed_english_profile
 from patient_memory.config import Settings
 from patient_memory.consent import grant_fixture_consent
 
@@ -36,6 +37,7 @@ def seed(cfg=None):
                                  "ON CONFLICT DO NOTHING", (tid, pid, uid(f"{tenant}/{role}"), role))
                 # Decision 017: explicit synthetic consent; a later withdrawal is never undone.
                 grant_fixture_consent(conn, tid, pid, uid(f"{tenant}/importer"))
+                seed_english_profile(conn, tid, pid, uid(f"{tenant}/importer"))
     return {role: synthetic_token(Identity(uid(f"0/{role}"), uid("tenant-0")), cfg)
             for role in ["admin", "importer", "nurse", "patient", "psw"]}
 

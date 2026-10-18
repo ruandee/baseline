@@ -35,12 +35,15 @@ def fixture_identity(cfg, run_id, tenant_number):
 
 
 def load_profile(cfg, objects, identity, profile):
+    from patient_memory.check_profiles import seed_english_profile
+
     patient = uuid5(identity.tenant_id, profile["id"])
     with psycopg.connect(cfg.admin_database_url) as conn:
         conn.execute("INSERT INTO patients(id,tenant_id,external_id) VALUES(%s,%s,%s) ON CONFLICT DO NOTHING",
                      (patient, identity.tenant_id, profile["id"]))
         conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,'importer',true) ON CONFLICT DO NOTHING",
                      (identity.tenant_id, patient, identity.principal_id))
+        seed_english_profile(conn, identity.tenant_id, patient, identity.principal_id)
     sources = {}
     base = {"external_version_id": "1", "source_system": "synthetic-eval",
             "recorded_at": "2026-01-02T08:00:00Z", "effective_from": "2026-01-02T07:00:00Z"}

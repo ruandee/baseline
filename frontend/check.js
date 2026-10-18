@@ -2,7 +2,7 @@
 // Built against the POST /v1/patients/{id}/checks shape in docs/06-baseline.md; ?mock=1 serves
 // fixtures from check-fixtures.js instead of calling the API.
 const CHECK_PROMPT = 'Count from one to twenty, then say the days of the week, starting with Monday.';
-const CHECK_MAX_S = 15;
+const CHECK_MAX_S = 30;
 const CHECK_RETRY_MS = [1000, 3000, 9000];
 const CHECK_MODES = ['resident', 'runner', 'live'];
 const FEATURES = [
@@ -29,7 +29,7 @@ function checkParams() {
   const mode = CHECK_MODES.includes(q.get('mode')) ? q.get('mode')
     : q.get('type') === 'motion' ? 'live' : 'resident';
   return {mode, patient: q.get('patient'), mock: q.get('mock') === '1',
-          fixture: q.get('fixture') || 'change', lang: q.get('lang') || 'en',
+          fixture: q.get('fixture') || 'change', lang: q.get('lang'),
           device: q.get('device')};
 }
 
@@ -293,26 +293,73 @@ async function renderCheck(main) {
   let timer = null;
   let limit = null;
   let lastBlob = null;
+  let setup = null, captureProfile = null, capturePending = false, discard = false, disposed = false, sending = false;
+  let captureMutationEpoch = null;
+  window.addEventListener('pagehide', () => {
+    disposed = true; discard = true;
+    if (setup) setup.dispose();
+    if (stream) stream.getTracks().forEach((track) => track.stop());
+    stop();
+  }, {once: true});
+  if (!params.mock) {
+    button.disabled = true;
+    prompt.hidden = true;
+    const setupHost = el('div', '');
+    main.prepend(setupHost);
+    setup = await window.checkSetup(setupHost, patientId, (ready, mutation) => {
+      if (disposed) { button.disabled = true; return; }
+      if (!ready) {
+        discard = true;
+        if (mutation) { lastBlob = null; retry.hidden = true; }
+        if (stream) stream.getTracks().forEach((track) => track.stop());
+        if (recorder && recorder.state === 'recording') stop();
+      }
+      button.disabled = !ready || sending;
+      prompt.hidden = !ready;
+    });
+    if (disposed) setup.dispose();
+  }
 
   async function submit(blob) {
+    if (disposed) return;
+    sending = true;
     retry.hidden = true;
     button.disabled = true;
+    const admittedMutationEpoch = captureMutationEpoch;
     const fields = {patient_id: patientId, mode: params.mode, device_id: checkDeviceId(params),
                     device_ts: new Date().toISOString(),
-                    is_baseline: baselineBox.checked ? 'true' : 'false'};
+                    is_baseline: baselineBox.checked ? 'true' : 'false',
+                    ...(captureProfile ? {profile_version: captureProfile.version,
+                                          protocol_locale: captureProfile.protocol_locale} : {})};
     try {
       const data = params.mock
         ? await mockCheck(params.fixture)
-        : await uploadCheck(blob, fields, (s) => setStatus(s));
+        : await uploadCheck(blob, fields, (s) => { if (!disposed) setStatus(s); }, {send: async (audio, values) => {
+          if (disposed) { const error = new Error('Capture ended.'); error.status = 409; throw error; }
+          if (setup && (setup.mutationEpoch !== admittedMutationEpoch
+              || !await setup.refresh() || !setup.ready || disposed
+              || setup.mutationEpoch !== admittedMutationEpoch
+              || setup.profile.version !== fields.profile_version)) {
+            const error = new Error('Counting setup or permission changed; record a new check.');
+            error.status = 409; throw error;
+          }
+          return postCheck(audio, values);
+        }});
+      if (disposed) return;
       setStatus(resident ? '' : params.mock ? 'Sent (mock)' : 'Sent', 'ok');
       if (params.mode === 'live') renderResult(result, data, blob);
       else result.replaceChildren(el('p', data.usable ? 'Thank you.' : 'Please tap Record to try again.',
                                      {class: 'bl-thanks'}));
     } catch (error) {
-      failure(`Could not send the recording (${error.message}). It is kept here; tap Try again.`, error);
-      retry.hidden = false;
+      if (disposed) return;
+      const blocked = error.status === 403 || error.status === 409;
+      failure(blocked ? 'Recording discarded. Check permission and counting setup, then record a new check.'
+        : `Could not send the recording (${error.message}). It is kept here; tap Try again.`, error);
+      retry.hidden = blocked;
+      if (retry.hidden) lastBlob = null;
     } finally {
-      button.disabled = false;
+      sending = false;
+      button.disabled = disposed || (setup ? !setup.ready : false);
     }
   }
 
@@ -323,27 +370,56 @@ async function renderCheck(main) {
   }
 
   button.addEventListener('click', async () => {
+    if (disposed) return;
     if (recorder && recorder.state === 'recording') { stop(); return; }
+    if (capturePending) return;
     const mimeType = pickMimeType();
     if (mimeType === null || !navigator.mediaDevices) {
       failure('This browser cannot record audio. Use HTTPS and a current browser.');
       return;
     }
+    let admittedGeneration;
     try {
+      capturePending = true;
+      button.disabled = true;
+      if (setup) {
+        const ready = await setup.refresh();
+        if (disposed) return;
+        if (!ready || !setup.ready) { failure('Recording blocked. Check the current profile and voice permission.'); return; }
+        captureProfile = {...setup.profile};
+        admittedGeneration = setup.generation;
+        captureMutationEpoch = setup.mutationEpoch;
+      }
       stream = await navigator.mediaDevices.getUserMedia({audio: true});  // permission on first tap
     } catch (error) {
+      if (disposed) return;
       failure('Microphone access was not allowed.', error);
       return;
+    } finally { capturePending = false; button.disabled = disposed || (setup ? !setup.ready : false); }
+    if (disposed || (setup && (!setup.ready || setup.generation !== admittedGeneration
+        || setup.profile.version !== captureProfile.version))) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
     }
+    discard = false;
     const chunks = [];
-    recorder = new MediaRecorder(stream, mimeType ? {mimeType} : undefined);
+    const recordingStream = stream;
+    recorder = new MediaRecorder(recordingStream, mimeType ? {mimeType} : undefined);
+    const recordingRecorder = recorder;
+    let recordingFailed = false;
     recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-    recorder.onerror = () => { stop(); failure('Recording failed.'); };
+    recorder.onerror = () => {
+      recordingFailed = true;
+      if (recorder === recordingRecorder) { stop(); failure('Recording failed.'); }
+    };
     recorder.onstop = () => {
-      stream.getTracks().forEach((t) => t.stop());
+      recordingStream.getTracks().forEach((t) => t.stop());
+      if (recorder !== recordingRecorder) return;
       button.textContent = 'Record';
       countdown.textContent = '';
-      lastBlob = new Blob(chunks, {type: recorder.mimeType || mimeType || 'audio/webm'});
+      if (discard || disposed || recordingFailed
+          || (setup && setup.generation !== admittedGeneration)) return;
+      lastBlob = new Blob(chunks, {type: recordingRecorder.mimeType || mimeType || 'audio/webm'});
       submit(lastBlob);
     };
     result.replaceChildren();
@@ -357,7 +433,7 @@ async function renderCheck(main) {
     };
     tick();
     timer = setInterval(tick, 250);
-    limit = setTimeout(stop, CHECK_MAX_S * 1000);  // auto-stop at 15 s
+    limit = setTimeout(stop, CHECK_MAX_S * 1000);  // manual Stop remains available throughout
   });
   retry.addEventListener('click', () => {
     result.replaceChildren();
