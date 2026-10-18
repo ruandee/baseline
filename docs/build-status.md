@@ -210,9 +210,13 @@ revision without restoring invalidated decisions; first-change markers reject st
 snapshots. Only speech is registered in this base. Decision025/migration010 track the contract;
 final exact-head CI remains authoritative after hosting/status integration.
 
-BL-34 motion-check implementation adds a separately consented numeric-only endpoint, immutable
-plain-table captures and exact client-derived observation facts under forced RLS. Current-revision
-registry projections preserve source invalidation and PSW responses contain no measurements or
-scores. The browser runs pinned self-hosted pose assets in a local worker; no video/landmarks
-are uploaded. Synthetic geometry/cancellation tests do not satisfy real camera or under 15-second
-judge acceptance. Exact integrated CI remains required before merge.
+BL-21 reset (pending combined CI): fixture-only current-time reset verifies all twelve
+canonical outcomes, preserves unrelated recordings/consent, refreshes private nurse/PSW/KAZE
+credentials and configures runner suppression. Hosted reset under one minute remains unverified.
+
+BL-34 motion integration (pending main CI): local-only camera/pose processing uses pinned
+self-hosted assets and uploads bounded client-derived measurements with unknown-by-default
+motion consent. Final migration011 guards require explicit scoring authorization, including
+unset-context denial. Exact source provenance, RLS, purge and projection tests passed on the
+feature head; real Chrome model startup/failure used no camera or remote requests. Physical
+phone/camera and three measurements in under15seconds remain unverified (Refs #36).
