@@ -94,7 +94,10 @@ def test_export_and_overview_revalidate_expiry_capture_scope_and_assignment(sand
     with psycopg.connect(cfg.admin_database_url) as conn:
         if damage == "expired":
             eid = latest["modalities"]["vitals"]["evidence_ids"][0]
-            conn.execute("UPDATE facts SET valid_to=%s WHERE id=%s", (datetime.now(UTC)-timedelta(seconds=1), eid))
+            conn.execute("UPDATE facts SET valid_to=valid_from+interval '1 microsecond' WHERE id=%s", (eid,))
+            expired = conn.execute("SELECT valid_from<valid_to AND valid_to<clock_timestamp() FROM facts WHERE id=%s",
+                                   (eid,)).fetchone()[0]
+            assert expired  # preserve the actual event and the storage interval invariant
         elif damage == "foreign_check":
             draft = latest["sbar"]
             draft["sentences"][0]["evidence_ids"].append("check:"+str(uuid4()))
