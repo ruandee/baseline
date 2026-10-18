@@ -1,5 +1,10 @@
 # Implementation status and remaining gates
 
+BL-26 hosted integration adds a separate runtime-role KAZE worker using the shared scheduler
+and 24-hour retention loop. Explicit synthetic bootstrap creates no contacts/sessions/consent;
+private person credentials refresh separately from resident roles. Fixture consent is opt-in and
+preserves withdrawal. See decision 026; combined service CI and real-phone/SMS gates remain open.
+
 This is the current runtime handoff after the explicitly approved policy/scenario adoption
 (PRs #60 and #61), built on the backend MVP and reviewed Baseline core. Implementation and
 synthetic engineering checks do not establish clinical validation or real-data pilot readiness.

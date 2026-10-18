@@ -16,7 +16,7 @@ from scripts.seed import uid
 PEOPLE = 2
 
 
-def kaze_demo(cfg=None) -> dict:
+def kaze_demo(cfg=None, *, grant_consent=False) -> dict:
     cfg = cfg or Settings()
     tenant, service = uid("kaze-demo"), uid("kaze-demo/service")
     with psycopg.connect(cfg.admin_database_url) as conn:
@@ -33,6 +33,8 @@ def kaze_demo(cfg=None) -> dict:
             for principal, role in [(person, "importer"), (service, "nurse")]:
                 conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,%s,true) "
                              "ON CONFLICT DO NOTHING", (tenant, person, principal, role))
+            if grant_consent:
+                grant_fixture_consent(conn, tenant, person, person)
             grant_fixture_consent(conn, tenant, person, person)
     people = [uid(f"kaze-demo/person-{n}") for n in range(PEOPLE)]
     return {
