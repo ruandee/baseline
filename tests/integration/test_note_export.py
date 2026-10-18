@@ -15,7 +15,7 @@ from patient_memory.baseline.note import (
 )
 from patient_memory.baseline.sbar import enrich_assessment_sbar
 from patient_memory.storage import transaction
-from tests.contract.test_api import client_for, import_note, source_payload
+from tests.contract.test_api import client_for, import_note
 from tests.contract.test_context import post as post_context
 from tests.integration.test_assessments import BASE, SLOW, seed_checks, store
 
@@ -128,8 +128,12 @@ def test_superseded_source_and_revoked_access_never_return_old_note(sandbox):
     route = note_path(sandbox, result.assessment["id"])
     nurse = client_for(sandbox)
     assert nurse.get(route).status_code == 200
-    import_note(sandbox, source_payload("Synthetic reassessment of intake.",
-                                        supersedes_version_id=source_id))
+    # A successor must retain the original document identity, not a random fixture ID.
+    with transaction(sandbox[0], sandbox[2]["nurse"]) as conn:
+        original = conn.execute("SELECT payload FROM sources WHERE id=%s", (source_id,)).fetchone()["payload"]
+    replacement = dict(original, external_version_id="2", supersedes_version_id=str(source_id))
+    replacement["records"] = [dict(original["records"][0], value="Synthetic reassessment of intake.")]
+    import_note(sandbox, replacement)
     response = nurse.get(route)
     assert response.status_code == 409 and "Poor intake" not in response.text
     with psycopg.connect(sandbox[0].admin_database_url) as conn:
