@@ -94,3 +94,7 @@ browsers, LTE or latency.
 
 References: [Compose startup ordering](https://docs.docker.com/compose/how-tos/startup-order/),
 [Caddy proxy headers](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#headers).
+
+The image smoke loads the cohort before its first uploaded check. Loader preflight rejects
+previously recorded seed patients deliberately; it never overwrites an upload to make setup pass.
+The API is recreated and its twelve-patient session roster refreshed before upload plumbing runs.

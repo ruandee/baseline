@@ -80,6 +80,16 @@ else:
      "$BASE/v1/patients/00000000-0000-0000-0000-000000000000/overview")" = 404 ] \
   || fail "unassigned patient not 404"
 
+# BL-14 loader in the image: one-off admin step, then recreate api to pick up the roster.
+timeout 900 "${C[@]}" run --rm -T load
+"${C[@]}" up -d --wait --wait-timeout 600 --force-recreate api
+[ "$(roster)" = 12 ] || fail "hosted roster is not the 12 loaded residents"
+echo "roster after load: 12"
+
+# Load only into pristine seeded patients; uploads intentionally make loader preflight fail.
+SESSION=$(curl -fsSk -H 'X-PM-Demo: 1' -H "Origin: $BASE" "$BASE/demo/session")
+PID=$(jq -r '.patients[0].id' <<<"$SESSION")
+
 # Upload plumbing through Caddy: ffmpeg decode, VAD, Whisper (tiny), storage. Not validation.
 "${C[@]}" exec -T api ffmpeg -nostdin -loglevel error -f lavfi -i sine=frequency=220:duration=8 \
   -c:a libopus -f webm - > "$TMP/tone.webm"
@@ -91,11 +101,6 @@ echo "upload status $CODE: $(head -c 600 "$TMP/check.json")"
 [ "$CODE" = 200 ] || fail "check upload through Caddy failed"
 jq -e '.timings_ms.asr | numbers' "$TMP/check.json" >/dev/null || fail "upload did not run ASR"
 
-# BL-14 loader in the image: one-off admin step, then recreate api to pick up the roster.
-timeout 900 "${C[@]}" run --rm -T load
-"${C[@]}" up -d --wait --wait-timeout 600 --force-recreate api
-[ "$(roster)" = 12 ] || fail "hosted roster is not the 12 loaded residents"
-echo "roster after load: 12"
 
 sleep 3
 [ -n "$("${C[@]}" ps --status running -q worker)" ] || fail "worker not running"
