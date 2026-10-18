@@ -9,6 +9,7 @@ seeded nurse can see from the database at startup.
 admin database URL in their environment. `check` is the container readiness probe.
 """
 import argparse
+import json
 import logging
 import os
 import shutil
@@ -71,20 +72,25 @@ def hosted_app(cfg, patients=None):
     reader = nurse()
     if not token or decode_token(token, cfg) != reader:
         raise ValueError("PM_DEMO_TOKEN must be the seeded tenant-0 nurse token")
+    psw = Identity(uid("0/psw"), reader.tenant_id)
+    psw_token = os.environ.get("PM_DEMO_PSW_TOKEN", "")
+    if not psw_token or decode_token(psw_token, cfg) != psw:
+        raise ValueError("PM_DEMO_PSW_TOKEN must be the seeded tenant-0 PSW token")
     warn_if_expiring(token)
+    warn_if_expiring(psw_token, variable="PM_DEMO_PSW_TOKEN")
     if patients is None:
         patients = roster(cfg, reader)
-    return workspace_app(cfg, reader, patients, hosts, token)
+    return workspace_app(cfg, reader, patients, hosts, token, psw=psw, psw_token=psw_token)
 
 
-def warn_if_expiring(token):
+def warn_if_expiring(token, *, variable="PM_DEMO_TOKEN"):
     """The running app keeps serving this token; say so before it turns into 401s."""
     # Signature and expiry were already verified by decode_token; only exp is read here.
     claims = jwt.decode(token, options={"verify_signature": False})
     left = claims["exp"] - now().timestamp()
     if left < TOKEN_WARNING.total_seconds():
-        log.warning("PM_DEMO_TOKEN expires in %.1f h: rerun bootstrap, update .env.demo and "
-                    "recreate api before it lapses", left / 3600)
+        log.warning("%s expires in %.1f h: rerun bootstrap, update .env.demo and "
+                    "recreate api before it lapses", variable, left / 3600)
     return left
 
 
@@ -103,12 +109,19 @@ def readiness(cfg):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("bootstrap", "serve", "worker", "check"))
+    parser.add_argument("--json", action="store_true", help="Bootstrap nurse/PSW JSON for private stdin")
     args = parser.parse_args()
+    if args.json and args.command != "bootstrap":
+        parser.error("--json is only valid with bootstrap")
     cfg = deployment_settings()
     if args.command == "bootstrap":
         ObjectStore(cfg).initialize()
         # Explicit CLI provisioning only. Do not print importer/admin bearer tokens.
-        print(seed(cfg)["nurse"])
+        tokens = seed(cfg)
+        if args.json:
+            print(json.dumps({role: tokens[role] for role in ("nurse", "psw")}))
+        else:
+            print(tokens["nurse"])
     elif args.command == "check":
         readiness(cfg)
     elif args.command == "serve":

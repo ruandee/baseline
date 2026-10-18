@@ -1,8 +1,10 @@
 """Real RLS/publication/scoring checks; no provider or audio calls."""
 import psycopg
 import pytest
+from fastapi.testclient import TestClient
 
-from patient_memory.auth import Identity
+from patient_memory.api import create_app
+from patient_memory.auth import Identity, synthetic_token
 from patient_memory.errors import Problem
 from patient_memory.ingestion import submit
 from patient_memory.storage import transaction
@@ -31,11 +33,23 @@ def test_loads_real_scoped_sources_and_assessments_idempotently(sandbox):
     assert first["checks_loaded"] == 353 and len(session["patients"]) == 12
     assert all(c["exact_span_verified"] for c in first["context"])
     assert first["sources_published_before_assessments"]
+    # The deployed PSW must see all twelve through the score-free endpoint, not just seed's six.
+    psw = TestClient(create_app(cfg), headers={
+        "Authorization": "Bearer " + synthetic_token(scope.psw, cfg)})
+    due = psw.get("/v1/checks/due")
+    assert due.status_code == 200 and len(due.json()["residents"]) == 12
+    assert all(not {"verdict", "fused_z", "latest_verdict", "sbar"}.intersection(row)
+               for row in due.json()["residents"])
+    assert psw.get("/v1/watchlist").status_code == 404
+    with psycopg.connect(cfg.admin_database_url) as conn:
+        conn.execute("UPDATE assignments SET active=false WHERE tenant_id=%s AND patient_id=%s "
+                     "AND principal_id=%s", (scope.tenant_id, scope.patient_id(0), scope.psw_id))
     before = counts(sandbox, scope)
     second, again = load_demo(cfg, objects=objects, scope=scope, offline=True,
                               presentation="scenario-snapshots")
     assert counts(sandbox, scope) == before == [353, 4, 353]
     assert first == second and session["patients"] == again["patients"]
+    assert len(psw.get("/v1/checks/due").json()["residents"]) == 11  # revocation survives reload
     # Explicitly approved policy/scenario adoption must pass the actual stored service results.
     assert first["matches_spec"] is True
     assert all(row["matches_spec"] for row in first["outcomes"])

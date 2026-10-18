@@ -27,7 +27,7 @@ def test_initialize_is_private_unique_and_never_overwrites_existing_configuratio
 
 
 @pytest.mark.parametrize("hostname", ["https://demo.example.org", "demo.example.org:443",
-                                      "*.example.org", "a..b", "a\nPM_PROVIDER=compatible"])
+                                      "*.example.org", "a..b", "a.-b.com", "a.b-.com", "a\nPM_PROVIDER=compatible"])
 def test_hostname_cannot_inject_environment_settings(tmp_path, hostname):
     path = tmp_path / ".env.demo"
     with pytest.raises(ValueError):

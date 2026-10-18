@@ -102,3 +102,7 @@ The API is recreated and its twelve-patient session roster refreshed before uplo
 During first setup, run the cohort load before starting the long-running worker. The loader
 publishes its own queued sources before scoring; a concurrent worker can hold a source lease
 and correctly make the strict loader report incomplete. The image smoke follows the same order.
+
+For a guided VM/DNS path and private nurse/PSW bootstrap without printing tokens, see
+[the deployment path](deployment-path.md). Use `deploy/start-demo.sh first` for a pristine setup
+and `refresh` for token refresh without reloading/deleting checks.

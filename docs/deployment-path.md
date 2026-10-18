@@ -53,8 +53,18 @@ all earlier tokens. Set `PM_PROVIDER=stub` for deterministic no-model-call start
 
 The integrated setup needs separate nurse and PSW tokens. The credential writer accepts a
 bootstrap JSON object with `nurse` and `psw` tokens on stdin and updates the file without printing
-them. The hosted bootstrap JSON command and PSW environment wiring are an integration step;
-do not start the PSW demonstration with a nurse token as a shortcut.
+them. Use the explicit startup helper to capture bootstrap JSON privately and populate both roles:
+
+```sh
+bash deploy/start-demo.sh first
+# Later, refresh expiring tokens without deleting or reloading any checks:
+bash deploy/start-demo.sh refresh
+```
+
+The first command builds, migrates, bootstraps, loads the cohort and starts the services. It refuses
+an already running worker rather than racing an existing deployment. Refresh keeps the signing
+secret and existing data. Startup validates both seeded identities and fails if a nurse token is
+substituted for PSW. Never run these scripts with shell tracing enabled.
 
 ## First setup order
 

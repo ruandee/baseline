@@ -10,13 +10,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 HOST = re.compile(r"[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?", re.ASCII)
+LABEL = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", re.ASCII)
 TOKEN = re.compile(r"[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+", re.ASCII)
 
 
 def initialize(path: Path, hostname: str):
     hostname = hostname.strip().lower()
     if (not HOST.fullmatch(hostname) or ".." in hostname
-            or len(hostname) > 253 or any(len(label) > 63 for label in hostname.split("."))):
+            or len(hostname) > 253 or any(not LABEL.fullmatch(label) for label in hostname.split("."))):
         raise ValueError("Use a DNS hostname without a scheme, port, wildcard or path")
     values = {"PM_DEMO_DOMAIN": hostname, "PM_FRONTEND_HOSTS": hostname,
               "PM_JWT_SECRET": secrets.token_hex(32), "PM_DEMO_TOKEN": ""}
