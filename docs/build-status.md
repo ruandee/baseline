@@ -213,3 +213,10 @@ final exact-head CI remains authoritative after hosting/status integration.
 BL-21 reset (merged #79): fixture-only current-time reset verifies all twelve
 canonical outcomes, preserves unrelated recordings/consent, refreshes private nurse/PSW/KAZE
 credentials and configures runner suppression. Hosted reset under one minute remains unverified.
+
+BL-34 motion integration (pending main CI): local-only camera/pose processing uses pinned
+self-hosted assets and uploads bounded client-derived measurements with unknown-by-default
+motion consent. Final migration011 guards require explicit scoring authorization, including
+unset-context denial. Exact source provenance, RLS, purge and projection tests passed on the
+feature head; real Chrome model startup/failure used no camera or remote requests. Physical
+phone/camera and three measurements in under15seconds remain unverified (Refs #36).

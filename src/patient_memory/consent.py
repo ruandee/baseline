@@ -11,7 +11,7 @@ from patient_memory.config import Settings
 from patient_memory.errors import Problem
 from patient_memory.storage import audit, require_member, transaction
 
-CONSENT_SCOPES = ("voice_check", "vox_encounter")
+CONSENT_SCOPES = ("voice_check", "vox_encounter", "motion_check")
 CONSENT_STATES = ("granted", "declined", "withdrawn", "expired", "unknown")
 
 

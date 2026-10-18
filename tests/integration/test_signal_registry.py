@@ -70,7 +70,7 @@ def test_persisted_two_modalities_corroborate_without_breaking_speech_readback(s
     overview = page(sandbox)
     latest = overview["latest_assessment"]
     assert latest["corroborated"] and latest["modality"] == "probe" and latest["sbar"] is None
-    assert set(latest["modalities"]) == {"speech", "probe"}
+    assert set(latest["modalities"]) == set(REGISTRY)
     assert latest["modalities"]["probe"]["evidence_ids"] == [fact]
     assert latest["change"]["per_feature"]["speech_rate_wpm"]["value"] == SLOW["speech_rate_wpm"]
     assert overview["baseline"]["features"]["speech_rate_wpm"]["median"] > 0
@@ -80,7 +80,7 @@ def test_persisted_two_modalities_corroborate_without_breaking_speech_readback(s
     with transaction(sandbox[0], sandbox[2]["nurse"]) as conn:
         stored = conn.execute("SELECT * FROM assessments WHERE id=%s", (assessment["id"],)).fetchone()
         assert source in stored["params"]["source_ids"]
-        assert set(stored["features"]) == {"speech", "probe"}
+        assert set(stored["features"]) == set(REGISTRY)
         assert escalations_used(conn, datetime.now(UTC), sandbox[0]) == 1
         conn.execute("SELECT set_config('pm.check_scoring_patient',%s,true)", (str(sandbox[1]),))
         assert escalations_used(conn, datetime.now(UTC), sandbox[0]) == 1
