@@ -128,7 +128,7 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
 - KAZE sessions, scheduler, SMS/acknowledgement and pages are merged (#66/#69/#72/#71/#80);
   hosted worker/bootstrap #76 is merged. Real two-phone SMS/ack acceptance remains open.
   Vox mock and consent/PSW flows are merged; real/nontechnical user acceptance remains open.
-  Registry #78 is merged; motion and vitals remain in integration. Submission, backup video and two
+  Registry #78, motion #91 and vitals #84 are merged. Submission, backup video and two
   rehearsals are tracked separately; implemented code alone does not close those gates.
 
 Follow README/operations and the exact CI order before claiming a new integrated milestone done.
@@ -207,7 +207,7 @@ real-SMS acceptance remain open.
 BL-30 registry (merged #78) adds scoped modalities, explicit missing/stale states, corroboration and
 legacy speech compatibility. New captures reproject eligible immutable modalities at current
 revision without restoring invalidated decisions; first-change markers reject stale/session
-snapshots. Speech and motion are registered on main; vitals remain in #84. Decision025/migration010 track the contract;
+snapshots. Speech, motion and vitals are registered on main. Decision025/migration010 track the contract;
 final exact-head CI remains authoritative after hosting/status integration.
 
 BL-21 reset (merged #79): fixture-only current-time reset verifies all twelve
@@ -218,14 +218,24 @@ BL-34 motion integration (merged #91 at d3d7ed0): local-only camera/pose process
 self-hosted assets and uploads bounded client-derived measurements with unknown-by-default
 motion consent. Final migration011 guards require explicit scoring authorization, including
 unset-context denial. Exact source provenance, RLS, purge and projection tests passed on the
-feature head; combined main integration passed 571 unit tests (6 optional deselected), 306
-DB-backed tests, migrations, stub evaluation and image smoke. Real Chrome model startup/failure
-used no camera or remote requests. Physical
+feature head; real Chrome model startup/failure used no camera or remote requests. Physical
 phone/camera and three measurements in under15seconds remain unverified (Refs #36).
+
+BL-35 integration: explicit resting HR/RR observations feed current-revision signal projections
+and isolated synthetic RR-rise acceptance; unknown rest/time/units stay unavailable. ADR028
+records engineering-only vitals parameters and012scoped PSW facts; ordinary evidence remains
+denied. Final motion011 from main is preserved unchanged. Speech/canonical cohort unchanged.
+
+BL-12/BL-33 follow-up (ADR029): deterministic multimodal watch/escalate drafts and preliminary
+export use exact current/baseline evidence, actual event times, declared labels/units, current
+context and existing actions. Source lifecycle/expiry and permissions are rechecked on readback.
+Motion remains explicitly client-derived/unverified; missing provenance withholds the whole draft.
+No model, threshold/action policy change, clinical sign-off or writeback is introduced.
+
 
 ## Acceptance audit against all Baseline tickets
 
-Snapshot: main `d3d7ed0`, reviewed 2026-10-18 UTC. The acceptance text comes from
+Snapshot: main `ed7758d`, reviewed 2026-10-18 UTC. The acceptance text comes from
 `baseline-tickets.json` and `06-baseline.md`; adopted decisions supersede the original frontend
 location, unsafe hypertables and approved change-policy/scenario assumptions. A green synthetic
 test proves its engineering case only. Missing measurements, recordings and human actions remain
@@ -245,8 +255,8 @@ remaining branches land.
 | BL-09 | Structured medication/vital context tests verify exact source spans and order semantics | None for the synthetic engineering gate |
 | BL-10 | Note extraction tests cover exact quotes, fabrication/negation rejection and offline fallback | Real model quality is not established by stub tests |
 | BL-11 | Verdict status/context combinations, amplifier precedence and runner suppression tests | Real runner capture remains BL-15 |
-| BL-12 | Validator/fallback and valid configured-draft publication tests; speech SBAR merged | Grounded multimodal draft/export #87 not yet merged; configured live model quality unmeasured |
-| BL-13 | Watchlist/overview API contracts and committed OpenAPI | Final schema/compatibility CI after pending adapters |
+| BL-12 | Validator/fallback and valid configured-draft publication tests; speech SBAR merged | Grounded multimodal draft/export #87 merged; configured live model quality unmeasured |
+| BL-13 | Watchlist/overview API contracts and committed OpenAPI | Final schema/compatibility CI after pending PSW branches |
 | BL-14 | Actual loader/runtime-role scoring verifies all12 approved synthetic outcomes, idempotence and evidence | Authored fixtures are not statistical/clinical validation |
 | BL-15 | Server suppression and separate runner identity implemented | Five rested baselines and stairs/race/backup recordings absent; ON HOLD (#17) |
 | BL-16 | Same-origin shell/bootstrap and Host/Origin/authorization tests; decision005 | No Next.js/web directory requirement under the adopted decision |
@@ -268,7 +278,7 @@ remaining branches land.
 | BL-32 | Mock encounter segmentation, voiced-duration, strict request/stored consent and audio-cleanup tests | Consenting teammate-voiced fixture/real Vox UI acceptance unrun; no real EHR integration (#34) |
 | BL-33 | Preliminary DocumentReference shape/text/provenance tests and actual API-to-button preview | Specified export/preview gate accepted; #35 closed; no real sign-off queue/writeback claimed |
 | BL-34 | Main motion capture/provenance/RLS tests, real Chrome model startup/failure and phone-width layout | Physical chair-to-three-measurements in under15s unverified (#36); client-derived numbers remain unverified |
-| BL-35 | Explicit resting HR/RR adapter and isolated Mrs.K corroboration tests in #84 | Final main integration CI and merge pending (#37); canonical cohort unchanged |
+| BL-35 | Explicit resting HR/RR adapter and isolated Mrs.K corroboration tests in #84 | Final main integration accepted in #84; #37 closed; canonical cohort unchanged |
 
 Golden recordings, hosting, actual phone contacts and presenter run logs are external inputs.
 Do not replace them with mock screenshots, provider acceptance, a written checklist or historic
