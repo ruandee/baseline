@@ -10,6 +10,7 @@ from psycopg.types.json import Jsonb
 
 from patient_memory.baseline.note import CHECK_SYSTEM, SIGNAL_SYSTEM, validate_document_reference
 from tests.contract.test_api import client_for, import_note
+from tests.contract.test_context import post as post_context
 from tests.contract.test_motion import capture, grant
 from tests.integration.test_note_export import note_path
 from tests.integration.test_vitals_signal import example, overview, rr_payload
@@ -72,7 +73,8 @@ def test_motion_template_and_motion_vitals_corroboration_without_speech(sandbox,
     latest = overview(sandbox)["latest_assessment"]
     assert latest["sbar"] and latest["check"] is None
     text = " ".join(s["text"] for s in latest["sbar"]["sentences"])
-    assert "Sit-to-stand time 2.50 vs baseline median 1.20 s" in text
+    assert "Time to half-rise 2.50 vs baseline median 1.20 s" in text
+    assert "client-derived, unverified" in text
     assert "speech" not in text.lower()
     assert latest["corroborated"] is with_vitals
     if with_vitals:
@@ -109,3 +111,26 @@ def test_export_and_overview_revalidate_expiry_capture_scope_and_assignment(sand
         current = response.json()["latest_assessment"]
         assert current["sbar"] is None and "cited_checks" not in current
         assert current["draft_status"] == "unavailable_multimodal_evidence"
+
+
+def test_context_expiry_and_source_retraction_remove_multimodal_draft(sandbox):
+    context = post_context(sandbox, {"kind": "amplifier", "tag": "poor_intake",
+        "label": "Synthetic poor intake", "valid_from": (datetime.now(UTC)-timedelta(hours=1)).isoformat(),
+        "valid_to": (datetime.now(UTC)+timedelta(hours=1)).isoformat()})
+    assert context.status_code == 201
+    imported = example(sandbox)
+    latest = overview(sandbox)["latest_assessment"]
+    assert latest["sbar"]
+    note = note_path(sandbox, latest["id"])
+    assert client_for(sandbox).get(note).status_code == 200
+    with psycopg.connect(sandbox[0].admin_database_url) as conn:
+        conn.execute("UPDATE context_tags SET valid_to=%s WHERE patient_id=%s AND id=%s",
+                     (datetime.now(UTC)-timedelta(seconds=1), sandbox[1], context.json()["id"]))
+    assert client_for(sandbox).get(note).status_code == 409
+    assert overview(sandbox)["latest_assessment"]["sbar"] is None
+    response = client_for(sandbox, "importer").post(
+        f"/v1/patients/{sandbox[1]}/sources/{imported['source_version_id']}/retract",
+        json={"reason": "Synthetic correction"}, headers={"Idempotency-Key": str(uuid4())})
+    assert response.status_code == 200
+    assert client_for(sandbox).get(note).status_code == 409
+    assert overview(sandbox)["latest_assessment"] is None

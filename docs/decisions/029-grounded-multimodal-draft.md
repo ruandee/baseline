@@ -34,3 +34,7 @@ separately labelled unverified previews, with no writeback or sign-off implement
 Verification includes RR-only, speech plus vitals, current/baseline citations, source lifecycle,
 capture expiry, revoked access, unknown/provenance gaps, exact standard actions and real DOM
 readback. Motion uses the same contract when its immutable history exposes exact fact provenance.
+
+Motion prose explicitly says client-derived, unverified; its sit_to_stand_s registry label
+is Time to half-rise, matching the actual 10%-50% travel estimator rather than full rise time.
+Vitals prose retains documented system-observation attribution.

@@ -24,7 +24,7 @@ from patient_memory.storage import audit
 PROTOCOL = "pose-chair-steps-v1"
 FEATURES = ("sit_to_stand_s", "trunk_sway", "step_cadence_spm")
 register(Modality("motion", (
-    FeatureSpec("sit_to_stand_s", "motion", 1, 0.2, label="Sit-to-stand time", unit="s"),
+    FeatureSpec("sit_to_stand_s", "motion", 1, 0.2, label="Time to half-rise", unit="s"),
     FeatureSpec("trunk_sway", "motion", 1, 0.01, label="Trunk sway", unit="ratio"),
     FeatureSpec("step_cadence_spm", "motion", -1, 3.0, label="Step cadence", unit="steps/min"),
 )))

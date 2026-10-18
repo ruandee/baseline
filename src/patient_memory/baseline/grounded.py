@@ -44,7 +44,9 @@ def multimodal_template(name, decision, modalities, tags, corroborated=False):
             comparisons.append(f"{label} {value:.2f} vs baseline median {median:.2f} {unit}")
         if not comparisons or not entry.get("ts"):
             return None
-        sentences.append({"section": "S", "text": f"{name}: {modality} measurements at {entry['ts']}: "
+        attribution = {"motion": "client-derived, unverified", "vitals": "documented system observations",
+                       "speech": "voice-derived measurements"}.get(modality, "registered capture")
+        sentences.append({"section": "S", "text": f"{name}: {modality} measurements ({attribution}) at {entry['ts']}: "
                           + "; ".join(comparisons) + ".", "evidence_ids": citations})
         supporting.extend(entry.get("evidence_ids", []))
     if not sentences:
