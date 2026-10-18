@@ -91,3 +91,69 @@ test('unknown permission blocks microphone; remote withdrawal after permission s
     leave(h);
   }
 });
+
+test('an older granted read cannot overwrite a newer withdrawn permission response', async () => {
+  let held = false; const reads = [];
+  const h = loadPage('/out', {kaze: true, routes: {
+    'GET /v1/patients/p1/sessions': () => ({sessions: []}),
+    'GET /v1/patients/p1/consent?scope=voice_check': () => held
+      ? new Promise(resolve => reads.push(resolve)) : {state: 'granted'}}});
+  await until(() => button(h, 'Arm session'));
+  const host = h.doc.createElement('section'); h.main.append(host);
+  const controller = await h.window.kazeVoicePermission(host, 'p1');
+  held = true;
+  const older = controller.refresh(), newer = controller.refresh();
+  await until(() => reads.length === 2);
+  reads[1]({state: 'withdrawn'}); await newer; assert.equal(controller.ready, false);
+  reads[0]({state: 'granted'}); await older;
+  assert.equal(controller.ready, false);
+  assert(host.textContent.includes('Stored voice permission: withdrawn.'));
+  leave(h);
+});
+
+test('a failed explicit withdrawal stays locally blocked across polls until an explicit successful save', async () => {
+  let fail = true;
+  const h = loadPage('/out', {kaze: true, routes: {
+    'GET /v1/patients/p1/sessions': () => ({sessions: []}),
+    'GET /v1/patients/p1/consent?scope=voice_check': () => ({state: 'granted'}),
+    'POST /v1/patients/p1/consents': () => { if (fail) throw Error('synthetic network failure'); return {state: 'granted'}; }}});
+  await until(() => button(h, 'Arm session'));
+  const host = h.doc.createElement('section'); h.main.append(host);
+  const controller = await h.window.kazeVoicePermission(host, 'p1');
+  const scoped = {main: host};
+  choose(scoped, 'withdrawn'); button(scoped, 'Save my voice permission').click();
+  await until(() => host.textContent.includes('Could not record your decision'));
+  assert.equal(controller.ready, false);
+  await controller.refresh(); assert.equal(controller.ready, false);
+  fail = false;
+  choose(scoped, 'granted'); button(scoped, 'Save my voice permission').click();
+  await until(() => controller.ready); assert.equal(controller.ready, true);
+  leave(h);
+});
+
+test('late arm response after page exit cannot mount a session or begin polling', async () => {
+  let finishArm;
+  const h = loadPage('/out', {kaze: true, routes: {
+    'GET /v1/patients/p1/sessions': () => ({sessions: []}),
+    'POST /v1/patients/p1/sessions': () => new Promise(resolve => { finishArm = resolve; }),
+    'GET /v1/patients/p1/sessions/s1': () => active}});
+  await until(() => button(h, 'Arm session') && !button(h, 'Arm session').disabled);
+  for (const [name, value] of [['name', 'Sam'], ['name1', 'Contact'], ['phone1', '+14165550101']]) {
+    h.main.querySelector(`[name=${name}]`).value = value;
+  }
+  h.main.querySelector('[name=permission]').checked = true;
+  h.main.querySelector('.kaze-form').dispatchEvent({type: 'submit', preventDefault() {}});
+  await until(() => finishArm); leave(h); finishArm(active); await tick(30);
+  assert.equal(h.main.querySelector('.kaze-record'), null);
+  assert(!h.calls.some(c => c.key === 'GET /v1/patients/p1/sessions/s1'));
+});
+
+test('late initial session list after page exit cannot mount permission or recording controls', async () => {
+  let finishList;
+  const h = loadPage('/out', {kaze: true, routes: {
+    'GET /v1/patients/p1/sessions': () => new Promise(resolve => { finishList = resolve; })}});
+  await until(() => finishList); leave(h); finishList({sessions: []}); await tick(30);
+  assert.equal(button(h, 'Save my voice permission'), undefined);
+  assert.equal(h.main.querySelector('.kaze-form'), null);
+  assert(!h.calls.some(c => c.key.includes('/consent?')));
+});

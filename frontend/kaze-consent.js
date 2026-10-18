@@ -1,6 +1,6 @@
 // Standing voice permission is separate from session setup. Never grant on page load or arm.
 window.kazeVoicePermission = async function(host, patientId) {
-  let generation = 0, disposed = false, saving = false;
+  let generation = 0, readSequence = 0, disposed = false, saving = false, decisionBlocked = false;
   const listeners = new Set();
   const controller = {ready: false};
   const section = el('fieldset', '', {class: 'kaze-permission'});
@@ -22,7 +22,7 @@ window.kazeVoicePermission = async function(host, patientId) {
     decision, confirmation, save, message);
   host.replaceChildren(section);
   const notify = (ready) => {
-    controller.ready = Boolean(ready) && !saving && !disposed;
+    controller.ready = Boolean(ready) && !saving && !disposed && !decisionBlocked;
     for (const listener of listeners) listener(controller.ready);
   };
   controller.watch = (listener) => {
@@ -30,16 +30,16 @@ window.kazeVoicePermission = async function(host, patientId) {
     return () => listeners.delete(listener);
   };
   controller.refresh = async () => {
-    const own = generation;
+    const own = generation, read = ++readSequence;
     if (disposed || saving) return false;
     try {
       const stored = await api(`/v1/patients/${patientId}/consent?scope=voice_check`);
-      if (disposed || saving || own !== generation) return false;
+      if (disposed || saving || own !== generation || read !== readSequence) return false;
       stateView.textContent = `Stored voice permission: ${stored.state}.`;
       notify(stored.state === 'granted');
       return controller.ready;
     } catch (_) {
-      if (!disposed && own === generation) {
+      if (!disposed && own === generation && read === readSequence) {
         stateView.textContent = 'Stored voice permission is unavailable. Recording is blocked.';
         notify(false);
       }
@@ -58,13 +58,13 @@ window.kazeVoicePermission = async function(host, patientId) {
   save.addEventListener('click', async () => {
     if (saving || disposed || !decision.value || !confirmed.checked) return;
     const own = ++generation;
-    saving = true; notify(false); updateSave(); // Invalidate pending microphones before the POST.
+    saving = true; decisionBlocked = true; notify(false); updateSave(); // Invalidate pending microphones before the POST.
     try {
       await api(`/v1/patients/${patientId}/consents`, {method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({scope: 'voice_check', status: decision.value, decided_by: 'resident'})});
       if (disposed || own !== generation) return;
-      saving = false;
+      saving = false; decisionBlocked = false;
       await controller.refresh();
       if (!disposed && own === generation) message.textContent = 'Your decision was recorded.';
     } catch (_) {

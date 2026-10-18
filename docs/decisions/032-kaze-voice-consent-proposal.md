@@ -77,3 +77,10 @@ wrong tenant/patient/actor, custody revocation, PSW/SDM/other-scope denial, no U
 inference, independent session arm/end, permission withdrawal during processing, pending
 microphone/location callbacks and stale callback isolation. Exact-head CI remains required;
 physical phones, real contacts and provider delivery retain their separate acceptance gates.
+
+
+Permission reads also carry a monotonic read sequence, so an older granted response cannot
+overwrite a newer withdrawal. A failed explicit decision keeps this page locally blocked until
+an explicit save succeeds, even if polling still sees the prior stored grant. The page lifetime
+guards list/arm/session responses: no late response mounts a session, restarts polling or
+repaints controls after exit. These are client lifecycle safeguards, not a new consent scope.

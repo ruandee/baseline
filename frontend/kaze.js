@@ -1,5 +1,8 @@
 // Synthetic KAZE pages. The server supplies a separate self-custody session token in memory.
 async function renderKaze(main, requestedId) {
+  let disposed = false;
+  const alive = () => !disposed;
+  window.addEventListener('pagehide', () => { disposed = true; }, {once: true});
   const person = state.session.patients[0];
   if (!person) throw new Error('KAZE person unavailable');
   const base = `/v1/patients/${person.id}/sessions`;
@@ -9,13 +12,15 @@ async function renderKaze(main, requestedId) {
   const permissionHost = el('section', '');
   main.append(permissionHost, content);
   const list = await api(base);
+  if (!alive()) return;
   const permission = await window.kazeVoicePermission(permissionHost, person.id);
+  if (!alive()) return;
   const selected = requestedId || ((KazeCore.openSession(list.sessions) || {}).id);
-  if (!selected) { renderKazeArm(content, base, permission); return; }
-  await renderKazeSession(content, base, selected, Boolean(requestedId), permission);
+  if (!selected) { renderKazeArm(content, base, permission, alive); return; }
+  await renderKazeSession(content, base, selected, Boolean(requestedId), permission, alive);
 }
 
-function renderKazeArm(host, base, permission) {
+function renderKazeArm(host, base, permission, alive) {
   const form = el('form', '', {class: 'kaze-form'});
   const fields = {};
   const input = (key, label, type, value = '') => {
@@ -48,6 +53,7 @@ function renderKazeArm(host, base, permission) {
   const unwatch = permission.watch((ready) => { button.disabled = submitting || !ready; });
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (!alive()) return;
     if (!acknowledgement.checked) { status.textContent = 'Please confirm permission for voice checks.'; return; }
     const parsed = KazeCore.validateArm({displayName: fields.name.value,
       endClock: fields.end.value, intervalMin: fields.interval.value,
@@ -58,19 +64,22 @@ function renderKazeArm(host, base, permission) {
     submitting = true; button.disabled = true;
     try {
       await permission.requireGranted();
+      if (!alive()) return;
       const session = await api(base, {method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(parsed.body)});
+      if (!alive()) return;
       // Phone values are no longer needed after submission; never retain them in browser storage.
       for (const n of [1, 2]) fields[`phone${n}`].value = '';
       unwatch();
-      await renderKazeSession(host, base, session.id, false, permission);
-    } catch (error) { status.textContent = 'Could not arm. Check consent with the operator and try again.'; }
-    finally { submitting = false; button.disabled = !permission.ready; }
+      await renderKazeSession(host, base, session.id, false, permission, alive);
+    } catch (error) { if (alive()) status.textContent = 'Could not arm. Check stored voice permission and try again.'; }
+    finally { submitting = false; if (alive()) button.disabled = !permission.ready; }
   });
   host.replaceChildren(form);
 }
 
-async function renderKazeSession(host, base, sid, judge, permission) {
+async function renderKazeSession(host, base, sid, judge, permission, alive) {
+  if (!alive()) return;
   let session, stopped = false, busyRefresh = false, endingPending = false, refreshVersion = 0;
   const heading = el('h2', 'Loading session');
   const detail = el('p', '');
@@ -112,7 +121,7 @@ async function renderKazeSession(host, base, sid, judge, permission) {
   let poll, clock, lastSignal = null;
   const ended = () => !session || session.status === 'ended' || Date.parse(session.ends_at) <= Date.now();
   function tick() {
-    if (!session || stopped) return;
+    if (!session || stopped || !alive()) return;
     if (ended()) {
       capture.cancel(); record.disabled = true; ending.disabled = true;
       location.disabled = true; countdown.textContent = 'Session ended';
@@ -136,13 +145,14 @@ async function renderKazeSession(host, base, sid, judge, permission) {
     }
   }
   async function refresh() {
-    if (busyRefresh || stopped || endingPending) return;
+    if (busyRefresh || stopped || endingPending || !alive()) return;
     busyRefresh = true;
     const version = ++refreshVersion;
     try {
       await permission.refresh();
+      if (stopped || !alive()) return;
       const latest = await api(endpoint);
-      if (stopped || version !== refreshVersion) return;
+      if (stopped || !alive() || version !== refreshVersion) return;
       session = latest;
       const view = KazeCore.personView(session);
       heading.textContent = view.headline;
@@ -166,7 +176,7 @@ async function renderKazeSession(host, base, sid, judge, permission) {
       record.disabled = ended() || !permission.ready;
       tick();
     } catch (error) {
-      if (stopped || version !== refreshVersion) return;
+      if (stopped || !alive() || version !== refreshVersion) return;
       // Fail closed: a failed refresh cannot leave an apparently valid recording session.
       status.textContent = 'Could not refresh this session. Reload before recording.';
       capture.cancel(); record.disabled = true;
@@ -180,26 +190,29 @@ async function renderKazeSession(host, base, sid, judge, permission) {
     record.disabled = ended() || !ready;
   });
   record.addEventListener('click', () => {
+    if (!alive() || stopped) return;
     if (ended()) { tick(); return; }
     if (!permission.ready) { status.textContent = 'Stored voice permission is required before recording.'; return; }
     if (capture.isRecording()) capture.stop(); else capture.start(location.checked);
   });
   ending.addEventListener('click', async () => {
+    if (!alive() || stopped) return;
     endingPending = true; refreshVersion += 1; // an older poll must not reopen an ended view
     capture.cancel(); record.disabled = true;
     try {
       session = await api(`${endpoint}/end`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'});
+      if (!alive() || stopped) return;
       const view = KazeCore.personView(session);
       heading.textContent = view.headline; detail.textContent = view.detail;
       tick();
     }
-    catch (error) { status.textContent = 'Could not confirm the end. Reload to check.'; }
-    finally { endingPending = false; refresh(); }
+    catch (error) { if (alive() && !stopped) status.textContent = 'Could not confirm the end. Reload to check.'; }
+    finally { endingPending = false; if (alive() && !stopped) refresh(); }
   });
   const cleanup = () => { stopped = true; unwatch(); refreshVersion += 1; capture.cancel(); clearInterval(poll); clearInterval(clock); };
   window.addEventListener('pagehide', cleanup, {once: true});
   await refresh();
-  if (!ended()) {
+  if (alive() && !stopped && !ended()) {
     poll = setInterval(() => { if (document.visibilityState !== 'hidden') refresh(); }, 5000);
     clock = setInterval(tick, 1000);
   }
