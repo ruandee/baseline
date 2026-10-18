@@ -139,6 +139,20 @@ async function showEvidence(id) {
   } catch(error){if(generation===state.generation && sequence===state.evidenceSequence)$('evidence-content').innerHTML=notice(error.message,'evidence');}
 }
 let bootBusy=false;
+let shiftWindowInitialized=false, shiftWindowEdited=false;
+for (const id of ['shift-start','shift-end']) {
+  for (const event of ['input','change']) $(id).addEventListener(event,()=>{shiftWindowEdited=true;});
+}
+function initializeShiftWindow(session) {
+  if (session.snapshot_mode!=='current') return;
+  $('handover-window-help').textContent='Default: last 24 hours. Adjust to your shift (UTC).';
+  if (shiftWindowInitialized || shiftWindowEdited) return;
+  const end=new Date(session.as_of);
+  if (Number.isNaN(end.getTime())) return;
+  $('shift-end').value=end.toISOString().slice(0,16);
+  $('shift-start').value=new Date(end.getTime()-24*60*60*1000).toISOString().slice(0,16);
+  shiftWindowInitialized=true;
+}
 async function boot(){
   if (bootBusy) return;
   bootBusy=true;
@@ -150,6 +164,7 @@ async function boot(){
       reference:typeof p.reference==='string' ? p.reference : '',
       questions:Array.isArray(p.questions) ? p.questions.filter(q=>typeof q==='string') : [],
     }));
+    initializeShiftWindow(state.session);
     $('nav-count').textContent=state.session.patients.length;
     $('connection').textContent='Workspace connected';
     $('global-error').hidden=true;

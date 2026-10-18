@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const {URL} = require('node:url');
 const code = fs.readFileSync(path.join(__dirname, '../../frontend/app.js'), 'utf8');
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const held = () => { let resolve; const promise = new Promise(r => {resolve=r;}); return {promise,resolve}; };
@@ -141,4 +142,45 @@ test('roster without optional reference/questions stays usable without inventing
   assert(h.get('patient-reference').textContent.includes('Reference not provided'));
   assert.equal(h.get('suggestions').innerHTML,'');
   assert(h.calls[1].url.startsWith('/v1/patients/p1/timeline?'));
+});
+
+
+const currentSession=()=>({...session([patient('p1'),patient('p2')]),snapshot_mode:'current',as_of:'2026-10-18T14:23:47Z'});
+test('hosted current snapshot echoes October cutoff and initializes explicit 24-hour UTC summary window',async()=>{
+  const h=page(url=>url==='/demo/session'?currentSession():url.endsWith('/questions')?answer('Synthetic October note'):undefined);
+  await tick();await tick();
+  assert.equal(h.get('shift-start').value,'2026-10-17T14:23');
+  assert.equal(h.get('shift-end').value,'2026-10-18T14:23');
+  assert(h.get('handover-window-help').textContent.includes('Default: last 24 hours. Adjust to your shift (UTC)'));
+  const request=h.calls.find(c=>c.url.includes('/timeline?'));
+  assert.equal(new URL(request.url,'http://synthetic.invalid').searchParams.get('as_of'),'2026-10-18T14:23:47Z');
+  h.get('question').value='What changed?';h.get('question-form').listeners.submit({preventDefault(){}});
+  assert.equal(JSON.parse(h.calls.find(c=>c.url.endsWith('/questions')).opts.body).as_of,'2026-10-18T14:23:47Z');
+  h.get('handover-form').listeners.submit({preventDefault(){}});
+  assert.deepEqual(JSON.parse(h.calls.find(c=>c.url.endsWith('/summaries')).opts.body),{
+    shift_start:'2026-10-17T14:23:00.000Z',shift_end:'2026-10-18T14:23:00.000Z'});
+});
+
+test('edited hosted shift is preserved across resident changes and session retries',async()=>{
+  let n=0;const h=page(url=>url==='/demo/session'?{...currentSession(),as_of:++n===1?'2026-10-18T14:23:47Z':'2026-10-19T16:45:00Z'}:undefined);
+  await tick();
+  h.get('shift-start').value='2026-10-18T07:00';h.get('shift-start').listeners.input();
+  h.get('shift-end').value='2026-10-18T19:00';h.get('shift-end').listeners.change();
+  h.select('p2');h.clickRetry('session');await tick();
+  assert.equal(h.get('shift-start').value,'2026-10-18T07:00');
+  assert.equal(h.get('shift-end').value,'2026-10-18T19:00');
+});
+
+test('date edits during pending bootstrap win over the hosted default; fixed snapshot keeps authored dates',async()=>{
+  const pending=held();const h=page(url=>url==='/demo/session'?pending.promise:undefined);
+  h.get('shift-start').value='2026-10-18T07:00';h.get('shift-start').listeners.input();
+  h.get('shift-end').value='2026-10-18T19:00';h.get('shift-end').listeners.input();
+  pending.resolve(currentSession());await tick();
+  assert.equal(h.get('shift-start').value,'2026-10-18T07:00');
+  assert.equal(h.get('shift-end').value,'2026-10-18T19:00');
+  const fixed=page(url=>url==='/demo/session'?{...session([patient('p1')]),snapshot_mode:'fixed'}:undefined);
+  fixed.get('shift-start').value='2026-01-02T00:00';fixed.get('shift-end').value='2026-01-03T00:00';
+  await tick();
+  assert.equal(fixed.get('shift-start').value,'2026-01-02T00:00');
+  assert.equal(fixed.get('shift-end').value,'2026-01-03T00:00');
 });

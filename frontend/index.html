@@ -45,7 +45,7 @@
       </div>
       <div id="handover-view" role="tabpanel" aria-labelledby="handover-tab" tabindex="0" hidden>
         <div class="view-heading"><div><h3>Prepare a handover</h3><p>Choose a shift. Review each claim and its source before sharing.</p></div></div>
-        <form id="handover-form"><div class="shift-inputs"><label>Shift start (UTC)<input id="shift-start" type="datetime-local" value="2026-01-02T00:00" required></label><label>Shift end (UTC)<input id="shift-end" type="datetime-local" value="2026-01-03T00:00" required></label></div><button class="primary" id="generate-summary" disabled>Create handover</button></form>
+        <form id="handover-form"><p id="handover-window-help" class="workspace-muted">Choose the start and end of your shift (UTC).</p><div class="shift-inputs"><label>Shift start (UTC)<input id="shift-start" aria-describedby="handover-window-help" type="datetime-local" value="2026-01-02T00:00" required></label><label>Shift end (UTC)<input id="shift-end" aria-describedby="handover-window-help" type="datetime-local" value="2026-01-03T00:00" required></label></div><button class="primary" id="generate-summary" disabled>Create handover</button></form>
         <div id="summary" aria-live="polite"><div class="summary-empty"><h3>No handover yet</h3><p>Select a resident and a shift to review documented changes, conflicts and unknowns.</p></div></div>
       </div>
     </section>
