@@ -231,3 +231,8 @@ export use exact current/baseline evidence, actual event times, declared labels/
 context and existing actions. Source lifecycle/expiry and permissions are rechecked on readback.
 Motion remains explicitly client-derived/unverified; missing provenance withholds the whole draft.
 No model, threshold/action policy change, clinical sign-off or writeback is introduced.
+
+BL-31 attribution follow-up adds importer-asserted, patient-scoped immutable note authorship and
+true-or-unknown own-note credit in the score-free due list. Ordinary PSW clinical retrieval stays
+denied; legacy source serialization/reset hashes are preserved. Decision033/migration013 record
+the feedback-only freshness and exact current-citation gates. Exact-head CI remains required.
