@@ -1,15 +1,20 @@
 <!doctype html>
 <html lang="en">
+<<<<<<< HEAD
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Baseline · Change watch</title><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/baseline.css"><script src="/assets/check-resident.js" defer></script><script src="/assets/check-setup.js" defer></script><script src="/assets/check.js" defer></script><script src="/assets/demo-days.js" defer></script><script src="/assets/resident-fixtures.js" defer></script><script src="/assets/note-export.js" defer></script><script src="/assets/signal-panel.js" defer></script><script src="/assets/resident.js" defer></script><script src="/assets/kaze-core.js" defer></script><script src="/assets/kaze-capture.js" defer></script><script src="/assets/kaze-consent.js" defer></script><script src="/assets/kaze.js" defer></script><script src="/assets/motion-core.js" defer></script><script src="/assets/motion-capture.js" defer></script><script src="/assets/motion.js" defer></script><script src="/assets/baseline.js" defer></script></head>
+=======
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Baseline · Change watch</title><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/baseline.css"><script src="/assets/check-resident.js" defer></script><script src="/assets/check.js" defer></script><script src="/assets/resident-fixtures.js" defer></script><script src="/assets/note-export.js" defer></script><script src="/assets/signal-panel.js" defer></script><script src="/assets/resident.js" defer></script><script src="/assets/kaze-core.js" defer></script><script src="/assets/kaze-capture.js" defer></script><script src="/assets/kaze.js" defer></script><script src="/assets/motion-core.js" defer></script><script src="/assets/motion-capture.js" defer></script><script src="/assets/motion.js" defer></script><script src="/assets/baseline.js" defer></script><link rel="stylesheet" href="/assets/usability.css"></head>
+>>>>>>> f4f33ae (BL-16: simplify nurse overview and polish accessible voice-check layouts)
 <body class="baseline">
+<a class="bl-skip-link" href="#bl-main">Skip to content</a>
 <nav class="bl-nav" aria-label="Baseline">
-  <a href="/" class="brand" aria-label="Patient Memory workspace"><span class="brand-mark">m<span>·</span></span></a>
-  <a href="/unit" data-route="unit">Unit</a>
-  <a href="/check?mode=resident" data-route="check">Check</a>
+  <a href="/unit" class="brand" aria-label="Baseline home"><span class="bl-brand-symbol" aria-hidden="true">b</span><span><b>baseline</b><small>Care with context</small></span></a>
+  <a href="/unit" data-route="unit">Unit overview</a>
+  <a href="/check?mode=resident" data-route="check">Voice checks</a>
   <a href="/check?type=motion">Movement</a>
-  <a href="/" class="bl-nav-end">Memory workspace</a>
+  <a href="/" class="bl-nav-end">Notes workspace</a>
   <span class="demo-badge">SYNTHETIC DEMO</span>
 </nav>
-<main id="bl-main" class="bl-main" aria-live="polite"></main>
+<main id="bl-main" class="bl-main" aria-live="polite" tabindex="-1"></main>
 </body>
 </html>
