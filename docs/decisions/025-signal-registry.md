@@ -66,3 +66,18 @@ actual runtime-role publication/readback, flat/nested compatibility, latest quie
 flag, future/stale exclusion, source lifecycle, ownership, PSW denial, revocation and budget
 aggregation. Default tests use only synthetic data/stubs; no model, sensor or paid-network calls.
 Full integrated CI, including PostgreSQL/S3 and stub evaluation, is required before merging.
+
+
+## Reprojection after source publication
+
+ADR015's global source-revision invalidation remains unchanged. A trusted adapter may register
+one scoped projection callback producing a fresh ModalityResult from immutable captures/facts
+and prompt-scoped history, only within 24 hours of the new primary capture. The speech callback
+reloads actual non-session voice checks, recalculates the engine and preserves actual event time
+and raw check citation. Other adapters provide the same source/lifecycle guarantees. Unavailable
+raw input removes a stored candidate; there is no fallback to an invalidated assessment.
+
+The new primary snapshot records immutable_capture_current_revision and the new revision for
+reprojected modalities. It recomputes current context/verdict once; no old verdict, SBAR or score
+is copied, no old row is restored, and no extra speech assessment/budget reservation is created.
+The callback registry is trusted application code, never a client/model-controlled tool surface.

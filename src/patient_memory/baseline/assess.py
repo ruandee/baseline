@@ -1,10 +1,12 @@
 """Score a stored check, decide the verdict and persist the assessment."""
+from dataclasses import replace
 from datetime import datetime
 from uuid import UUID, uuid4
 
 from psycopg.types.json import Jsonb
 
 from patient_memory.baseline.engine import (
+    CORROBORATION_WINDOW,
     FEATURES,
     MIN_BASELINE,
     REGISTRY,
@@ -17,7 +19,12 @@ from patient_memory.baseline.engine import (
     evaluate,
 )
 from patient_memory.baseline.sbar import sbar_template
-from patient_memory.baseline.signals import features_for, signal_sources
+from patient_memory.baseline.signals import (
+    PROJECTIONS,
+    features_for,
+    register_projection,
+    signal_sources,
+)
 from patient_memory.baseline.verdict import (
     ACTION_LABELS,
     TAG_LABELS,
@@ -123,7 +130,7 @@ def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_i
                            session_id=session_id)
 
 
-def _latest_modalities(conn, patient_id, check, revision):
+def _latest_modalities(conn, cfg, patient_id, check, revision):
     """Latest known result per other modality, not the latest *flagged* result.
 
     Event time, not assessment creation time, controls the as-of boundary. The current revision
@@ -174,7 +181,44 @@ def _latest_modalities(conn, patient_id, check, revision):
             params.get("modality_fused_z", row["fused_z"]), (),
             params.get("engine_params", params)), str(row["check_id"]),
             evidence_ids))
-    return results
+    # Source publication invalidates every old assessment (ADR015). Rebuild registered
+    # modalities from immutable captures under current scope rather than reviving old rows.
+    by_modality = {result.modality: result for result in results}
+    for name, project in PROJECTIONS.items():
+        if name == check.modality:
+            continue
+        fresh = project(conn, cfg, patient_id, check.ts)
+        by_modality.pop(name, None)  # unavailable raw input must not fall back to old status
+        if fresh is None:
+            continue
+        if fresh.modality != name or not check.ts-CORROBORATION_WINDOW <= fresh.ts <= check.ts:
+            raise ValueError("Adapter projection returned an invalid modality/event time")
+        if name != "speech":
+            signal_sources(conn, patient_id, Check(fresh.check_id, check.ts, "", "", False, True,
+                                                   {}, name, fresh.evidence_ids))
+        rebuilt = replace(fresh.assessment, params={**fresh.assessment.params,
+                          "projection": "immutable_capture_current_revision",
+                          "source_revision": revision})
+        by_modality[name] = replace(fresh, assessment=rebuilt)
+    return list(by_modality.values())
+
+
+def _speech_projection(conn, cfg, patient_id, at):
+    row = conn.execute(
+        "SELECT * FROM voice_checks WHERE patient_id=%s AND usable AND session_id IS NULL "
+        "AND ts<=%s AND ts>=%s ORDER BY ts DESC,id DESC LIMIT 1",
+        (patient_id, at, at-CORROBORATION_WINDOW)).fetchone()
+    if not row:
+        return None
+    check = Check(str(row["id"]), row["ts"], row["device_id"], row["prompt_version"],
+                  row["is_baseline"], True, {name: row[name] for name in FEATURES})
+    history = _history(conn, patient_id, check.ts, check.prompt_version)
+    mode = "enrolled" if sum(c.is_baseline for c in history) >= MIN_BASELINE else "rolling"
+    result = evaluate(check, history, mode, engine_settings(cfg, check.prompt_version))
+    return ModalityResult("speech", check.ts, result, check.id, ("check:"+check.id,))
+
+
+register_projection("speech", _speech_projection)
 
 
 def assess_modality(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check: Check,
@@ -202,7 +246,7 @@ def assess_modality(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, chec
     result = evaluate(check, history, mode, engine_settings(cfg, check.prompt_version))
     source_revision = conn.execute("SELECT revision FROM patients WHERE id=%s",
                                    (patient_id,)).fetchone()["revision"]
-    other = _latest_modalities(conn, patient_id, check, source_revision) if session_id is None else []
+    other = _latest_modalities(conn, cfg, patient_id, check, source_revision) if session_id is None else []
     combined = combine([*other, ModalityResult(check.modality, check.ts, result, check.id,
                                                check.evidence_ids)], check.ts)
     modal = combined_payload(combined)

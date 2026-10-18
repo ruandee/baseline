@@ -11,6 +11,7 @@ from patient_memory.baseline.engine import REGISTRY, Check, FeatureSpec, Modalit
 from patient_memory.errors import Problem
 from patient_memory.storage import transaction
 from tests.contract.test_api import client_for, import_note, source_payload
+from tests.contract.test_context import post as post_context
 from tests.integration.test_assessments import BASE, SLOW, seed_checks, store
 
 PROBE = Modality("probe", (FeatureSpec("probe_x", "probe", 1, 0.1),
@@ -248,3 +249,32 @@ def test_first_change_marker_uses_only_current_resident_evidence(sandbox, state)
                          (sandbox[2]["nurse"].tenant_id, sandbox[1], sid))
             conn.execute("UPDATE voice_checks SET session_id=%s WHERE id=%s", (sid, result.check_id))
     assert page(sandbox)["first_change_ts"] is None
+
+
+@pytest.mark.parametrize("flagged", [False, True])
+def test_new_revision_recomputes_raw_voice_never_restores_old_verdict(sandbox, probe, flagged):
+    fact, _ = evidence(sandbox)
+    context = post_context(sandbox, {"kind": "amplifier", "tag": "poor_intake", "label": "Synthetic old context",
+                                    "valid_from": (datetime.now(UTC)-timedelta(hours=1)).isoformat()})
+    assert context.status_code == 201
+    seed_checks(sandbox, 6)
+    original = store(sandbox, SLOW)
+    assert original.assessment["verdict"] == "escalate"
+    response = client_for(sandbox, "importer").post(
+        f"/v1/patients/{sandbox[1]}/sources/{context.json()['source_id']}/retract",
+        json={"reason": "Synthetic correction"}, headers={"Idempotency-Key": str(uuid4())})
+    assert response.status_code == 200
+    change, assessment = admit(sandbox, capture(fact, flagged=flagged))
+    assert assessment["corroborated"] is flagged
+    assert assessment["verdict"] == ("escalate" if flagged else "watch")
+    assert assessment["reasons"] == []
+    voice = change["modalities"]["speech"]
+    assert voice["check_id"] == str(original.check_id)
+    assert voice["ts"] == original.ts.isoformat()
+    assert voice["params"]["projection"] == "immutable_capture_current_revision"
+    with transaction(sandbox[0], sandbox[2]["nurse"]) as conn:
+        old = conn.execute("SELECT params FROM assessments WHERE id=%s",
+                           (original.assessment["id"],)).fetchone()
+        assert old["params"]["invalidated"]
+        assert conn.execute("SELECT count(*) AS n FROM assessments WHERE check_id=%s",
+                            (original.check_id,)).fetchone()["n"] == 1

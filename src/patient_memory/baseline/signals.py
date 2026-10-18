@@ -60,3 +60,15 @@ def signal_sources(conn, patient_id, check):
     if {row["id"] for row in rows} != ids:
         raise Problem(409, "signal_evidence_unavailable")
     return {str(row["source_id"]) for row in rows}
+
+
+# Trusted adapter code only; callbacks load immutable captures with RLS, not derived verdicts.
+PROJECTIONS = {}
+
+
+def register_projection(modality, project):
+    from patient_memory.baseline.engine import REGISTRY
+
+    if modality not in REGISTRY or modality in PROJECTIONS or not callable(project):
+        raise ValueError("Register one projection for a declared modality")
+    PROJECTIONS[modality] = project
