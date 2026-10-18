@@ -133,7 +133,7 @@ class Reason(Contract):
 
 class AssignmentInput(Contract):
     principal_id: UUID
-    role: Literal["importer", "nurse", "patient"]
+    role: Literal["importer", "nurse", "patient", "psw"]
     active: bool = True
 
 
@@ -239,8 +239,74 @@ class CheckResult(Contract):
     change: dict | None = None
     assessment: dict | None = None
     timings_ms: dict[str, int]
-    # Present only for check-ins inside a KAZE safety session (decision 018).
     session: "SessionSummary | None" = None
+
+
+class CheckReceipt(Contract):
+    """What a PSW gets back from POST /checks: no features, change, verdict or SBAR."""
+
+    check_id: UUID
+    ts: AwareDatetime
+    usable: bool
+
+
+ConsentScope = Literal["voice_check", "vox_encounter"]
+ConsentState = Literal["granted", "declined", "withdrawn", "expired", "unknown"]
+
+
+class ConsentInput(Contract):
+    """Appends a consent row; the latest row wins and applies to the next check."""
+
+    scope: ConsentScope = "voice_check"
+    status: Literal["granted", "declined", "withdrawn"]
+    decided_by: Literal["resident", "substitute_decision_maker", "synthetic_fixture"]
+    sdm_reference: str | None = Field(None, min_length=1, max_length=200)
+    expires_at: AwareDatetime | None = None
+    note: str | None = Field(None, max_length=500)
+
+    @model_validator(mode="after")
+    def consistent(self):
+        if self.decided_by == "substitute_decision_maker" and not self.sdm_reference:
+            raise ValueError("sdm_reference is required for a substitute decision-maker")
+        if self.expires_at and (self.status != "granted" or self.expires_at <= now()):
+            raise ValueError("expires_at applies to a future expiry of granted consent only")
+        return self
+
+
+class ConsentView(Contract):
+    scope: ConsentScope
+    state: ConsentState
+    decided_by: str | None
+    recorded_at: AwareDatetime | None
+    expires_at: AwareDatetime | None
+
+
+class SkipInput(Contract):
+    reason: Literal["declined", "asleep", "unwell", "not_available", "other"]
+    device_ts: AwareDatetime | None = None
+
+
+class SkipReceipt(Contract):
+    skip_id: UUID
+    recorded_at: AwareDatetime
+
+
+class DueResident(Contract):
+    """Deliberately score-free: no verdict, fused z, feature, sparkline or SBAR fields."""
+
+    patient_id: UUID
+    display_name: str
+    status: Literal["due", "done", "skipped", "consent_needed"]
+    consent_state: ConsentState
+    last_check_ts: AwareDatetime | None
+    skipped_today: bool
+    # Unknown (null), never false: sources do not record who submitted a note yet.
+    observation_helped: None = None
+
+
+class DueList(Contract):
+    day_start: AwareDatetime
+    residents: list[DueResident]
 
 
 SessionStatus = Literal["arming", "active", "escalating", "acknowledged", "ended"]

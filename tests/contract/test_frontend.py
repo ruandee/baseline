@@ -17,6 +17,22 @@ def workspace_client(sandbox):
     return TestClient(app, base_url='http://127.0.0.1:8001', client=('127.0.0.1', 1234))
 
 
+def test_resident_bootstrap_returns_only_psw_identity_and_fails_closed_when_unavailable(sandbox):
+    cfg, patient, actors, _ = sandbox
+    patients = [{'id': str(patient), 'name': 'Synthetic Test'}]
+    app = workspace_app(cfg, actors['nurse'], patients, psw=actors['psw'])
+    client = TestClient(app, base_url='http://127.0.0.1:8001', client=('127.0.0.1', 1234))
+    session = client.get('/demo/session', headers={'X-PM-Demo': '1', 'X-PM-Role': 'psw'})
+    assert session.status_code == 200
+    body = session.json()
+    assert 'psw_token' not in body  # no second, more privileged identity in the response
+    client.headers['Authorization'] = 'Bearer ' + body['token']
+    assert client.get('/v1/watchlist').status_code == 404
+    assert client.get('/v1/checks/due').status_code == 200
+    assert workspace_client(sandbox).get('/demo/session', headers={
+        'X-PM-Demo': '1', 'X-PM-Role': 'psw'}).status_code == 503
+
+
 def test_workspace_local_session_and_read_scope(sandbox):
     import_note(sandbox)
     client = workspace_client(sandbox)
@@ -130,13 +146,6 @@ def test_shell_health_calls_work_for_the_nurse_token(sandbox):
     assert client.get('/v1/health/ready').status_code == 404
 
 
-<<<<<<< HEAD
-def test_resident_assets_are_served(sandbox):
-    client = workspace_client(sandbox)
-    for asset in ('resident.js', 'resident-fixtures.js'):
-        assert client.get('/assets/' + asset).status_code == 200
-    assert 'resident.js' in client.get('/resident/some-id').text
-=======
 def test_check_page_serves_its_scripts_before_the_shell_script(sandbox):
     client = workspace_client(sandbox)
     page = client.get('/check?mode=live&mock=1')
@@ -146,4 +155,10 @@ def test_check_page_serves_its_scripts_before_the_shell_script(sandbox):
     assert 'check-fixtures.js' not in html  # fixtures load lazily, only for ?mock=1
     for asset in ('check.js', 'check-fixtures.js'):
         assert client.get(f'/assets/{asset}').status_code == 200
->>>>>>> origin/main
+
+
+def test_resident_assets_are_served(sandbox):
+    client = workspace_client(sandbox)
+    for asset in ('resident.js', 'resident-fixtures.js'):
+        assert client.get('/assets/' + asset).status_code == 200
+    assert 'resident.js' in client.get('/resident/some-id').text
