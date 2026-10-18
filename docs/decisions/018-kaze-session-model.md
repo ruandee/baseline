@@ -200,3 +200,22 @@ DELETE grant is added.
 - Migration 006 chains directly off BL-10's 005 (`note_context_runs`), so alembic has one head.
 - Not done here: scheduler, SMS, ack route, pages, `loud_venue` quality tolerance, and integrated
   acceptance after the PointClickCare path reaches BL-13.
+
+### BL-28 page integration
+
+The synthetic /out pages use the standard session clock and a separately configured self-custody
+KAZE identity. Capture cancels pending callbacks at end or expiry; explicit opt-in controls
+location. Timeline redacts links/coordinates and labels actual delivery outcomes; acknowledgement
+latency measures escalation attempts, not delivered texts. See ../kaze-pages.md. BL-27's public
+acknowledgement navigation retains origin/host and clinical-route guards (decision 023). Held
+policy questions and loud-venue SNR adjustment remain separate.
+
+### BL-25 loud-venue capture follow-up
+
+An authorized session's immutable loud_venue context lowers only the SNR quality threshold by
+3 dB (10 dB to 7 dB). Duration, speech/word counts, clipping, prompt matching and undefined-SNR
+refusal remain unchanged. Context is read after session authorization and expiry checks before
+audio processing; submitted form flags cannot opt ordinary recordings into the relaxation.
+Admission still rechecks session authorization and expiry before storing a check. The open
+session recording view says "Step outside to answer, somewhere quiet before recording."
+No response schema changes and no held product-policy question is resolved by this follow-up.

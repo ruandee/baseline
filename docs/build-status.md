@@ -183,12 +183,18 @@ and refreshed authorization. All reason, observation and SBAR citation buttons a
 including withheld readback after assessment change/revocation. Headless Chrome renders desktop
 and phone-width synthetic fixtures; this does not claim physical-phone or live-audio acceptance.
 
-### BL-21 reset branch (pending review and combined CI)
+BL-28 pages add separate KAZE bootstrap, arming, baseline/session recording, countdown/reminders
+and a delivery/acknowledgement timeline. Logged/failed attempts never claim sent SMS. Latest
+SMS integration preserves public acknowledgement navigation and clinical/bootstrap guards.
+Physical phone/SMS/rehearsal gates remain open; page setup is in docs/kaze-pages.md.
 
-An explicit one-command fixture-only reset translates copied scenario prefixes to one UTC demo
-anchor, requires all twelve actual canonical outcomes, privately refreshes 48-hour nurse/PSW
-tokens and prints unit/PSW/live URLs. Dedicated live/runner people preserve recordings outside
-the scripted allowlist. Exact identity/hash/measurement validation, scoped ID cleanup and a
-resumable marker reject unrecognized data; consent/revocations and other patients remain intact.
-Historical loader modes/fixture values remain unchanged. DB/image validation and the public
-hosting/phone/latency gates remain outstanding; issue23/issue22 are not closed by this branch.
+BL-25 loud-venue follow-up scopes the specified 3 dB SNR tolerance to authorized stored session
+context and adds the open-session quiet-place hint. All other quality gates remain unchanged;
+synthetic checks do not establish real venue or golden-recording acceptance.
+
+BL-21 reset (pending combined CI): one-command fixture-only reset translates copied scenario
+prefixes to one UTC anchor, verifies all twelve canonical outcomes and refreshes private
+48-hour nurse/PSW tokens. Separate live/runner patients preserve recordings; exact immutable
+fixture validation, scoped cleanup and resumable markers protect unrelated data and consent.
+The wrapper configures server-side runner suppression before services start. Hosted reset
+under one minute and phone/latency acceptance remain open (Refs #23 #22).

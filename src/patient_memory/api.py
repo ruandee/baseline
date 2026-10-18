@@ -13,12 +13,12 @@ import psycopg
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import Depends, FastAPI, File, Form, Header, Query, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import AwareDatetime
 
 from patient_memory.auth import decode_token
-from patient_memory.baseline import sessions
+from patient_memory.baseline import ack, sessions
 from patient_memory.baseline.assess import FREE_CONVERSATION
 from patient_memory.baseline.context import add_context
 from patient_memory.baseline.note import draft_note
@@ -382,17 +382,20 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             if lat is None or lon is None or session_id is None:
                 raise Problem(422, "invalid_request")
             location = (lat, lon, accuracy_m)
+        loud_venue = False
         if session_id is not None:
             with transaction(cfg, actor) as conn:
                 care_gate(conn, patient_id)
-                sessions.check_gate(conn, patient_id, session_id, mode, is_baseline)
+                session = sessions.check_gate(conn, patient_id, session_id, mode, is_baseline)
+                loud_venue = "loud_venue" in session["context_tags"]
         work = Path(tempfile.mkdtemp(prefix="check-"))
         try:
             upload = work / "upload"
             with upload.open("wb") as out:
                 shutil.copyfileobj(audio.file, out)
             try:
-                analysis = analyze(upload, work, app.state.transcriber)
+                analysis = analyze(upload, work, app.state.transcriber,
+                                   **({"loud_venue": True} if loud_venue else {}))
             except InvalidAudio as exc:
                 raise Problem(422, "invalid_audio") from exc
             except DecoderUnavailable as exc:
@@ -525,6 +528,24 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
                     actor=actor_dep):
         with transaction(cfg, actor) as conn:
             return sessions.end(conn, actor, patient_id, session_id, request.state.request_id)
+
+    def ack_response(kind: str) -> HTMLResponse:
+        code = {"invalid": 404, "unavailable": 503}.get(kind, 200)
+        return HTMLResponse(ack.page(kind), status_code=code, headers=ack.HEADERS)
+
+    # Public token-scoped acknowledgement: GET mutates per the specified KAZE contract.
+    # POST is equivalent; neither response exposes session/contact details.
+    @app.get("/ack/{token}", response_class=HTMLResponse)
+    @app.post("/ack/{token}", response_class=HTMLResponse)
+    def ack_submit(token: str):
+        if not ack.well_formed(token):
+            return ack_response("invalid")
+        try:
+            result = ack.acknowledge(cfg, token)
+        except psycopg.Error:
+            logging.getLogger("patient_memory.requests").warning("acknowledgement unavailable")
+            return ack_response("unavailable")
+        return ack_response(result)
 
     @app.get("/v1/watchlist")
     def watchlist(actor=actor_dep):

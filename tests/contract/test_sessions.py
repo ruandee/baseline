@@ -264,10 +264,32 @@ def test_raw_session_change_survives_pcc_budget_and_profile_for_ladder_consumers
     assert first.json()["change"]["status"] == "provisional"
     assert second.json()["change"]["status"] == "change"
     assessment = second.json()["assessment"]
-    assert assessment["over_budget"] if profile == "budget" else assessment["no_escalate"]
+    assert assessment["verdict"] == "escalate"
+    assert not assessment["over_budget"] and not assessment["no_escalate"]
+    assert not assessment["would_escalate"]
     # BL-26 must consume this raw session change plus session explainers, not the PCC verdict.
     status = client(k).get(f"/v1/patients/{k['patient']}/sessions/{sid}").json()
     assert status["context_tags"] == [] and status["checks"][-1]["change_status"] == "change"
+    from uuid import UUID
+
+    from patient_memory.baseline.safety import run_pass
+    steps = run_pass(cfg, k["ids"]["service"])
+    assert [(str(session_id), step.level, step.trigger) for session_id, step in steps] == [
+        (sid, 2, "speech_change")]
+    # A repeated worker pass neither sends another level nor consumes the PCC shift budget.
+    assert run_pass(cfg, k["ids"]["service"]) == []
+    from patient_memory.baseline.assess import escalations_used
+    from patient_memory.storage import transaction
+    with transaction(cfg, k["ids"]["service"]) as conn:
+        now = conn.execute("SELECT clock_timestamp() AS t").fetchone()["t"]
+        assert escalations_used(conn, now, cfg) == 0
+        # The narrow PSW scoring definer has the same session exclusion as ordinary reads.
+        from patient_memory.checks import scoring_context
+        with scoring_context(conn, k["patient"]):
+            assert escalations_used(conn, now, cfg) == 0
+        assert conn.execute("SELECT ladder_level FROM safety_sessions WHERE id=%s",
+                            (UUID(sid),)).fetchone()["ladder_level"] == 2
+
 
 
 def test_another_persons_session_id_is_404(kaze_sandbox):
@@ -293,6 +315,50 @@ def check_in(k, sid, clip, is_baseline, **fields):
         data={"mode": "live", "device_id": "phone", "session_id": sid,
               "is_baseline": str(is_baseline).lower(), **fields},
         files={"audio": ("clip", clip, "application/octet-stream")})
+
+
+@pytest.mark.parametrize("tags,expected", [([], {}), (["exertion"], {}),
+                                        (["loud_venue"], {"loud_venue": True})])
+def test_noise_tolerance_comes_only_from_authorized_stored_session(
+        kaze_sandbox, monkeypatch, tags, expected):
+    k = kaze_sandbox
+    sid = arm(k, context_tags=tags).json()["id"]
+    calls = []
+
+    def analyze(*args, **kwargs):
+        calls.append(kwargs)
+        return Analysis(False, {**QUALITY, "reasons": ["too_short"]}, BASE, [], [], {})
+
+    monkeypatch.setattr("patient_memory.api.analyze", analyze)
+    # An extra form field cannot request relaxed quality; stored session context wins.
+    response = check_in(k, sid, b"synthetic stub", True, loud_venue="true")
+    assert response.status_code == 200, response.text
+    assert calls == [expected]
+    assert response.json()["usable"] is False
+    # A foreign session never reaches audio analysis, even if the form asks for tolerance.
+    response = check_in(k, str(uuid4()), b"synthetic stub", True, loud_venue="true")
+    assert response.status_code == 404 and calls == [expected]
+
+
+def test_form_cannot_relax_an_ordinary_or_someone_elses_recording(
+        sandbox, kaze_sandbox, monkeypatch):
+    cfg, patient, actors, objects = sandbox
+    seen = []
+    def analyze(*args, **kwargs):
+        seen.append(kwargs)
+        return Analysis(False, {**QUALITY, "reasons": ["too_noisy"]}, BASE, [], [], {})
+    monkeypatch.setattr("patient_memory.api.analyze", analyze)
+    ordinary = TestClient(create_app(cfg, objects, transcriber=on_script))
+    ordinary.headers["Authorization"] = "Bearer " + synthetic_token(actors["nurse"], cfg)
+    response = ordinary.post(f"/v1/patients/{patient}/checks",
+                             data={"mode": "resident", "device_id": "ordinary-phone", "loud_venue": "true"},
+                             files={"audio": ("clip", b"synthetic stub", "audio/wav")})
+    assert response.status_code == 200, response.text
+    assert seen == [{}] and response.json()["quality"]["reasons"] == ["too_noisy"]
+    k = kaze_sandbox
+    other = arm(k, "other", patient=k["other_patient"], context_tags=["loud_venue"]).json()["id"]
+    response = check_in(k, other, b"synthetic stub", True, loud_venue="true")
+    assert response.status_code == 404 and seen == [{}]
 
 
 @needs_ffmpeg
