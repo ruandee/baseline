@@ -155,3 +155,18 @@ def test_check_page_serves_its_scripts_before_the_shell_script(sandbox):
     assert 'check-fixtures.js' not in html  # fixtures load lazily, only for ?mock=1
     for asset in ('check.js', 'check-fixtures.js'):
         assert client.get(f'/assets/{asset}').status_code == 200
+
+
+def test_resident_assets_are_served(sandbox):
+    client = workspace_client(sandbox)
+    for asset in ('resident.js', 'resident-fixtures.js'):
+        assert client.get('/assets/' + asset).status_code == 200
+    assert 'resident.js' in client.get('/resident/some-id').text
+def test_note_export_preview_is_served_and_only_reads(sandbox):
+    """BL-33: the sign-off button is a preview; the module issues no write requests."""
+    from scripts.frontend import ROOT
+    client = workspace_client(sandbox)
+    assert client.get('/assets/note-export.js').status_code == 200
+    source = (ROOT / 'frontend' / 'note-export.js').read_text(encoding='utf-8')
+    assert '/note' in source and 'Nothing is sent' in source
+    assert 'method' not in source and 'fetch(' not in source  # only h.api GET calls

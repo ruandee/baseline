@@ -62,6 +62,7 @@ class Element_ extends Node_ {
     }
     return this.getAttribute('value') || '';
   }
+  set value(v) { this.setAttribute('value', v); }
   addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); }
   removeEventListener(type, fn) { this.listeners[type] = (this.listeners[type] || []).filter((f) => f !== fn); }
   dispatchEvent(event) {
@@ -170,7 +171,7 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, s
     listeners: {},
     addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); },
     document: doc, location: {pathname: parsed.pathname, search: parsed.search},
-    fetch, URLSearchParams, Blob, FormData, URL, Promise, JSON, Math, Date, Object, Array, Map,
+    fetch, atob, btoa, TextEncoder, TextDecoder, URLSearchParams, Blob, FormData, URL, Promise, JSON, Math, Date, Object, Array, Map,
     Number, String, Error, setTimeout, clearTimeout, setInterval, clearInterval,
     console: {error: (e) => errors.push(e), log() {}, warn() {}},
     getComputedStyle: () => ({getPropertyValue: () => ''}),
@@ -203,7 +204,7 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, s
       }
     });
   };
-  for (const file of ['check-resident.js', 'check.js',
+  for (const file of ['check-resident.js', 'check.js', 'resident-fixtures.js', 'note-export.js', 'resident.js',
     ...(kaze ? ['kaze-core.js', 'kaze-capture.js', 'kaze.js'] : []), 'baseline.js']) {
     vm.runInContext(fs.readFileSync(path.join(FRONTEND, file), 'utf8'), ctx, {filename: file});
   }

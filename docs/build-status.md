@@ -1,5 +1,9 @@
 # Implementation status and remaining gates
 
+BL-17 follow-up: live checks display eligible prior baseline checks from the engine contract
+and report measured engine/verdict elapsed milliseconds. This does not change scoring policy;
+real phone/audio and hosted latency acceptance remain open.
+
 This is the current runtime handoff after the explicitly approved policy/scenario adoption
 (PRs #60 and #61), built on the backend MVP and reviewed Baseline core. Implementation and
 synthetic engineering checks do not establish clinical validation or real-data pilot readiness.
@@ -167,11 +171,22 @@ analysis cap; staff-containing temporary audio is always removed regardless of K
 Checks remain prompt-scoped; first-change marker uses the displayed prompt. Real speech/Vox
 UI remain unvalidated, and overview prompt switching stays on hold (decision016).
 
-BL-28 pages provide separate self-custody KAZE bootstrap, arming, baseline/session recording,
-countdown/reminders and delivery/acknowledgement timeline. Logged and failed escalation attempts
-are not presented as sent SMS. Phone capture and two-phone receipt/ack acceptance remain open.
-BL-27 integration preserves public acknowledgement navigation through the same-origin frontend,
-while clinical/bootstrap and cross-site POST guards remain unchanged; no real SMS is claimed.
+BL-19 resident integration (review branch): live authorized overview, four speech charts,
+clickable source evidence, server-labelled action handoff button, and structured engine
+parameters. Recorded temperature includes source/time (Mrs. K 37.1 Celsius); no absence or
+normal-range inference. The available stored SBAR mounts BL-33 exact preliminary export and
+local human-edited, unverified preview. API-captured cohort/DOM and lifecycle tests are added;
+DB-backed CI and real phone/host acceptance remain gates until their actual results.
+
+BL-19 follow-up makes every check citation interactive with matching assessment/check identity
+and refreshed authorization. All reason, observation and SBAR citation buttons are exercised,
+including withheld readback after assessment change/revocation. Headless Chrome renders desktop
+and phone-width synthetic fixtures; this does not claim physical-phone or live-audio acceptance.
+
+BL-28 pages add separate KAZE bootstrap, arming, baseline/session recording, countdown/reminders
+and a delivery/acknowledgement timeline. Logged/failed attempts never claim sent SMS. Latest
+SMS integration preserves public acknowledgement navigation and clinical/bootstrap guards.
+Physical phone/SMS/rehearsal gates remain open; page setup is in docs/kaze-pages.md.
 
 BL-25 loud-venue follow-up scopes the specified 3 dB SNR tolerance to authorized stored session
 context and adds the open-session quiet-place hint. All other quality gates remain unchanged;
