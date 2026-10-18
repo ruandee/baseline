@@ -236,6 +236,10 @@ plus the revised three-test real Whisper golden suite passed on Dee's original f
 The original stairs pitch failure remains in decision 030. Local Compose cannot connect to the
 Docker engine while Windows activation/restart is pending; full service acceptance uses CI and
 does not establish that a particular live deployment or phone has passed rehearsal.
+
+Latest live-demo handoff: actual enrollment is paused in this agent and delegated to a teammate.
+An optional fixed-outcome presentation is documented as a labelled simulation plan only; no
+hardcoded verdict or write into real capture history is implemented.
 BL-35 integration: explicit resting HR/RR observations feed current-revision signal projections
 and isolated synthetic RR-rise acceptance; unknown rest/time/units stay unavailable. ADR028
 records engineering-only vitals parameters and012scoped PSW facts; ordinary evidence remains

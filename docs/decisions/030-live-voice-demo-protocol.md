@@ -43,3 +43,9 @@ detection, false-alarm rates, the change engine or clinical usefulness.
 
 Original recordings, transcripts and private receipts remain outside Git/CI. Synthetic default
 tests remain offline. Real-device, hosted API enrollment and rehearsals remain separate gates.
+
+Latest handoff: Dee paused this agent's actual enrollment and delegated execution to a teammate.
+Confirm who speaks and use only that person's baseline. An optional fixed-outcome demo is a
+plan, not an implemented or validated detector: any authored result must be visibly simulated
+and separate from the real recording, measurements and stored assessment. No hardcoded clinical
+or live-derived verdict is introduced by this revision.
