@@ -133,3 +133,23 @@
 }
 
 @media(max-width:760px) { .notes-app .shell { margin-left:0; } }
+
+/* The record, resident picker and source-backed answers share a flat desk. */
+.notes-app .shell { margin: 0 auto; max-width: 1600px; padding: 0 3%; }
+.notes-app .topbar { height: 42px; }
+.notes-app .page-title { padding: 16px 0 23px; }
+.notes-app .workspace { grid-template-columns: 220px minmax(0,1fr) 340px; gap: 24px; }
+.notes-app .roster,.notes-app .record,.notes-app .assistant { background: transparent; border: 0; border-top: 1px solid var(--line); border-radius: 0; }
+.notes-app .roster { padding: 18px 0 0; }
+.notes-app .roster-foot { margin-inline: 0; padding-inline: 0; }
+.notes-app .record { padding: 18px 0; }
+.notes-app .assistant { padding: 18px 0 18px 22px; border-left: 1px solid var(--line); }
+.notes-app .patient-button { border-radius: 0; border: 0; border-bottom: 1px solid var(--line); }
+.notes-app .patient-button.selected { box-shadow: inset 3px 0 #728468; }
+.notes-app .patient-heading { padding-bottom: 18px; }
+.notes-app .composer,.notes-app .scope-note,.notes-app .suggestion,.notes-app .answer-block,.notes-app .question-bubble { border-radius: 4px; box-shadow: none; }
+.notes-app .filter { border-radius: 3px; }
+.notes-app .avatar { border-radius: 6px; }
+.notes-app dialog { border-radius: 6px; }
+@media(max-width:1200px) { .notes-app .workspace { grid-template-columns: 200px minmax(0,1fr); }.notes-app .assistant { grid-column: 2; border-left: 0; padding-left: 0; } }
+@media(max-width:850px) { .notes-app .workspace { grid-template-columns: minmax(0,1fr); gap: 18px; }.notes-app .assistant { grid-column: auto; }.notes-app .shell { margin: 0; padding-inline: 5%; } }

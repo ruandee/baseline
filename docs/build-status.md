@@ -1,5 +1,10 @@
 # Implementation status and remaining gates
 
+Frontend redesign: the flat visual direction and rounder Nunito typography were accepted for
+iteration. The scope now includes all seven frontend areas (fifteen screen types), including
+movement, KAZE and presentation variants. See [the inventory](frontend-redesign.md) for
+per-screen evidence and unfinished review. Concepts and branch changes are not a live release.
+
 BL-17 replacement (decision036): `/unit?demo=handoff` hosts a two-resident presentation room.
 Separate phone links record locally and submit only a duration/idempotency receipt. The runner
 arrives as Watch; nurse-added exertion context changes it to Explained. Dee's first/second

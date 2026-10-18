@@ -118,3 +118,19 @@ The next review found excessive blank space in the unit concept. Desktop rows no
 78px minimum (previously 108px), with tighter heading/summary spacing, 3% outer gutters and
 a closer 320px context pane. Text contrast and secondary type size were increased rather
 than shrinking text to achieve density. Phone rows retain an 88px minimum and 44px controls.
+
+
+### Runtime visual milestone and expanded review
+
+The accepted flat direction now reaches the functional shared header, compact unit worklist,
+notes desk and nurse hub. Nunito and its license are bundled in `frontend/fonts/`; no font
+service is contacted. The resident recorder gains the original line drawing, warm surfaces,
+truthful recording disclosure and optional retry language. Consent blocking hides the prompt;
+completion hides old instructions. Capture, automatic submission, cancellation and scoring
+logic are unchanged. The runtime disclosure explicitly describes Stop/time-limit submission,
+rather than claiming the concept's unimplemented post-stop send/discard choice.
+
+The user requested iteration on every frontend piece. `docs/frontend-redesign.md` now lists
+all seven product areas and fifteen screen types, including movement, KAZE contact
+acknowledgement and both current/legacy presentation surfaces. Shared typography alone does
+not mark those detailed workflows visually accepted.

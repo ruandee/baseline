@@ -14,6 +14,9 @@ using fictional records, without clinical validation, diagnosis or treatment rec
 
 Start here:
 
+- [Frontend redesign inventory](docs/frontend-redesign.md): all seven areas and fifteen screen types,
+  with actual implementation evidence and remaining visual review. This branch is not a deployment.
+
 - [Hosted unit dashboard](https://baseline.deeruan.com/unit): twelve fictional residents,
   resident charts, cited evidence, documented temperature and preliminary handoff/export.
 - [Presentation guide](docs/live-voice-demo.md): the prepared `/unit?demo=handoff` workflow

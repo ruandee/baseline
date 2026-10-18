@@ -16,7 +16,7 @@ const RESIDENT_PROMPTS = {
 const RESIDENT_TEXT = {
   thanks: (name) => (name ? `Thank you, ${name}.` : 'Thank you.'),
   done: "That's all for today.",
-  again: "Thank you. Let's try once more.",
+  again: "Thank you. Would you like to try once more? You can skip today instead.",
   skipped: "That's okay, we'll skip today.",
   help: "Let's stop here for now. Please ask a staff member to help.",
   consent: 'We need to check with the nurse before we start.',
@@ -183,7 +183,11 @@ async function renderResidentCheck(main, params, patientId) {
   const back = el('a', 'Back to the list', {href: residentLink(params, null), class: 'bl-back', hidden: ''});
   const actions = el('div', '', {class: 'bl-resident-actions'});
   actions.append(record, skip);
-  card.append(heading, text, hear, languageLabel, actions, reasons, listening, message, resend, back);
+  const drawing = el('img', '', {src: '/assets/resident-together.svg', alt: '',
+    class: 'resident-together', width: '142', height: '95'});
+  const purpose = el('p', 'This records your voice for your care team. It is sent when you stop or after half a minute. You can choose Skip today to stop without sending.',
+    {class: 'resident-purpose'});
+  card.append(drawing, heading, purpose, text, hear, languageLabel, actions, reasons, listening, message, resend, back);
   main.append(card);
 
   const canSpeak = typeof window.speechSynthesis !== 'undefined'
@@ -221,6 +225,8 @@ async function renderResidentCheck(main, params, patientId) {
     operation++;
     flow = {...flow, done: true};
     card.dataset.state = view;
+    purpose.hidden = true;
+    text.hidden = true;
     record.hidden = true;
     skip.hidden = true;
     hear.hidden = true;
@@ -244,6 +250,8 @@ async function renderResidentCheck(main, params, patientId) {
   const consentBlocked = () => {
     operation++; kept = null; record.disabled = true;
     card.dataset.state = 'consent';
+    purpose.hidden = true;
+    text.hidden = true;
     record.hidden = true;
     hear.hidden = true;
     resend.hidden = true;
