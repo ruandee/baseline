@@ -46,7 +46,7 @@ No real-data integration is authorized by these implemented milestones.
 | BL-12 SBAR | Grounded sentence assembly, exact standard action, strict IDs/numbers/sections, template fallback and post-commit enrichment | [Decision 014](decisions/014-validated-sbar-drafts.md); provider work occurs outside DB transactions |
 | BL-14 loader | Twelve deterministic fictional residents, immutable published sources, authored synthetic checks, real runtime-role scoring and strict reports | [Decision 008](decisions/008-baseline-storyline-preparation.md), [loader guide](../fixtures/synthetic/baseline_storylines.README.md); approved +35% Mr. T scenario |
 | F01 / BL-16 frontend | Local evidence workspace plus Baseline shell and same-origin session/host guards | [Decision 003](decisions/003-local-patient-workspace.md), [Decision 005](decisions/005-baseline-frontend-location.md); full capture/resident readback needs frontend verification |
-| BL-20 hosting (draft #54 + #62) | Opt-in `compose.demo.yaml`: ffmpeg image, readiness-gated same-origin API/frontend behind digest-pinned Caddy, tenant-0 worker, explicit migrate/bootstrap/offline BL-14 `load` steps; RLS-read roster (6 seeded, 12 after load); admin URL refused by serve/worker; default JWT secret refused in hosted mode | [Decision 010](decisions/010-demo-hosting.md), [recipe](demo-hosting.md); CI image smoke on localhost only. Public HTTPS/DNS, phone/LTE capture and host p95 unverified; not merged to main |
+| BL-20 hosting (merged #73) | Opt-in `compose.demo.yaml`: ffmpeg image, readiness-gated same-origin API/frontend behind digest-pinned Caddy, tenant-0 worker, explicit migrate/bootstrap/offline BL-14 `load` steps; RLS-read roster (6 seeded, 12 after load); admin URL refused by serve/worker; default JWT secret refused in hosted mode | [Decision 010](decisions/010-demo-hosting.md), [recipe](demo-hosting.md), [beginner walkthrough](deployment-walkthrough.md); CI image smoke on localhost only. No server/domain provisioned; public HTTPS/DNS, phone/LTE capture and host p95 unverified |
 
 Only care-team roles can write voice checks; unauthorized patients/roles return 404 before audio
 work. Multipart is allowed only on the check route, with a 2 MB whole-body limit; other routes
@@ -120,13 +120,16 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
 - Real golden recordings, slow Whisper/VAD acceptance and runner baseline/backup/race clips
   remain outstanding. Recordings are on hold. FFmpeg is installed locally; no real audio has
   been validated by the feature loader.
-- Public HTTPS/DNS/token configuration, LTE Safari/Chrome capture, warm host p95 below 5 s and
-  full UI evidence/SBAR readback remain separate acceptance work.
-- Current-time/reset presentation, consuming the full 12-patient roster in the frontend,
-  and displaying Mrs. K's documented 37.1 C observation in overview/UI remain outstanding.
-- KAZE sessions/SMS/acknowledgement, Vox/experience/export feedback and stretch modalities are
-  separate planned features; this handoff does not mark those tickets complete. Submission,
-  backup video and two rehearsals are also tracked separately in the build tracker.
+- Public HTTPS/DNS/token configuration, LTE Safari/Chrome capture and warm host p95 below 5 s
+  remain acceptance work. UI evidence/SBAR readback passes API-captured DOM and lifecycle tests;
+  physical-phone readback has not been verified.
+- The 12-patient roster, Mrs. K's sourced 37.1 C observation, resident charts and preliminary
+  export are merged (#55). Current-time reset remains in #79 pending final combined CI/review.
+- KAZE sessions, scheduler, SMS/acknowledgement and pages are merged (#66/#69/#72/#71/#80);
+  hosted worker/bootstrap remains in #76. Real two-phone SMS/ack acceptance remains open.
+  Vox mock and consent/PSW flows are merged; real/nontechnical user acceptance remains open.
+  Registry #78, motion and vitals remain development work. Submission, backup video and two
+  rehearsals are tracked separately; implemented code alone does not close those gates.
 
 Follow README/operations and the exact CI order before claiming a new integrated milestone done.
 Do not introduce real patient data before source permissions, hosting, provider handling and
@@ -162,7 +165,9 @@ source-submitter attribution for ?Your observation helped? remain open. This is 
 
 KAZE session model, expiry/retention hardening and synthetic engineering tests from decision 018
 are integrated. Migration 007 follows 006; explicit synthetic session fixtures record consent.
-Scheduler, delivery and real-device acceptance remain separate work.
+Scheduler and durable delivery/public acknowledgement are merged; real-device acceptance remains
+open. The default sender logs simulated delivery and sends no SMS. Hosted KAZE credentials,
+bootstrap and dedicated worker remain in #76 pending integration acceptance.
 
 BL-32 Vox mock adapter integration: care-team authorization, standing `vox_encounter` consent
 before decode and locked publication (403 consent_required), plus exactly one raw true request
@@ -171,12 +176,14 @@ analysis cap; staff-containing temporary audio is always removed regardless of K
 Checks remain prompt-scoped; first-change marker uses the displayed prompt. Real speech/Vox
 UI remain unvalidated, and overview prompt switching stays on hold (decision016).
 
-BL-19 resident integration (review branch): live authorized overview, four speech charts,
+BL-19 resident integration (merged #55): live authorized overview, four speech charts,
 clickable source evidence, server-labelled action handoff button, and structured engine
 parameters. Recorded temperature includes source/time (Mrs. K 37.1 Celsius); no absence or
 normal-range inference. The available stored SBAR mounts BL-33 exact preliminary export and
 local human-edited, unverified preview. API-captured cohort/DOM and lifecycle tests are added;
-DB-backed CI and real phone/host acceptance remain gates until their actual results.
+Exact-head #55 CI passed 419 unit tests (6 optional tests deselected), 239 DB-backed tests,
+stub evaluation and image smoke. Real phone/host acceptance remains open. Follow-up #81 keeps
+missing current assessments unknown rather than inferring incomplete enrollment.
 
 BL-19 follow-up makes every check citation interactive with matching assessment/check identity
 and refreshed authorization. All reason, observation and SBAR citation buttons are exercised,
@@ -192,8 +199,13 @@ BL-25 loud-venue follow-up scopes the specified 3 dB SNR tolerance to authorized
 context and adds the open-session quiet-place hint. All other quality gates remain unchanged;
 synthetic checks do not establish real venue or golden-recording acceptance.
 
+Hosted KAZE integration (BL-26 / decision026) adds a separate runtime-role safety worker,
+explicit contact-free bootstrap and private safety-person credentials. Consent remains unknown
+unless explicitly granted for fixtures; existing withdrawals remain preserved. Public-phone and
+real-SMS acceptance remain open.
+
 BL-30 registry review adds scoped modalities, explicit missing/stale states, corroboration and
 legacy speech compatibility. New captures reproject eligible immutable modalities at current
 revision without restoring invalidated decisions; first-change markers reject stale/session
-snapshots. Only speech is registered in this base. Decision025 and migration010 track the
-contract; final exact-head CI remains authoritative.
+snapshots. Only speech is registered in this base. Decision025/migration010 track the contract;
+final exact-head CI remains authoritative after hosting/status integration.
