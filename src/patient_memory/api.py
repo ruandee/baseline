@@ -6,7 +6,7 @@ import time
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID, uuid4
 
 import psycopg
@@ -26,13 +26,19 @@ from patient_memory.baseline.overview import watchlist as build_watchlist
 from patient_memory.baseline.sbar import enrich_assessment_sbar
 from patient_memory.checks import care_gate, store_check
 from patient_memory.config import Settings
+from patient_memory.consent import ConsentRequired, admit_check, audit_consent_block, check_gate
+from patient_memory.consent import consent_record as read_consent
 from patient_memory.domain import (
     Answer,
     AssignmentInput,
     CheckMode,
+    CheckReceipt,
     CheckResult,
+    ConsentInput,
+    ConsentView,
     ContextInput,
     ContextTagOut,
+    DueList,
     NoteExtractionResult,
     PatientInput,
     Question,
@@ -41,6 +47,8 @@ from patient_memory.domain import (
     SessionEnd,
     SessionList,
     SessionOut,
+    SkipInput,
+    SkipReceipt,
     SourceInput,
     Summary,
     VisibilityInput,
@@ -59,6 +67,12 @@ from patient_memory.lifecycle import (
 )
 from patient_memory.objects import ObjectStore
 from patient_memory.providers import generator_for
+from patient_memory.resident_checks import (
+    append_consent,
+    due_checks,
+    record_skip,
+    watchlist_allowed,
+)
 from patient_memory.retrieval import evidence, retrieve
 from patient_memory.speech import asr
 from patient_memory.speech.pipeline import DecoderUnavailable, InvalidAudio, analyze
@@ -335,7 +349,7 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             return change_source(conn, actor, patient_id, source_id, "visibility", idempotency_key,
                                  body.model_dump(), request.state.request_id)
 
-    @app.post("/v1/patients/{patient_id}/checks")
+    @app.post("/v1/patients/{patient_id}/checks", response_model=CheckResult | CheckReceipt)
     def create_check(patient_id: UUID, audio: UploadFile, mode: Annotated[CheckMode, Form()],
                      device_id: Annotated[str, Form(min_length=1, max_length=128)],
                      request: Request, actor=actor_dep,
@@ -344,16 +358,19 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
                      session_id: Annotated[UUID | None, Form()] = None,
                      lat: Annotated[float | None, Form(ge=-90, le=90)] = None,
                      lon: Annotated[float | None, Form(ge=-180, le=180)] = None,
-                     accuracy_m: Annotated[float | None, Form(ge=0, le=100_000)] = None,
-                     ) -> CheckResult:
+                     accuracy_m: Annotated[float | None, Form(ge=0, le=100_000)] = None):
+        # Authorization, then consent (403 consent_required, audited), before any decode or ASR.
+        care = admit_check(cfg, actor, patient_id, request.state.request_id)
+        if not care and (mode != "resident" or is_baseline):
+            raise Problem(422, "invalid_request", "PSW checks use resident mode without enrollment")
         location = None
         if lat is not None or lon is not None or accuracy_m is not None:
             if lat is None or lon is None or session_id is None:
                 raise Problem(422, "invalid_request")
             location = (lat, lon, accuracy_m)
-        with transaction(cfg, actor) as conn:
-            care_gate(conn, patient_id)
-            if session_id is not None:  # reject before any audio work
+        if session_id is not None:
+            with transaction(cfg, actor) as conn:
+                care_gate(conn, patient_id)
                 sessions.check_gate(conn, patient_id, session_id, mode, is_baseline)
         work = Path(tempfile.mkdtemp(prefix="check-"))
         try:
@@ -367,17 +384,45 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             except DecoderUnavailable as exc:
                 raise Problem(503, "dependency_unavailable") from exc
         finally:
-            # Session audio has no retention index: never leave raw files behind for KAZE.
             if session_id is not None or not cfg.keep_audio:
                 shutil.rmtree(work, ignore_errors=True)
-        with transaction(cfg, actor) as conn:
-            result = store_check(conn, actor, patient_id, request.state.request_id, analysis,
-                                 mode, device_id, device_ts, is_baseline, cfg,
-                                 session_id=session_id, location=location)
-        # KAZE session check-ins never go to a model provider (decision 018).
+        try:
+            with transaction(cfg, actor) as conn:
+                result = store_check(conn, actor, patient_id, request.state.request_id, analysis,
+                                     mode, device_id, device_ts, is_baseline, cfg,
+                                     session_id=session_id, location=location)
+                care = check_gate(conn, patient_id)
+        except ConsentRequired:  # withdrawn while the clip was decoded: nothing was stored
+            audit_consent_block(cfg, actor, patient_id, request.state.request_id)
+            raise
+        if not care:  # PSW: the check is scored and stored, but no score leaves the server
+            return CheckReceipt(check_id=result.check_id, ts=result.ts, usable=result.usable)
         if result.assessment and session_id is None:
             enrich_assessment_sbar(cfg, actor, patient_id, result.assessment["id"])
         return result
+
+    @app.get("/v1/checks/due", response_model=DueList)
+    def checks_due(actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            return due_checks(conn, cfg)
+
+    @app.post("/v1/patients/{patient_id}/checks/skips", status_code=201,
+              response_model=SkipReceipt)
+    def check_skip(patient_id: UUID, body: SkipInput, request: Request, actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            return record_skip(conn, actor, patient_id, body, request.state.request_id)
+
+    @app.get("/v1/patients/{patient_id}/consent", response_model=ConsentView)
+    def get_consent(patient_id: UUID, scope: Literal["voice_check", "vox_encounter"] = "voice_check",
+                    actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            care_gate(conn, patient_id)
+            return read_consent(conn, patient_id, scope)
+
+    @app.post("/v1/patients/{patient_id}/consents", status_code=201, response_model=ConsentView)
+    def add_consent(patient_id: UUID, body: ConsentInput, request: Request, actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            return append_consent(conn, actor, patient_id, body, request.state.request_id)
 
     @app.post("/v1/patients/{patient_id}/sessions", status_code=201, response_model=SessionOut)
     def arm_session(patient_id: UUID, body: SessionArm, request: Request,
@@ -427,6 +472,8 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
     def watchlist(actor=actor_dep):
         with transaction(cfg, actor) as conn:
             require_member(conn)
+            if not watchlist_allowed(conn):
+                raise Problem(404, "not_found")
             return build_watchlist(conn, cfg)
 
     @app.get("/v1/patients/{patient_id}/overview")

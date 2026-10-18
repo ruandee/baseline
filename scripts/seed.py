@@ -6,6 +6,7 @@ import psycopg
 
 from patient_memory.auth import Identity, synthetic_token
 from patient_memory.config import Settings
+from patient_memory.consent import grant_fixture_consent
 
 
 def uid(name):
@@ -19,7 +20,7 @@ def seed(cfg=None):
             tid = uid(f"tenant-{tenant}")
             conn.execute("INSERT INTO tenants VALUES(%s,%s) ON CONFLICT DO NOTHING",
                          (tid, f"synthetic-tenant-{tenant}"))
-            for role in ["admin", "importer", "nurse", "patient"]:
+            for role in ["admin", "importer", "nurse", "patient", "psw"]:
                 actor = uid(f"{tenant}/{role}")
                 conn.execute(
                     "INSERT INTO principals(id,tenant_id,name,administrator) VALUES(%s,%s,%s,%s) "
@@ -28,13 +29,15 @@ def seed(cfg=None):
                 pid = uid(f"{tenant}/patient-{p}")
                 conn.execute("INSERT INTO patients(id,tenant_id,external_id) VALUES(%s,%s,%s) "
                              "ON CONFLICT DO NOTHING", (pid, tid, f"synthetic-patient-{p}"))
-                for role in ["importer", "nurse", "patient"]:
+                for role in ["importer", "nurse", "patient", "psw"]:
                     if role == "patient" and p != 0:
                         continue
                     conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,%s,true) "
                                  "ON CONFLICT DO NOTHING", (tid, pid, uid(f"{tenant}/{role}"), role))
+                # Decision 017: explicit synthetic consent; a later withdrawal is never undone.
+                grant_fixture_consent(conn, tid, pid, uid(f"{tenant}/importer"))
     return {role: synthetic_token(Identity(uid(f"0/{role}"), uid("tenant-0")), cfg)
-            for role in ["admin", "importer", "nurse", "patient"]}
+            for role in ["admin", "importer", "nurse", "patient", "psw"]}
 
 
 if __name__ == "__main__":

@@ -1,10 +1,13 @@
+from contextlib import contextmanager
 from uuid import UUID, uuid4
 
+from psycopg.pq import TransactionStatus
 from psycopg.types.json import Jsonb
 
 from patient_memory.baseline import sessions
 from patient_memory.baseline.assess import assess_check, lock_assessment
 from patient_memory.config import Settings
+from patient_memory.consent import check_gate, require_consent
 from patient_memory.domain import CheckResult
 from patient_memory.errors import Problem
 from patient_memory.speech.pipeline import Analysis
@@ -20,17 +23,48 @@ def care_gate(conn, patient_id: UUID):
 
 def store_check(conn, identity, patient_id: UUID, request_id: UUID, analysis: Analysis,
                 mode, device_id, device_ts, is_baseline, cfg: Settings,
-                session_id: UUID | None = None,
+                consent_scope: str = "voice_check", session_id: UUID | None = None,
                 location: tuple[float, float, float | None] | None = None) -> CheckResult:
     """Insert the check (unusable ones too, for audit) and audit the write.
 
-    With `session_id` the check is a KAZE check-in: the session is re-gated under its row lock,
-    the location is stored with the check, and scoring uses only that session's history."""
-    care_gate(conn, patient_id)
+    Raises ConsentRequired (403) when consent is not granted at insert time; callers audit the
+    block in a separate transaction because this one rolls back.
+    """
+    care = check_gate(conn, patient_id)
+    if session_id is not None:
+        care_gate(conn, patient_id)
+    if not care and (mode != "resident" or is_baseline):
+        raise Problem(422, "invalid_request", "PSW checks use resident mode without enrollment")
     # All check writers take tenant/shift admission before the patient history lock.
     # A concurrent final-slot escalation must see the previous committed reservation.
     lock_assessment(conn, identity.tenant_id, patient_id)
-    care_gate(conn, patient_id)
+    check_gate(conn, patient_id)
+    require_consent(conn, patient_id, consent_scope)  # withdrawn during decode: nothing stored
+    with scoring_context(conn, patient_id):
+        result = _store_check(conn, identity, patient_id, request_id, analysis, mode, device_id,
+                              device_ts, is_baseline, cfg, session_id, location)
+    check_gate(conn, patient_id)  # role revocation must not leak a result
+    require_consent(conn, patient_id, consent_scope)
+    return result
+
+
+@contextmanager
+def scoring_context(conn, patient_id: UUID):
+    """Trusted server-only, patient-scoped access; never entered by read endpoints.
+
+    The DB runtime credential and request GUCs are private to the server, just like pm.actor.
+    Keep the original actor for assignment checks and audit. Call only after admission locks.
+    """
+    conn.execute("SELECT set_config('pm.check_scoring_patient',%s,true)", (str(patient_id),))
+    try:
+        yield
+    finally:
+        if conn.info.transaction_status != TransactionStatus.INERROR:
+            conn.execute("SELECT set_config('pm.check_scoring_patient','',true)")
+
+
+def _store_check(conn, identity, patient_id, request_id, analysis, mode, device_id, device_ts,
+                 is_baseline, cfg, session_id, location):
     session = None
     if session_id is not None:
         session = sessions.check_gate(conn, patient_id, session_id, mode, is_baseline, lock=True)
