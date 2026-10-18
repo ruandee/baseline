@@ -16,10 +16,10 @@ Start here:
 
 - [Hosted unit dashboard](https://baseline.deeruan.com/unit): twelve fictional residents,
   resident charts, cited evidence, documented temperature and preliminary handoff/export.
-- [Three-day presentation](https://baseline.deeruan.com/check?mode=live&demo=days): record or
-  import a local clip, then show clearly labelled scripted Watch, Explained and Escalate
-  examples. Audio stays in the tab; these outcomes are authored, not measured from the clip,
-  and are never stored as assessments. See the [presentation guide](docs/live-voice-demo.md).
+- [Presentation guide](docs/live-voice-demo.md): the prepared `/unit?demo=handoff` workflow
+  connects separate phone receipts to an explicitly authored nurse presentation. Findings and
+  baselines are fictional; this is separate from genuine measurement and enrollment. Confirm
+  the deployed revision before relying on a presentation link.
 - [Deploy from a clean clone](docs/deployment-walkthrough.md): Linux server, Docker Compose,
   DNS/HTTPS, private credential bootstrap, twelve-resident load and verification. Use the
   reviewed release SHA; an older deployment does not gain new features from a query string.
@@ -51,6 +51,28 @@ change or escalation. The local scripted presentation above needs no personal en
 
 Backup video, two complete rehearsals, phone/LTE checks, Devpost submission and the KAZE
 recipient test remain human acceptance work. See [rehearsal checklist](docs/submission/rehearsal-checklist.md).
+
+## Care-team workflows (redesign prepared, not deployed)
+
+The shared navigation connects these tasks; source implementation is documented in
+[decision037](docs/decisions/037-care-workspace-workflows.md). Confirm the deployed release
+before expecting the redesigned pages on the public host.
+
+| Path | Task |
+| --- | --- |
+| `/unit` | Review the prioritized unit list, then open a resident and cited records. |
+| `/` or `/?patient=<assigned-id>` | Search assigned residents, review notes, prepare a handover and ask source-linked questions. Explicit unavailable links never fall back to another resident. |
+| `/check?nurse=1` | Nurse preparation: choose a person, review permission/profile/history, then enter the existing guarded recorder. |
+| `/check` | Existing score-free PSW/resident guided check; not a resident portal. |
+| `/check?type=motion` | Existing local movement capture, with unverified/client-derived measurements. |
+| `/unit?demo=handoff` | Separate labelled presentation room with authored results, not clinical assessments. |
+
+Hosted notes use the session's current UTC cutoff; local fixed fixtures keep January 3, 2026.
+The hosted handover starts with an editable last-24-hours window. Adjust it to your shift;
+changing residents or reconnecting preserves your date edits. API permissions, consent and
+scoring are unchanged. Local checks passed 667 unit tests (five optional deselected), 161 JS scenarios and 25 synthetic
+Chrome checks at desktop/phone widths. Exact combined CI remains pending; physical phone/movement
+acceptance and deployment remain separate checks.
 
 ## Run locally
 

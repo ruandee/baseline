@@ -369,3 +369,26 @@ failed offline reset attempts readiness-checked service recovery while returning
 reset failure. Failed recovery reports availability as unconfirmed; earlier migration/config
 failures never auto-start the API. Strict fixture/data guards are unchanged. Offline shell-fake
 regressions do not establish a successful hosted reset or the under-one-minute acceptance gate.
+
+
+## BL-16 care workspace redesign prepared for review
+
+The integrated frontend redesign is prepared locally, not deployed. A shared care-team shell
+connects unit overview, notes and the nurse voice-check preparation hub (`/check?nurse=1`).
+That hub uses the nurse bootstrap and hands off to the existing guarded recorder; default
+`/check` keeps its PSW identity and score-free guided resident experience, without a new portal.
+Notes retain exact-source inspection, unknowns/conflicts and assigned-only resident deep links.
+Hosted sessions now report current UTC `as_of` with `snapshot_mode: "current"`; local fixtures
+keep January 3 with `snapshot_mode: "fixed"`. The hosted handover's explicit, editable 24-hour
+UTC default does not overwrite date edits on resident change or retry. API permissions,
+consent, scoring and the separate decision036 presentation semantics are unchanged.
+
+Local deterministic JavaScript verification reported 161 passed scenarios; the movement audit's
+ten JS scenarios also passed, with physical chair/camera acceptance still unverified. At
+functional head `1f824cf`, the fresh full unit suite passed 667 tests with five optional tests
+deselected. Independent actual headless Chrome verification passed 25 checks across 1440px/390px
+views of the three workflows; six ignored screenshots were saved and reviewed. There were zero
+media calls, remote calls or page errors; question/summary POSTs were fixture responses only.
+Exact combined backend/evaluation/image CI remains pending. No live upgrade or physical
+user/phone/rehearsal acceptance is claimed. See [decision037](decisions/037-care-workspace-workflows.md) for rationale, research
+sources, contract boundaries and engineering acceptance criteria.
