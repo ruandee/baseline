@@ -206,9 +206,12 @@ function renderResult(host, result, blob) {
   if (blob) drawWaveform(canvas, blob);
 }
 
-async function renderCheck(main) {
-  const params = checkParams();
-  const patientId = params.patient || (state.session.patients[0] && state.session.patients[0].id);
+// opts (KAZE /out, BL-28): {mode, patientId, title, fields: async () => extra form fields,
+// onResult(data), onError(error) -> true if handled}. Without opts this is the /check page driven by the query string.
+async function renderCheck(main, opts = {}) {
+  const params = opts.mode ? {...checkParams(), mode: opts.mode, mock: false} : checkParams();
+  const patientId = opts.patientId || params.patient
+    || (state.session.patients[0] && state.session.patients[0].id);
   main.replaceChildren();
   const card = el('section', '', {class: 'bl-check-card'});
   const prompt = el('p', CHECK_PROMPT, {class: 'bl-prompt'});
@@ -221,7 +224,7 @@ async function renderCheck(main) {
   const baselineLabel = el('label', ' Mark as baseline', {for: 'is-baseline', class: 'bl-baseline'});
   baselineLabel.prepend(baselineBox);
   baselineLabel.hidden = !(params.mode === 'runner' && new Date().getDay() === 6);
-  card.append(el('h1', 'Voice check'), prompt, button, countdown, status, retry, baselineLabel);
+  card.append(el('h1', opts.title || 'Voice check'), prompt, button, countdown, status, retry, baselineLabel);
   main.append(card, result);
 
   const resident = params.mode === 'resident';
@@ -251,14 +254,17 @@ async function renderCheck(main) {
                     device_ts: new Date().toISOString(),
                     is_baseline: baselineBox.checked ? 'true' : 'false'};
     try {
+      if (opts.fields) Object.assign(fields, await opts.fields());
       const data = params.mock
         ? await mockCheck(params.fixture)
         : await uploadCheck(blob, fields, (s) => setStatus(s));
       setStatus(resident ? '' : params.mock ? 'Sent (mock)' : 'Sent', 'ok');
-      if (params.mode === 'live') renderResult(result, data, blob);
+      if (opts.onResult) opts.onResult(data, result);
+      else if (params.mode === 'live') renderResult(result, data, blob);
       else result.replaceChildren(el('p', data.usable ? 'Thank you.' : 'Please tap Record to try again.',
                                      {class: 'bl-thanks'}));
     } catch (error) {
+      if (opts.onError && opts.onError(error)) { setStatus(''); return; }  // handled by the caller
       failure(`Could not send the recording (${error.message}). It is kept here; tap Try again.`, error);
       retry.hidden = false;
     } finally {
