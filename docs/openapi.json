@@ -1232,6 +1232,64 @@
         }
       }
     },
+    "/v1/patients/{patient_id}/assessments/{assessment_id}/note": {
+      "get": {
+        "summary": "Assessment Note",
+        "description": "Export the stored SBAR as a draft note needing sign-off; never EHR writeback.",
+        "operationId": "assessment_note_v1_patients__patient_id__assessments__assessment_id__note_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "assessment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Assessment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preliminary FHIR R4 DocumentReference (preview only; not sent to any clinical system)",
+            "content": {
+              "application/fhir+json": {}
+            }
+          },
+          "404": {
+            "description": "Unknown, or not visible to this account"
+          },
+          "409": {
+            "description": "note_unavailable: no current SBAR draft"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/patients/{patient_id}/questions": {
       "post": {
         "summary": "Question",

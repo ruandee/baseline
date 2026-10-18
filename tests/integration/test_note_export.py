@@ -4,6 +4,7 @@ import json
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
+import psycopg
 import pytest
 
 from patient_memory.baseline.note import (
@@ -14,7 +15,7 @@ from patient_memory.baseline.note import (
 )
 from patient_memory.baseline.sbar import enrich_assessment_sbar
 from patient_memory.storage import transaction
-from tests.contract.test_api import client_for
+from tests.contract.test_api import client_for, import_note, source_payload
 from tests.contract.test_context import post as post_context
 from tests.integration.test_assessments import BASE, SLOW, seed_checks, store
 
@@ -120,3 +121,37 @@ def test_assessment_without_sbar_is_unavailable(sandbox):
     response = client_for(sandbox).get(note_path(sandbox, result.assessment["id"]))
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "note_unavailable"
+
+
+def test_superseded_source_and_revoked_access_never_return_old_note(sandbox):
+    result, source_id = escalated(sandbox)
+    route = note_path(sandbox, result.assessment["id"])
+    nurse = client_for(sandbox)
+    assert nurse.get(route).status_code == 200
+    import_note(sandbox, source_payload("Synthetic reassessment of intake.", supersedes=source_id))
+    response = nurse.get(route)
+    assert response.status_code == 409 and "Poor intake" not in response.text
+    with psycopg.connect(sandbox[0].admin_database_url) as conn:
+        conn.execute("UPDATE assignments SET active=false WHERE patient_id=%s AND principal_id=%s",
+                     (sandbox[1], sandbox[2]["nurse"].principal_id))
+    response = nurse.get(route)
+    assert response.status_code == 404 and "Poor intake" not in response.text
+
+
+def test_foreign_tenant_cannot_export_an_existing_assessment(sandbox):
+    result, _ = escalated(sandbox)
+    identity = sandbox[2]["nurse"]
+    from fastapi.testclient import TestClient
+
+    from patient_memory.api import create_app
+    from patient_memory.auth import Identity, synthetic_token
+    tenant, actor = uuid4(), uuid4()
+    with psycopg.connect(sandbox[0].admin_database_url) as conn:
+        conn.execute("INSERT INTO tenants VALUES(%s,'synthetic-other')", (tenant,))
+        conn.execute("INSERT INTO principals(id,tenant_id,name) VALUES(%s,%s,'synthetic-other')",
+                     (actor, tenant))
+    client = TestClient(create_app(sandbox[0], sandbox[3]))
+    client.headers["Authorization"] = "Bearer " + synthetic_token(Identity(actor, tenant), sandbox[0])
+    response = client.get(note_path(sandbox, result.assessment["id"]))
+    assert response.status_code == 404 and "Poor intake" not in response.text
+    assert tenant != identity.tenant_id

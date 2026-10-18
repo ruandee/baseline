@@ -85,3 +85,6 @@ body.baseline{padding-top:56px}
 .bl-skip-reasons{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:16px}
 .bl-skip-reasons button{font-size:18px;min-height:56px;padding:8px 18px;border-radius:999px;border:2px solid var(--line);background:var(--white);color:var(--ink);cursor:pointer}
 @media (max-width:640px){.bl-resident-actions{flex-direction:column;align-items:stretch}.bl-check-card[data-mode=resident] .bl-record,.bl-skip,.bl-back{width:100%;min-width:0}}
+/* BL-33: editable local drafts and exact server payload previews. */
+.bl-note-export .bl-note-editor{display:block;width:100%;min-height:240px;margin:8px 0;font:inherit;line-height:1.6;resize:vertical}
+.bl-note-export pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:480px;overflow:auto}

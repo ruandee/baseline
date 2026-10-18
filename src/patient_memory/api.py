@@ -13,7 +13,7 @@ import psycopg
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import Depends, FastAPI, Form, Header, Query, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import AwareDatetime
 
@@ -465,7 +465,7 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             return build_overview(conn, cfg, patient, days)
 
     @app.get("/v1/patients/{patient_id}/assessments/{assessment_id}/note",
-             response_class=JSONResponse,
+             response_class=Response,
              responses={200: {"description": "Preliminary FHIR R4 DocumentReference (preview "
                               "only; not sent to any clinical system)",
                               "content": {"application/fhir+json": {}}},

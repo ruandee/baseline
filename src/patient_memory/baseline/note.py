@@ -167,7 +167,10 @@ def draft_note(conn, patient_id: UUID, assessment_id: UUID) -> dict:
             "SELECT f.id FROM facts f JOIN sources s ON s.tenant_id=f.tenant_id "
             "AND s.patient_id=f.patient_id AND s.id=f.source_id WHERE f.patient_id=%s "
             "AND f.id=ANY(%s) AND s.published_at IS NOT NULL AND s.retracted_at IS NULL "
-            "AND s.purged_at IS NULL", (patient_id, wanted))}
+            "AND s.purged_at IS NULL AND NOT EXISTS(SELECT FROM sources newer "
+            "WHERE newer.tenant_id=s.tenant_id AND newer.patient_id=s.patient_id "
+            "AND newer.supersedes=s.id AND newer.published_at IS NOT NULL "
+            "AND newer.retracted_at IS NULL AND newer.purged_at IS NULL)", (patient_id, wanted))}
         if found != {str(w) for w in wanted}:
             raise unavailable("A cited source is no longer available to this account.")
     return build_document_reference(row, sbar)
