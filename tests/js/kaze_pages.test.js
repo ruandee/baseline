@@ -88,5 +88,6 @@ test('a stale in-flight session read cannot reopen recording after the end respo
     resolveRead(active); await new Promise((resolve) => setTimeout(resolve, 30));
     assert.equal(h.main.querySelector('.kaze-record').disabled, true);
     assert.match(h.main.textContent, /Session ended/);
+    assert.doesNotMatch(h.main.textContent, /Loading session/);
   } finally { for (const f of h.window.listeners.pagehide || []) f(); }
 });

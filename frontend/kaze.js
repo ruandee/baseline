@@ -170,6 +170,8 @@ async function renderKazeSession(host, base, sid, judge) {
     capture.cancel(); record.disabled = true;
     try {
       session = await api(`${endpoint}/end`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'});
+      const view = KazeCore.personView(session);
+      heading.textContent = view.headline; detail.textContent = view.detail;
       tick();
     }
     catch (error) { status.textContent = 'Could not confirm the end. Reload to check.'; }
