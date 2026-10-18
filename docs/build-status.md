@@ -1,5 +1,12 @@
 # Implementation status and remaining gates
 
+Frontend redesign is deployed, including Unit resident search. All seven areas/fifteen screen
+types have an implementation and screenshot pass. The initial deployed source `20be74b` passed
+backend/image CI and twelve public HTTPS checks; stored recording identifiers/counts were
+preserved. See [the deployment record](frontend-release-2026-10-18.md),
+[screen inventory](frontend-redesign.md) and tracker #38 for current release evidence and
+unverified physical/usability gates. Follow-up visual polish removes decorative dividers.
+
 BL-17 replacement (decision036): `/unit?demo=handoff` hosts a two-resident presentation room.
 Separate phone links record locally and submit only a duration/idempotency receipt. The runner
 arrives as Watch; nurse-added exertion context changes it to Explained. Dee's first/second
@@ -338,3 +345,34 @@ synthetic-only browser proof covered all three labelled days and resource cleanu
 release CI was required; no deployed rollout or real-device acceptance was claimed then.
 Decision036 supersedes this selection. The old local flow now uses `demo=legacy-days`; `demo=days`
 opens the current phone-to-nurse setup instead.
+
+
+## BL-16 care workspace redesign release
+
+The integrated frontend redesign is deployed; exact runtime evidence is in the deployment record. A shared care-team shell
+connects unit overview, notes and the nurse voice-check preparation hub (`/check?nurse=1`).
+That hub uses the nurse bootstrap and hands off to the existing guarded recorder; default
+`/check` keeps its PSW identity and score-free guided resident experience, without a new portal.
+Notes retain exact-source inspection, unknowns/conflicts and assigned-only resident deep links.
+Hosted sessions now report current UTC `as_of` with `snapshot_mode: "current"`; local fixtures
+keep January 3 with `snapshot_mode: "fixed"`. The hosted handover's explicit, editable 24-hour
+UTC default does not overwrite date edits on resident change or retry. API permissions,
+consent, scoring and the separate decision036 presentation semantics are unchanged.
+
+Local validation passed Ruff, 667 unit tests (five optional tests deselected) and 165 JavaScript
+checks. Headless Chrome passed 27 core workflow checks, five presentation checks and 24 further
+screen checks at desktop/phone widths. It also exercised two actual Chrome MediaRecorder takes
+per width on generated WebAudio, verifying current permission/profile admission, enrollment,
+unknown verdict handling and blocking after withdrawal. All four tracks ended; four multipart
+uploads were intercepted fixtures. No physical microphone, provider or real SMS was used.
+
+All seven areas/fifteen screen types have an implementation and screenshot pass. The user
+approved deployment; initial-source backend/evaluation/image CI and hosted checks passed.
+Use PR #123 and tracker #38 for the exact final commit and CI result, rather than treating
+historical counts as acceptance of a later release. The combined PR also preserves the earlier
+reset-wrapper recovery fix: startup is attempted after a safe reset refusal, and the original
+failure status is retained. No unexpected recording is deleted or bypassed.
+
+See [decision037](decisions/037-care-workspace-workflows.md) for research and contract boundaries,
+and [the screen inventory](frontend-redesign.md) for current coverage. Physical-phone,
+chair/camera, hosted latency, resident/staff usability and rehearsal acceptance remain unverified.

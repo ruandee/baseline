@@ -5,6 +5,8 @@
     const fragment = new URLSearchParams(location.hash.slice(1));
     const role = query.get('resident');
     const nurse = !role;
+    main.setAttribute('data-workspace', 'demo');
+    main.setAttribute('data-demo-role', nurse ? 'nurse' : 'phone');
     let room = fragment.get('room'), key = fragment.get('key');
     let stopped = false, timer = null, generation = 0, stream = null, recorder = null;
     let clipUrl = null, clip = null, sending = false;
@@ -16,7 +18,12 @@
       + 'history writes or external alerts. Rooms expire after two hours or a server restart.'));
     const status = h.el('p', '', {role: 'status', 'aria-live': 'polite'});
     const content = h.el('div', '', {class: 'bl-handoff-content'});
-    main.replaceChildren(title, info, status, content);
+    const disclosure = h.el('p', 'LIVE DEMO \u00b7 FICTIONAL FINDINGS', {class: 'demo-disclosure'});
+    const introduction = h.el('p', nurse
+      ? 'Connect the two phones, follow incoming check-ins, then review the supplied context.'
+      : 'Take your time. Your recording stays on this phone; submitting shares a check-in receipt.',
+      {class: 'demo-introduction'});
+    main.replaceChildren(disclosure, title, introduction, info, status, content);
     async function request(path = '', method = 'GET', body) {
       const response = await fetch('/demo/handoff' + (room ? '/' + room : '') + path, {
         method, headers: {Authorization: 'Bearer ' + key,

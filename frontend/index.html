@@ -1,17 +1,64 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Patient Memory · Care workspace</title><link rel="stylesheet" href="/assets/styles.css"><script src="/assets/app.js" defer></script></head>
-<body>
-<aside class="rail"><a href="/" class="brand" aria-label="Patient Memory home"><span class="brand-mark">m<span>·</span></span><span>patient<br><b>memory</b></span></a><div class="rail-label">WORKSPACE</div><div class="nav-item"><span>▦</span> Patients <span id="nav-count" class="count">12</span></div><a class="nav-item nav-link" href="/unit"><span>◔</span> Baseline</a><div class="rail-bottom"><div class="demo-symbol">✳</div><b>A space to explore.</b><p>Fictional patients.<br>Real, traceable evidence.</p><span class="demo-badge">SYNTHETIC DEMO</span><a href="http://127.0.0.1:8000/docs" target="_blank" rel="noopener">API documentation ↗</a><div class="profile"><span class="avatar small">DN</span><div>Demo nurse<small>Read-only workspace</small></div></div></div></aside>
-<div class="shell"><header class="topbar"><div><span class="breadcrumb">Workspace</span><span class="slash">/</span>Patients</div><span id="connection" class="connection"><i></i> Connecting</span></header>
-<div class="page-title"><div><div class="eyebrow">THE FULL STORY, IN ONE PLACE</div><h1>Patient workspace<span>.</span></h1><p>Find the context. Follow the evidence. Carry care forward.</p></div><div class="date-note"><span>RECORD SNAPSHOT</span><b>January 2, 2026</b><small>Fictional record dates · all times UTC</small></div></div>
-<div id="global-error" class="global-error" hidden role="alert"></div>
-<main class="workspace"><section class="roster"><div class="section-heading"><h2>Your patients</h2><span id="patient-count" class="count">—</span></div><label class="search"><span>⌕</span><input id="patient-search" placeholder="Find a patient…" aria-label="Find a patient"></label><div class="roster-caption">DEMO CARE TEAM</div><div id="patients" class="patient-list"><p class="empty">Connecting to your workspace…</p></div><div class="roster-foot"><i></i> Assigned patients only</div></section>
-<section class="record"><div class="patient-heading"><div id="patient-avatar" class="avatar large">—</div><div><div class="patient-heading-label">PATIENT RECORD</div><h2 id="patient-name">Loading patient…</h2><p id="patient-reference">Synthetic patient</p></div><span class="fictional">Fictional</span></div><div class="tabs" role="tablist" aria-label="Patient record views"><button id="timeline-tab" class="tab active" role="tab" aria-selected="true" aria-controls="timeline-view">Timeline</button><button id="handover-tab" class="tab" role="tab" aria-selected="false" aria-controls="handover-view">Handover</button><span id="revision">—</span></div>
-<div id="timeline-view" role="tabpanel" aria-labelledby="timeline-tab"><div class="view-heading"><div><h3>A connected view of care</h3><p>Documented observations and attributed reports.</p></div><button id="refresh" class="icon-button" aria-label="Refresh timeline" title="Refresh timeline">↻</button></div><div class="filters" aria-label="Filter timeline"><button class="filter active" data-filter="all" aria-pressed="true">All records</button><button class="filter" data-filter="nursing_note" aria-pressed="false">Nursing notes</button><button class="filter" data-filter="patient_report" aria-pressed="false">Patient reports</button><button class="filter" data-filter="observation" aria-pressed="false">Observations</button></div><div id="timeline-coverage"></div><div id="timeline" class="timeline" aria-live="polite"></div><button id="load-more" class="secondary load-more" hidden>Load earlier records</button></div>
-<div id="handover-view" role="tabpanel" aria-labelledby="handover-tab" hidden><div class="view-heading"><div><h3>Carry the context forward</h3><p>A source-linked summary for your selected shift.</p></div></div><form id="handover-form"><div class="shift-inputs"><label>Shift start · UTC<input id="shift-start" type="datetime-local" value="2026-01-02T00:00" required></label><label>Shift end · UTC<input id="shift-end" type="datetime-local" value="2026-01-03T00:00" required></label></div><button class="primary" id="generate-summary">Generate handover <span>↗</span></button></form><div id="summary" aria-live="polite"><div class="summary-empty"><span>≋</span><h3>Ready for the next shift.</h3><p>Bring together documented changes, patient reports, conflicts, and unknowns.</p></div></div></div>
-</section>
-<aside class="assistant"><div class="assistant-heading"><span class="spark">✳</span><div><h2>Ask this record</h2><p>Context you can trace.</p></div><span class="local-label">DEMO</span></div><div class="scope-note"><span>◎</span><p>Answers stay within <b id="scope-name">this patient’s</b> record and link back to their sources.</p></div><div id="conversation" class="conversation" aria-live="polite"><div class="welcome"><div class="welcome-icon">✳</div><h3>Start with a question.</h3><p>Explore what’s documented.<br>See exactly where it came from.</p></div><div id="suggestions" class="suggestions"></div></div><form id="question-form" class="composer"><label for="question">YOUR QUESTION</label><textarea id="question" placeholder="What would you like to know?" rows="3" maxlength="4000" required></textarea><div class="composer-bottom"><span>↳ This patient only</span><button id="ask" class="send" type="submit" aria-label="Ask question">↑</button></div></form><p class="assistant-foot">Evidence selection · offline demo model<br>Missing documentation is not a negative finding.</p></aside>
-</main><footer class="page-foot"><span><i></i> Built around provenance, not assumptions.</span><span>Synthetic research prototype · Not for clinical use</span></footer></div>
-<dialog id="evidence-dialog"><div class="dialog-head"><div><div class="eyebrow">BACK TO THE SOURCE</div><h2>Evidence detail</h2></div><button id="close-evidence" class="icon-button" aria-label="Close evidence">×</button></div><div id="evidence-content"></div></dialog>
-</body></html>
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notes workspace | Baseline</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="/assets/notes-workspace.css">
+  <link rel="stylesheet" href="/assets/app-shell.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body class="care-app notes-app">
+<a class="bl-skip-link" href="#notes-main">Skip to notes workspace</a>
+<nav class="bl-nav" aria-label="Care workspace">
+  <a href="/unit" class="brand" aria-label="Baseline home"><span class="bl-brand-symbol" aria-hidden="true">b</span><span><b>baseline</b><small>Care with context</small></span></a>
+  <span class="nav-section-label">Care workspace</span>
+  <a href="/unit">Unit overview</a>
+  <a href="/" aria-current="page">Notes workspace</a>
+  <a href="/check?nurse=1">Voice checks</a>
+  <span class="nav-section-label">Explore</span>
+  <a href="/check?type=motion">Movement</a>
+  <a href="/unit?demo=handoff">Live demo</a>
+  <div class="nav-foot"><span class="demo-badge">SYNTHETIC DEMO</span><p>Fictional records.<br>Evidence you can inspect.</p></div>
+</nav>
+<div class="shell">
+  <header class="topbar"><span>Care team / Notes</span><span id="connection" class="connection" role="status">Connecting</span></header>
+  <div class="page-title"><div><h1>Notes workspace</h1><p>Review a resident's record, prepare a handover, or ask a question.</p></div><span class="fictional">Synthetic records</span></div>
+  <div id="global-error" class="global-error" hidden role="alert"></div>
+  <main id="notes-main" class="workspace">
+    <section class="roster" aria-label="Find a resident">
+      <details id="resident-picker" open>
+        <summary><span>Find a resident</span><span id="patient-count" class="count">0</span></summary>
+        <p class="roster-help">Search your assigned residents by name or reference.</p>
+        <label class="search" for="patient-search"><span aria-hidden="true">Search</span><input id="patient-search" type="search" placeholder="Name or reference" autocomplete="off"></label>
+        <div id="patients" class="patient-list" aria-label="Assigned residents"><p class="empty">Loading assigned residents...</p></div>
+      </details>
+      <p class="roster-foot"><span id="nav-count">0</span> assigned residents</p>
+    </section>
+    <section class="record" aria-label="Resident record">
+      <div class="patient-heading"><div id="patient-avatar" class="avatar large" aria-hidden="true">-</div><div><div class="patient-heading-label">SELECTED RESIDENT</div><h2 id="patient-name">Choose a resident</h2><p id="patient-reference">Assigned records only</p></div></div>
+      <div class="tabs" role="tablist" aria-label="Resident record views"><button id="timeline-tab" class="tab active" role="tab" aria-selected="true" aria-controls="timeline-view" tabindex="0">Timeline</button><button id="handover-tab" class="tab" role="tab" aria-selected="false" aria-controls="handover-view" tabindex="-1">Handover</button><span id="revision"></span></div>
+      <div id="timeline-view" role="tabpanel" aria-labelledby="timeline-tab" tabindex="0">
+        <div class="view-heading"><div><h3>Record timeline</h3><p id="record-cutoff">Observations, notes and attributed reports. Times are UTC.</p></div><button id="refresh" class="secondary" type="button">Refresh</button></div>
+        <div class="filters" aria-label="Filter timeline"><button class="filter active" data-filter="all" aria-pressed="true">All records</button><button class="filter" data-filter="nursing_note" aria-pressed="false">Nursing notes</button><button class="filter" data-filter="patient_report" aria-pressed="false">Resident reports</button><button class="filter" data-filter="observation" aria-pressed="false">Observations</button><button class="filter" data-filter="medication_event" aria-pressed="false">Medication events</button></div>
+        <div id="timeline-coverage"></div><div id="timeline" class="timeline" aria-live="polite"><p class="empty">Select a resident to see their documented history.</p></div><button id="load-more" class="secondary load-more" hidden>Load earlier records</button>
+      </div>
+      <div id="handover-view" role="tabpanel" aria-labelledby="handover-tab" tabindex="0" hidden>
+        <div class="view-heading"><div><h3>Prepare a handover</h3><p>Choose a shift. Review each claim and its source before sharing.</p></div></div>
+        <form id="handover-form"><p id="handover-window-help" class="workspace-muted">Choose the start and end of your shift (UTC).</p><div class="shift-inputs"><label>Shift start (UTC)<input id="shift-start" aria-describedby="handover-window-help" type="datetime-local" value="2026-01-02T00:00" required></label><label>Shift end (UTC)<input id="shift-end" aria-describedby="handover-window-help" type="datetime-local" value="2026-01-03T00:00" required></label></div><button class="primary" id="generate-summary" disabled>Create handover</button></form>
+        <div id="summary" aria-live="polite"><div class="summary-empty"><h3>No handover yet</h3><p>Select a resident and a shift to review documented changes, conflicts and unknowns.</p></div></div>
+      </div>
+    </section>
+    <aside class="assistant" aria-label="Ask about the selected resident">
+      <div class="assistant-heading"><div><h2>Ask this record</h2><p>Answers with sources you can inspect.</p></div></div>
+      <div class="scope-note"><p>Questions use <b id="scope-name">the selected resident's</b> record only.</p></div>
+      <form id="question-form" class="composer"><label for="question">Question about this resident</label><textarea id="question" placeholder="What changed during the last shift?" rows="3" maxlength="4000" required></textarea><div class="composer-bottom"><span>Enter to ask / Shift + Enter for a new line</span><button id="ask" class="send" type="submit" disabled>Ask</button></div></form>
+      <div id="conversation" class="conversation" aria-live="polite"><div class="welcome"><h3>What would you like to check?</h3><p>Ask about documented changes, resident reports or medication events.</p></div><div id="suggestions" class="suggestions"></div></div>
+      <p class="assistant-foot">Missing documentation does not establish a negative finding.</p>
+    </aside>
+  </main>
+  <footer class="page-foot">Synthetic research prototype. Review source records and unresolved conflicts before using a handover.</footer>
+</div>
+<dialog id="evidence-dialog" aria-labelledby="evidence-title"><div class="dialog-head"><div><h2 id="evidence-title">Cited source</h2><p>Exact excerpt and record details</p></div><button id="close-evidence" class="icon-button" aria-label="Close cited source">&#215;</button></div><div id="evidence-content"></div></dialog>
+</body>
+</html>

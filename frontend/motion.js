@@ -13,7 +13,10 @@ window.renderMotion = async function(host) {
   const title = el('h1', resident ? "Let's move together" : 'Movement check');
   const copy = el('p', 'With someone nearby, sit in a chair facing or sideways to a steady phone. '
     + 'Keep your shoulders, hips and feet in view. Stand up and take three steps during the 10-second check.');
-  const privacy = el('p', 'Video stays on this phone. Only client-derived measurements and quality counts are sent.');
+  const privacy = el('p', resident
+    ? 'Your video stays on this phone. Only movement measurements are sent to your care team. You can stop whenever you need to.'
+    : 'Video stays on this phone. Only client-derived measurements and quality counts are sent.');
+  if (resident) copy.textContent = 'If you would like to take part, ask someone to stay nearby. Sit in a chair with your shoulders, hips and feet in view. When the check starts, stand up and take three steps.';
   const select = el('select', '', {'aria-label': 'Person'});
   for (const person of state.session.patients) {
     const option = el('option', person.name, {value: person.id});
@@ -44,9 +47,9 @@ window.renderMotion = async function(host) {
     field('Substitute decision maker reference (required when applicable)', reference),
     confirmLabel, savePermission);
   const video = el('video', '', {playsinline: '', muted: '', 'aria-label': 'Local camera preview'});
-  video.muted = true; video.playsInline = true;
+  video.muted = true; video.playsInline = true; video.hidden = true;
   const status = el('p', 'Camera is off.', {role: 'status', class: 'bl-motion-status'});
-  const prepare = el('button', 'Prepare local motion model', {type: 'button'});
+  const prepare = el('button', 'Get ready', {type: 'button'});
   const start = el('button', 'Start 10-second check', {type: 'button'}); start.disabled = true;
   const cancel = el('button', 'Cancel / turn camera off', {type: 'button'});
   start.setAttribute('class', 'bl-motion-start');
@@ -55,12 +58,13 @@ window.renderMotion = async function(host) {
   const result = el('section', '', {'aria-label': 'Movement result'});
   const capture = new MotionCapture(video);
   panel.append(title, copy, privacy, field('Person', select), permission, baselineLabel,
+    el('p', 'Choose Get ready first. Your camera stays off until you choose Start.', {class: 'workspace-muted'}),
     actions, status, video, result);
   host.replaceChildren(panel);
   let disposed = false, operation = 0;
   const readiness = () => api(`/v1/patients/${select.value}/motion-checks/readiness`);
   const failure = () => {
-    capture.cancel(); start.disabled = true;
+    capture.cancel(); video.hidden = true; start.disabled = true;
     status.textContent = resident ? 'Please ask your care team before trying again.'
       : 'This capture could not continue. Check recorded motion consent and local camera/model availability.';
   };
@@ -90,7 +94,7 @@ window.renderMotion = async function(host) {
     try {
       await readiness();
       if (disposed || op !== operation) return;
-      status.textContent = 'Preparing the pose model on this device. Camera is still off.';
+      status.textContent = 'Getting ready on this device. Camera is still off.';
       await capture.warm();
       if (!disposed && op === operation) { start.disabled = false; status.textContent = 'Ready. Tap Start when you are seated.'; }
     } catch (_) { if (!disposed && op === operation) failure(); }
@@ -103,6 +107,7 @@ window.renderMotion = async function(host) {
       await readiness();
       if (disposed || op !== operation) return;
       status.textContent = 'Camera active for 10 seconds. Stand up and take three steps.';
+      video.hidden = false;
       const measured = await capture.capture();
       if (disposed || op !== operation) return;
       if (!measured) {
@@ -130,12 +135,13 @@ window.renderMotion = async function(host) {
       status.textContent = resident ? 'Thank you.' : 'Measurements saved; camera is off.';
     } catch (_) { if (!disposed && op === operation) failure(); }
     finally {
+      video.hidden = true;
       select.disabled = false; baseline.disabled = false;
       if (!disposed && capture.ready) start.disabled = false;
     }
   });
   cancel.addEventListener('click', () => {
-    operation++; capture.cancel(); start.disabled = true; status.textContent = 'Camera off. No video was sent.';
+    operation++; capture.cancel(); video.hidden = true; start.disabled = true; status.textContent = 'Camera off. No video was sent.';
   });
   window.addEventListener('pagehide', () => { disposed = true; operation++; capture.cancel(); }, {once: true});
 };

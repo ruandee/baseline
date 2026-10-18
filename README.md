@@ -6,35 +6,78 @@ A working synthetic-data backend for nursing-note and patient-record memory. Imp
 
 ## Baseline (hackathon build)
 
-Baseline adds a 10-second voice check to this backend: it measures speech timing and pitch,
-compares them with the same resident's own history, checks the record for context, and lets a
-fixed rule table pick a verdict (`escalate`, `watch`, `explained`, `within_normal`, `enrolling`).
-Statistics detect change; rules choose the verdict; the language model only tags note context and
-assembles a validated SBAR draft from fixed server-built sentences (BL-12), falling back to the
-template. It is a synthetic-data prototype: it does not
-diagnose, suggest treatment, or claim clinical validation. Spec: [docs/06-baseline.md](docs/06-baseline.md);
-current status: [docs/build-status.md](docs/build-status.md); tracker: issue #38.
+Baseline measures speech timing and pitch, compares a check with the same person's own
+history, checks documented context, and applies fixed rules to return `escalate`, `watch`,
+`explained`, `within_normal` or `enrolling`. The model can tag cited note context and assemble
+validated SBAR sentences; it does not choose the verdict. This is an engineering prototype
+using fictional records, without clinical validation, diagnosis or treatment recommendations.
 
-What is on `main` today versus still pending (check the tracker before relying on this list):
+Start here:
 
-| Area | On `main` | Pending (not merged) |
-| --- | --- | --- |
-| Speech pipeline and `POST /v1/patients/{id}/checks` | Yes (BL-04, BL-05, BL-07) | Golden-clip tests merged (#51) but skipped until the four real recordings exist (BL-06 open); p95 latency on a host |
-| Change engine, verdicts, assessments, shift budget | Yes (BL-08, BL-11); accepted multifeature-cusum-v2 policy (PR #60, [decision 019](docs/decisions/019-multifeature-cusum-proposal.md)) | |
-| Context tags, note extraction with offline fallback | Yes (BL-09, BL-10) | Live Gemini acceptance |
-| `GET /v1/watchlist`, `GET /v1/patients/{id}/overview` | Yes (BL-13) | |
-| Validated SBAR draft | Yes (BL-12); template in stub/offline mode and for loader-scored history | Live provider acceptance |
-| Frontend `/unit` | Yes (BL-18) | Integrated acceptance with the cohort |
-| Frontend `/check` | Yes (BL-17); uploads to the live API, `?mock=1` uses fixtures | BL-31 (PR #64) |
-| Frontend `/resident/{id}` | Placeholder | BL-19 (PR #55) |
-| 12-resident synthetic cohort loader | Yes (BL-14: `uv run python -m scripts.load_baseline_demo --presentation scenario-snapshots` or `all-history`, optional `--offline`) | Wiring into `/unit` and hosting; normal-temperature display |
-| Demo reset script | No | BL-21 |
-| HTTPS host (Compose + Caddy) | No | BL-20 (PR #54, PR #62) |
-| Vox Advantage adapter | No | BL-32 (PR #65); it is a **mock** contract, there is no real Vox/PointClickCare integration |
-| KAZE safety sessions | No | BL-25 (PR #66) to BL-29; not integrated |
+- [Frontend redesign inventory](docs/frontend-redesign.md): all seven areas and fifteen screen types,
+  with actual implementation evidence and remaining visual review. This branch is not a deployment.
 
-Until BL-19, BL-20 and BL-21 merge and the loader's cohort is wired into the served pages, a clean
-clone cannot reproduce the full Baseline stage demo. What a clean clone can run today is below.
+- [Hosted unit dashboard](https://baseline.deeruan.com/unit): twelve fictional residents,
+  resident charts, cited evidence, documented temperature and preliminary handoff/export.
+- [Presentation guide](docs/live-voice-demo.md): the prepared `/unit?demo=handoff` workflow
+  connects separate phone receipts to an explicitly authored nurse presentation. Findings and
+  baselines are fictional; this is separate from genuine measurement and enrollment. Confirm
+  the deployed revision before relying on a presentation link.
+- [Deploy from a clean clone](docs/deployment-walkthrough.md): Linux server, Docker Compose,
+  DNS/HTTPS, private credential bootstrap, twelve-resident load and verification. Use the
+  reviewed release SHA; an older deployment does not gain new features from a query string.
+- [Current status and acceptance gates](docs/build-status.md),
+  [live tracker #38](https://github.com/ruandee/patient-memory-backend/issues/38),
+  [specification](docs/06-baseline.md) and [product context](docs/07-baseline-proposal.md).
+
+The reviewed integration is on `main` through PR #104 (merge `250cd51`; tested release head
+`f7f02c0`). Exact-head CI passed 634 unit tests, 381 database-backed tests, migrations, stub
+evaluation and image smoke. These results do not establish physical-phone or hosted-latency
+acceptance. Check the tracker for the current deployed revision and rehearsal status.
+
+| Implemented on `main` | Remaining acceptance |
+| --- | --- |
+| Speech upload, local Whisper/prosody, quality gates and deterministic change/verdict engine | Physical-phone capture, usable personal baselines and warm hosted p95 below five seconds |
+| Twelve-resident loader, watch list, resident charts, exact source/check readback and grounded multimodal SBAR/export | Full hosted rehearsal; export remains preliminary, with no EHR writeback |
+| English counting profiles, explicit permission, score-free PSW flow and trusted asserted note authorship | Nontechnical resident/PSW testing; unsupported languages stop explicitly |
+| Fixture-only current-time reset, separate capture identities, Compose/HTTPS and dedicated workers | Hosted reset under one minute; reset must refuse unexpected recordings instead of deleting them |
+| KAZE session, three-clip activation, explicit self-custody voice permission, scheduler, SMS/ack and pages | Two phones, consenting recipient, actual SMS delivery/ack and rehearsals; default sender is simulation |
+| Registered resting vitals, local movement processing and Vox mock adapter | Physical chair/movement acceptance and real mock-fixture capture; no Vox/PointClickCare integration |
+| Optional real-audio golden suite and approved protocol | Local run evidence is separate from hosted capture; raw recordings stay outside Git/CI |
+
+For a genuine voice comparison, follow the [separate enrollment flow](docs/live-voice-demo.md#optional-genuine-baseline-comparison-separate-flow).
+Use a dedicated capture identity outside the twelve scripted residents, explicitly configure
+English and record actual permission, then enroll five distinct rested recordings. A later
+speaker needs their own baseline. An ordinary telephone call is not ingested by the app:
+record on the caller's device using the app. Results are actual measurements, with no promised
+change or escalation. The local scripted presentation above needs no personal enrollment.
+
+Backup video, two complete rehearsals, phone/LTE checks, Devpost submission and the KAZE
+recipient test remain human acceptance work. See [rehearsal checklist](docs/submission/rehearsal-checklist.md).
+
+## Care-team workflows (deployed)
+
+The shared navigation connects these tasks; source implementation is documented in
+[decision037](docs/decisions/037-care-workspace-workflows.md). Confirm the deployed release
+in the [deployment record](docs/frontend-release-2026-10-18.md) and tracker; the redesigned
+pages and Unit search are online on the public host.
+
+| Path | Task |
+| --- | --- |
+| `/unit` | Search visible residents by name/reference, review the priority list, and open cited records. |
+| `/` or `/?patient=<assigned-id>` | Search assigned residents, review notes, prepare a handover and ask source-linked questions. Explicit unavailable links never fall back to another resident. |
+| `/check?nurse=1` | Nurse preparation: choose a person, review permission/profile/history, then enter the existing guarded recorder. |
+| `/check` | Existing score-free PSW/resident guided check; not a resident portal. |
+| `/check?type=motion` | Existing local movement capture, with unverified/client-derived measurements. |
+| `/unit?demo=handoff` | Separate labelled presentation room with authored results, not clinical assessments. |
+
+Hosted notes use the session's current UTC cutoff; local fixed fixtures keep January 3, 2026.
+The hosted handover starts with an editable last-24-hours window. Adjust it to your shift;
+changing residents or reconnecting preserves your date edits. API permissions, consent and
+scoring are unchanged. The initial release passed backend CI (667 unit and 383 service-backed
+tests), image smoke, 165 Node checks and desktop/phone browser verification. See the deployment
+record for exact commits, production checks and retained rollback. Physical-device, movement,
+SMS and resident/staff usability acceptance remain separate.
 
 ## Run locally
 
@@ -123,7 +166,7 @@ FastAPI/Pydantic + PostgreSQL 17/pgvector + a leased jobs worker + S3 source sto
 - [Operations, recovery and limitations](docs/operations.md)
 - [Agent instructions](AGENTS.md)
 
-Implementation commits are separated by milestone on `build/backend-mvp`. The review handoff records completion and remaining work; the original specification stays available for comparison.
+Implementation uses reviewed feature branches and milestone commits. The build-status ledger and tracker distinguish merged behavior from acceptance still requiring a host, device or person; the original specification remains available for comparison.
 
 ## Local patient workspace (F01)
 
@@ -139,23 +182,19 @@ inspection, and shift handover summaries. The same FastAPI backend serves the UI
 and API on port 8001; the original API on port 8000 can remain running independently.
 No Node build or external assets are required.
 
-The same server also serves the Baseline shell at `/unit`, `/check` and `/resident/{id}`
-([decision 005](docs/decisions/005-baseline-frontend-location.md)). On `main`, `/unit` reads the
-live watch list; it lists the workspace's fictional patients with no verdict until voice checks
-are recorded for them. The BL-14 loader writes its own synthetic tenant, which is not yet wired into
-the workspace session. `/check` uploads to the live API (`?mock=1` shows fixtures instead);
-`/resident/{id}` renders a placeholder until BL-19 merges. Hosted (off-loopback) mode needs `PM_FRONTEND_HOSTS` and a
-pre-minted `PM_DEMO_TOKEN` signed with a deployment-only `PM_JWT_SECRET`; never host with the
-default secret, which is public in this repository.
+The same server serves Baseline at `/unit`, `/check`, `/resident/{id}`, `/out` and session
+pages ([decision 005](docs/decisions/005-baseline-frontend-location.md)). The local workspace
+loader and the Baseline storyline loader use different synthetic tenants. To reproduce the
+complete twelve-resident Baseline demo, use the explicit bootstrap/load steps in the
+[hosting recipe](docs/demo-hosting.md) or the [beginner walkthrough](docs/deployment-walkthrough.md),
+rather than expecting the generic workspace seed to contain voice assessments.
 
-The workspace is **local-only and synthetic-only**. It uses an assigned read-only
-nurse identity, an in-memory browser bearer token, and the offline provider. The
-session endpoint rejects remote clients, non-loopback Host headers, and cross-origin
-requests. Do not expose this developer server through a tunnel or use real records.
-Display names are fictional UI aliases; they are not demographics from source data.
-The initial record snapshot is January 2, 2026; all UI times and shift inputs are UTC.
-Refreshing the page renews the eight-hour synthetic token. Patient edits, imports,
-production sign-in, and live model integration are outside this frontend milestone.
+Default workspace mode is local-only: assigned read-only nurse access, an in-memory browser
+token and stub provider. Off-loopback hosting is explicitly opt-in through `PM_FRONTEND_HOSTS`
+and private pre-minted credentials signed with a deployment-only `PM_JWT_SECRET`. The Compose
+workflow provisions separate nurse, PSW and KAZE identities; their roles are not interchangeable.
+Never host with the repository's public default secret. Follow the deployment guide instead of
+exposing a default developer server through a tunnel. Only fictional records belong in this demo.
 
 Validation: `uv run pytest tests` includes demo-origin and read-only authorization
 checks. `node --check frontend/app.js` checks browser JavaScript syntax when Node is

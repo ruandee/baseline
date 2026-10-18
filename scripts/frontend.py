@@ -24,6 +24,7 @@ from patient_memory.baseline.ack import well_formed as ack_token_well_formed
 from patient_memory.baseline.sessions import owner_gate
 from patient_memory.config import Settings
 from patient_memory.consent import grant_fixture_consent
+from patient_memory.domain import now
 from patient_memory.objects import ObjectStore
 from patient_memory.storage import transaction
 from scripts.demo_handoff import register as register_handoff
@@ -178,7 +179,9 @@ def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None, psw=No
         if is_psw and not minted:
             return JSONResponse({"error": {"message": "PSW demo token unavailable"}}, status_code=503)
         return {"token": minted if is_psw else demo_token or synthetic_token(reader, cfg),
-                "patients": patients, "provider": cfg.provider, "as_of": "2026-01-03T00:00:00Z"}
+                "patients": patients, "provider": cfg.provider,
+                "as_of": now().isoformat() if extra_hosts else "2026-01-03T00:00:00Z",
+                "snapshot_mode": "current" if extra_hosts else "fixed"}
 
     @app.get("/", include_in_schema=False)
     def index():

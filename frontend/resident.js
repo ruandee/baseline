@@ -100,12 +100,24 @@
       return card;
     }
     const overBudget = a.verdict === 'escalate' && a.over_budget;
-    card.append(h.chip(overBudget ? 'Escalate (over budget)' : h.VERDICT_LABELS[a.verdict] || a.verdict,
+    card.append(h.el('p', 'LATEST ASSESSMENT', {class: 'bl-eyebrow'}),
+                h.chip(overBudget ? 'Escalate (over budget)' : h.VERDICT_LABELS[a.verdict] || a.verdict,
                        overBudget ? 'watch' : a.verdict));
     if (data.watch_window && data.watch_window.open) {
       card.append(' ', h.el('span', `Day ${data.watch_window.day} of ${data.watch_window.of}`,
                             {class: 'bl-window'}));
     }
+    const change = a.change || {};
+    const compared = ['none', 'provisional', 'change'].includes(change.status)
+      && Object.values(change.per_feature || {}).some((feature) =>
+        Number.isFinite(feature.z) && Number.isFinite(feature.median)
+        && Number.isFinite(feature.scale));
+    const comparison = compared ? 'Compared with this resident’s own usual range.'
+      : change.status === 'enrolling' || a.verdict === 'enrolling'
+        ? 'Baseline in progress. There is not enough comparable history for this assessment.'
+        : 'A comparison with this resident’s usual range is unavailable.';
+    card.append(h.el('p', comparison + ' Review the measurements and supporting records below.',
+                     {class: 'bl-muted'}));
     if (a.suggested_action && a.suggested_action.id !== 'none') {
       const actionId = `action-${a.id}`;
       const button = h.el('button', a.suggested_action.label, {class: 'bl-action', type: 'button',
@@ -303,6 +315,7 @@
   }
 
   window.renderResident = async function (main, id, h) {
+    main.setAttribute('data-workspace', 'resident-details');
     const ctx = {id, mock: h.mock};
     main.replaceChildren(h.el('p', 'Loading…'));
     let data;
@@ -322,9 +335,17 @@
       grid.append(fig);
     });
     const legend = h.el('p', 'Line: daily median · dots: each check · green band: usual range (median ± 2 × scale) · dashed line: first change', {class: 'bl-muted'});
+    const guide = h.el('details', '', {class: 'measurement-guide'});
+    guide.append(h.el('summary', 'About these speech measurements'),
+      h.el('p', 'Speech rate is words per minute. Pause ratio is the share of the detected speech interval identified as pauses, shown as a percentage. Mean pause is the average detected pause length in seconds. Pitch (F0) is estimated vocal frequency in hertz.'),
+      h.el('p', 'These describe the recording and its comparison with personal history. They are not a diagnosis or a probability of illness. Missing values are unavailable, not zero.'));
     const sbar = sbarPanel(h, ctx, data);
     const signals = window.signalPanel && window.signalPanel(h, ctx, data);
-    main.replaceChildren(title, verdictCard(h, data), ...(signals ? [signals] : []), h.el('h2', 'Last 30 days'), grid, legend,
+    const navigation = h.el('div', '', {class: 'resident-context-links'});
+    navigation.append(h.el('a', 'Unit overview', {href: '/unit'}),
+      h.el('a', 'Notes and source history', {href: '/?patient=' + encodeURIComponent(id)}),
+      h.el('a', 'Voice-check readiness', {href: '/check?nurse=1&patient=' + encodeURIComponent(id)}));
+    main.replaceChildren(navigation, title, verdictCard(h, data), ...(signals ? [signals] : []), h.el('h2', 'Last 30 days'), grid, legend, guide,
                          evidenceChain(h, ctx, data), ...(sbar ? [sbar] : []),
                          decisionTable(h, data));
     if (!ctx.mock && data.latest_assessment && data.latest_assessment.sbar && window.noteExportPanel) {

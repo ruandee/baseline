@@ -1,0 +1,160 @@
+/* Notes workflow. Shared navigation and typography are supplied by app-shell.css. */
+.notes-app { --ink:#1e293b; --muted:#526174; --green:#0f766e; --pale:#edf8f6; --line:#dce3e9; --bg:#f3f5f7; font-size:14px; }
+.notes-app .shell { margin-left:232px; max-width:1920px; padding:0 28px; }
+.notes-app .topbar { height:60px; color:var(--muted); font-size:13px; gap:16px; }
+.notes-app .connection { font-size:12px; }
+.notes-app .page-title { padding:28px 0 24px; gap:20px; }
+.notes-app h1 { font-family:inherit; font-size:30px; font-weight:700; letter-spacing:-.7px; margin:0 0 8px; }
+.notes-app .page-title p { font-size:14px; color:var(--muted); }
+.notes-app .fictional { font-size:12px; color:var(--muted); background:#fff; padding:5px 10px; white-space:nowrap; }
+.notes-app .workspace { display:grid; grid-template-columns:220px minmax(0,1fr) 320px; gap:20px; min-height:0; overflow:visible; background:none; border:0; box-shadow:none; }
+.notes-app .roster,.notes-app .record,.notes-app .assistant { background:#fff; border:1px solid var(--line); border-radius:12px; min-width:0; }
+.notes-app .roster { align-self:start; padding:18px 12px 0; }
+.notes-app .roster summary { display:flex; justify-content:space-between; gap:10px; align-items:center; cursor:pointer; font-size:14px; font-weight:650; padding:0 6px; list-style:none; }
+.notes-app .roster summary::after { content:'+'; font-size:20px; color:var(--muted); }
+.notes-app .roster details[open] summary::after { content:'-'; }
+.notes-app .count { font-size:12px; color:var(--muted); background:var(--bg); }
+.notes-app .roster-help { font-size:12px; color:var(--muted); padding:0 6px; margin:12px 0; }
+.notes-app .search { margin:0 0 12px; padding:8px; gap:8px; }
+.notes-app .search span { font-size:11px; color:var(--muted); }
+.notes-app .search input { min-width:0; font-size:14px; min-height:28px; }
+.notes-app .search:focus-within { outline:2px solid var(--green); outline-offset:2px; }
+.notes-app .patient-list { padding:0; max-height:520px; overflow-y:auto; overflow-x:hidden; }
+.notes-app .patient-button { min-height:60px; padding:10px 8px; gap:9px; border-radius:8px; }
+.notes-app .patient-button.selected { background:var(--pale); border-color:#a5d1cb; }
+.notes-app .patient-button b { font-size:13px; font-weight:650; overflow-wrap:anywhere; }
+.notes-app .patient-button small { font-size:11px; color:var(--muted); overflow-wrap:anywhere; }
+.notes-app .patient-button .avatar { background:#e8eef3; color:#475569; width:34px; height:34px; }
+.notes-app .roster-foot { margin:12px -12px 0; padding:14px 18px; font-size:12px; color:var(--muted); }
+.notes-app .record { padding:22px; }
+.notes-app .patient-heading { padding-bottom:22px; }
+.notes-app .avatar.large { width:48px; height:48px; background:var(--pale); color:var(--green); font-size:16px; }
+.notes-app .patient-heading-label { font-size:10px; letter-spacing:.7px; color:var(--muted); }
+.notes-app .patient-heading h2 { font-family:inherit; font-size:23px; font-weight:650; }
+.notes-app .patient-heading p { font-size:12px; color:var(--muted); }
+.notes-app .tabs { gap:22px; flex-wrap:wrap; }
+.notes-app .tab { font-size:14px; padding:8px 0 13px; color:var(--muted); min-height:44px; }
+.notes-app #revision { font-size:11px; color:var(--muted); }
+.notes-app .view-heading { gap:12px; padding:24px 0 16px; align-items:flex-start; }
+.notes-app h3 { font-size:16px; font-weight:650; }
+.notes-app .view-heading p { font-size:12px; color:var(--muted); line-height:1.65; }
+.notes-app .filters { gap:7px; margin-bottom:20px; }
+.notes-app .filter { font-size:12px; color:var(--muted); padding:7px 10px; min-height:36px; border-color:var(--line); }
+.notes-app .filter.active { color:var(--green); background:var(--pale); border-color:#a5d1cb; }
+.notes-app .timeline { min-height:180px; }
+.notes-app .day-heading { font-size:12px; font-weight:600; color:var(--muted); }
+.notes-app .event { padding-left:22px; padding-bottom:24px; border-color:var(--line); }
+.notes-app .event-top { font-size:12px; color:var(--muted); flex-wrap:wrap; }
+.notes-app .event-top b,.notes-app .event p { color:var(--ink); }
+.notes-app .event p { font-size:14px; line-height:1.7; }
+.notes-app .event-dot { background:#d7ebe7; }
+.notes-app .tag { font-size:11px; background:#edf2f6; color:#475569; padding:3px 7px; }
+.notes-app .tag.patient { color:#815329; background:#fff3e5; }
+.notes-app .source-link { font-size:12px; color:var(--green); min-height:32px; }
+.notes-app .assistant { padding:22px 18px; align-self:start; }
+.notes-app .assistant-heading h2 { font-size:18px; }
+.notes-app .assistant-heading p { font-size:12px; color:var(--muted); }
+.notes-app .scope-note { margin:16px 0 0; padding:12px; background:var(--pale); border-color:#cce7e2; }
+.notes-app .scope-note p { font-size:12px; color:var(--muted); }
+.notes-app .scope-note b { color:var(--ink); font-weight:600; }
+.notes-app .composer { margin:16px 0 18px; padding:12px; box-shadow:none; border-color:#a5b8c5; }
+.notes-app .composer label { font-size:12px; letter-spacing:0; color:var(--ink); font-weight:600; }
+.notes-app .composer textarea { font-size:14px; min-height:94px; line-height:1.6; max-height:260px; }
+.notes-app textarea::placeholder { color:#64748b; }
+.notes-app .composer-bottom { align-items:flex-end; gap:10px; }
+.notes-app .composer-bottom>span { font-size:10px; color:var(--muted); }
+.notes-app .send { width:auto; height:40px; padding:0 16px; font-size:13px; font-weight:650; }
+.notes-app .conversation { min-height:0; max-height:none; overflow:visible; }
+.notes-app .welcome { text-align:left; padding:0 0 16px; }
+.notes-app .welcome h3 { font-family:inherit; font-size:14px; font-weight:600; }
+.notes-app .welcome p { font-size:12px; color:var(--muted); line-height:1.65; }
+.notes-app .suggestion { font-size:12px; color:#335b58; line-height:1.5; padding:10px; border-color:var(--line); }
+.notes-app .assistant-foot { font-size:12px; text-align:left; color:var(--muted); margin:12px 0 0; }
+.notes-app .question-bubble { font-size:14px; background:var(--pale); border-radius:8px; }
+.notes-app .answer-block { font-size:14px; padding:14px; border-radius:8px; }
+.notes-app .answer-title { font-size:12px; letter-spacing:0; color:var(--green); font-weight:650; text-transform:none; }
+.notes-app .claim p { line-height:1.7; }
+.notes-app .claim-meta,.notes-app .answer-meta { font-size:11px; color:var(--muted); }
+.notes-app .citation { font-size:12px; min-height:32px; color:var(--green); background:var(--pale); border-color:#badbd5; margin-top:4px; padding:5px 8px; }
+.notes-app .unknown { font-size:13px; color:#76551f; line-height:1.65; }
+.notes-app .notice,.notes-app .global-error { font-size:13px; line-height:1.65; color:#76551f; }
+.notes-app .notice button,.notes-app .global-error button { display:block; margin:10px 0 0; }
+.notes-app .empty,.notes-app .loading { font-size:13px; color:var(--muted); padding:24px 8px; text-align:left; }
+.notes-app .primary,.notes-app .secondary { font-size:13px; min-height:40px; padding:9px 14px; }
+.notes-app .primary { justify-content:center; }
+.notes-app .shift-inputs { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.notes-app .shift-inputs label { font-size:12px; color:var(--muted); }
+.notes-app .shift-inputs input { min-width:0; font-size:13px; color:var(--ink); background:#fff; min-height:44px; }
+.notes-app .summary-empty { padding:28px 0; text-align:left; }
+.notes-app .summary-empty h3 { font-family:inherit; font-size:16px; }
+.notes-app .summary-empty p { font-size:13px; color:var(--muted); line-height:1.7; }
+.notes-app .summary-section { font-size:14px; color:var(--ink); }
+.notes-app .page-foot { display:block; font-size:12px; color:var(--muted); line-height:1.7; }
+.notes-app dialog { width:min(680px,calc(100% - 32px)); max-height:85dvh; padding:24px; border:1px solid var(--line); border-radius:12px; color:var(--ink); }
+.notes-app dialog::backdrop { background:#0f172a66; }
+.notes-app .dialog-head { gap:16px; }
+.notes-app .dialog-head h2 { font-size:20px; }
+.notes-app .dialog-head p { font-size:13px; color:var(--muted); margin:6px 0 0; }
+.notes-app .icon-button { min-width:40px; height:40px; color:var(--muted); }
+.notes-app blockquote { font-size:16px; line-height:1.75; border-color:var(--green); background:var(--pale); padding:16px; overflow-wrap:anywhere; }
+.notes-app .evidence-grid { font-size:13px; grid-template-columns:110px minmax(0,1fr); }
+.notes-app .evidence-grid dt { color:var(--muted); }
+.notes-app .evidence-grid dd { overflow-wrap:anywhere; }
+.notes-app .evidence-technical { font-size:12px; margin-top:18px; color:var(--muted); }
+.notes-app .evidence-technical summary { cursor:pointer; }
+.notes-app .evidence-technical dl { margin-top:16px; }
+.notes-app button:focus-visible,.notes-app a:focus-visible,.notes-app textarea:focus-visible,.notes-app summary:focus-visible { outline:3px solid #0f766e; outline-offset:3px; }
+@media(max-width:1350px) {
+ .notes-app .workspace { grid-template-columns:220px minmax(0,1fr); }
+ .notes-app .assistant { grid-column:2; }
+ .notes-app .roster { grid-row:1 / span 2; }
+}
+@media(max-width:1050px) {
+ .notes-app .workspace { grid-template-columns:minmax(0,1fr); gap:16px; }
+ .notes-app .roster,.notes-app .assistant { grid-column:auto; grid-row:auto; }
+ .notes-app .patient-list { max-height:210px; display:block; overflow-y:auto; }
+ .notes-app .patient-button { flex-shrink:1; }
+}
+@media(max-width:600px) {
+ .notes-app .shell { padding:0 16px; }
+ .notes-app .topbar { min-height:56px; height:auto; padding:12px 0; flex-wrap:wrap; }
+ .notes-app .page-title { display:block; padding:24px 0 20px; }
+ .notes-app .page-title h1 { font-size:26px; }
+ .notes-app .page-title .fictional { display:inline-block; margin:12px 0 0; }
+ .notes-app .record,.notes-app .assistant { padding:18px 16px; }
+ .notes-app .patient-heading { gap:10px; }
+ .notes-app .patient-heading h2 { font-size:21px; }
+ .notes-app .tabs { gap:18px; }
+ .notes-app #revision { flex-basis:100%; margin:0 0 10px; }
+ .notes-app .shift-inputs { grid-template-columns:minmax(0,1fr); }
+ .notes-app dialog { padding:20px 16px; }
+ .notes-app .evidence-grid { grid-template-columns:minmax(0,1fr); gap:4px; }
+ .notes-app .evidence-grid dd { margin:0 0 10px; }
+}
+
+@media(max-width:760px) { .notes-app .shell { margin-left:0; } }
+
+/* The record, resident picker and source-backed answers share a flat desk. */
+.notes-app .shell { margin: 0 auto; max-width: 1600px; padding: 0 3%; }
+.notes-app .topbar { height: 42px; }
+.notes-app .page-title { padding: 16px 0 23px; }
+.notes-app .workspace { grid-template-columns: 220px minmax(0,1fr) 340px; gap: 24px; }
+.notes-app .roster,.notes-app .record,.notes-app .assistant { background: transparent; border: 0; border-top: 1px solid var(--line); border-radius: 0; }
+.notes-app .roster { padding: 18px 0 0; }
+.notes-app .roster-foot { margin-inline: 0; padding-inline: 0; }
+.notes-app .record { padding: 18px 0; }
+.notes-app .assistant { padding: 18px 0 18px 22px; border-left: 1px solid var(--line); }
+.notes-app .patient-button { border-radius: 0; border: 0; border-bottom: 1px solid var(--line); }
+.notes-app .patient-button.selected { box-shadow: inset 3px 0 #728468; }
+.notes-app .patient-heading { padding-bottom: 18px; }
+.notes-app .composer,.notes-app .scope-note,.notes-app .suggestion,.notes-app .answer-block,.notes-app .question-bubble { border-radius: 4px; box-shadow: none; }
+.notes-app .filter { border-radius: 3px; }
+.notes-app .avatar { border-radius: 6px; }
+.notes-app dialog { border-radius: 6px; }
+@media(max-width:1200px) { .notes-app .workspace { grid-template-columns: 200px minmax(0,1fr); }.notes-app .assistant { grid-column: 2; border-left: 0; padding-left: 0; } }
+@media(max-width:850px) { .notes-app .workspace { grid-template-columns: minmax(0,1fr); gap: 18px; }.notes-app .assistant { grid-column: auto; }.notes-app .shell { margin: 0; padding-inline: 5%; } }
+
+/* Readable secondary text and navigation symbols on the warm surfaces. */
+.notes-app .connection,.notes-app .arrow,.notes-app .event-dot,.notes-app .suggestion span { color: var(--muted); }
+
+.notes-app .event[data-kind] .event-dot { color: var(--muted); }

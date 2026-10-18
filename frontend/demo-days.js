@@ -28,6 +28,7 @@
     let clipUrl = null;
     let receipt = null;
     const completed = new Set();
+    main.setAttribute('data-workspace', 'legacy-demo');
     const title = h.el('h1', 'Three-day voice demo');
     const banner = h.el('section', '', {class: 'bl-demo-banner'});
     banner.append(h.el('strong', 'SIMULATED DEMO RESULTS'), h.el('p',
