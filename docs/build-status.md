@@ -166,3 +166,6 @@ Timeout/crash uncertainty remains pending; failed events are not resent, and sen
 acceptance only. Tests use stubs/mock HTTP. Real verified-phone receipt/public ack acceptance
 remain unrun, dependencies #27/#28 are pending review/merge, and issue #29 must remain open.
 The six held ADR018 product questions remain undecided; see decision 023 for delivery mechanics.
+
+Mock Vox ingestion with separate standing consent and VAD speech-duration gating is integrated;
+see decision 016. Real Vox/audio/UI acceptance and prompt-switching decisions remain separate.
