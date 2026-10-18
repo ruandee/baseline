@@ -220,3 +220,8 @@ motion consent. Final migration011 guards require explicit scoring authorization
 unset-context denial. Exact source provenance, RLS, purge and projection tests passed on the
 feature head; real Chrome model startup/failure used no camera or remote requests. Physical
 phone/camera and three measurements in under15seconds remain unverified (Refs #36).
+
+BL-35 integration: explicit resting HR/RR observations feed current-revision signal projections
+and isolated synthetic RR-rise acceptance; unknown rest/time/units stay unavailable. ADR028
+records engineering-only vitals parameters and012scoped PSW facts; ordinary evidence remains
+denied. Final motion011 from main is preserved unchanged. Speech/canonical cohort unchanged.
