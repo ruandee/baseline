@@ -1,16 +1,21 @@
 # Implementation status and remaining gates
 
-BL-15 personal-phone replacement is implemented for review (decision038): `/unit?demo=personal`
+BL-15 personal-phone replacement is deployed (decision038): `/unit?demo=personal`
 shows the actual volunteer assessment and provides its phone link. The phone has explicit rested
 baseline/check-in modes and repeated genuine recording. Nurse readback polls every two seconds
 while visible. Demo links are removed from website headers; old entry URLs redirect to this flow.
 An optional private display alias labels the existing live volunteer without changing identity.
-No scoring or temporal override is introduced. Deployment, five real usable baseline takes and physical-phone/nurse rehearsal remain
-pending. This work is rebased onto Danny's overnight polish in `4bf714c`, deployed on 2026-10-18
-at 13:06 UTC after merged-main CI passed (690 unit and 383 service-backed tests). VM access is
-restored. All 25 public rollout checks passed and stored voice-check fingerprints were preserved.
-The hosted live capture identity had an unconfigured profile, unknown consent and zero baseline
-checks when inspected. No recording or permission write was performed.
+No scoring or temporal override is introduced. Release `0c94d3f` was deployed on 2026-10-18 at
+13:56 UTC after CI passed Ruff, 691 unit tests (five optional tests deselected), 384 service-backed
+tests, stub evaluation and image smoke. All 180 JavaScript scenarios and 36 public rollout checks
+passed. The API is healthy; stored voice-check counts/identity fingerprints and volumes were
+preserved. Private hosting configuration labels the existing live identity and disables external
+escalation for it, retaining all previous no-escalate identities and disabled audio retention.
+This builds on Danny's overnight polish in `4bf714c`, merged and deployed at 13:06 UTC.
+Five real usable baseline takes and physical-phone/nurse rehearsal remain pending; PR127 stays
+draft until that BL-15 acceptance gate is met. The hosted live capture identity had an unconfigured
+profile, unknown consent and zero baseline checks at rollout. No recording or permission write
+was performed by the implementation agent.
 
 Frontend redesign is deployed, including Unit resident search. All seven areas/fifteen screen
 types have an implementation and screenshot pass. The initial deployed source `20be74b` passed
@@ -19,13 +24,14 @@ preserved. See [the deployment record](frontend-release-2026-10-18.md),
 [screen inventory](frontend-redesign.md) and tracker #38 for current release evidence and
 unverified physical/usability gates. Follow-up visual polish removes decorative dividers.
 
-BL-17 replacement (decision036): `/unit?demo=handoff` hosts a two-resident presentation room.
+Archived BL-17 presentation (decision036): `/unit?demo=archived-handoff` hosts a two-resident room.
 Separate phone links record locally and submit only a duration/idempotency receipt. The runner
 arrives as Watch; nurse-added exertion context changes it to Explained. Dee's first/second
 submissions show Watch/Escalate. Findings/baselines are authored and disclosed as a demo scenario.
 Rooms are isolated from clinical history, expire in two hours, and require the single-process
-host. Old `demo=days` links enter the replacement; `demo=legacy-days` retains the old local mode.
-This supersedes the selected presentation in decision034, not genuine engine or consent rules.
+host. Decision038 replaces the selected presentation: `demo=handoff`, `demo=days` and
+`demo=legacy-days` now redirect to the genuine personal flow. The older local mode is explicitly
+archived as `demo=archived-days`. Genuine engine and consent rules remain authoritative.
 Verified deployment checkpoint: merged release `204f545` on 2026-10-18 UTC. CI passed 659 unit
 and 383 database-backed tests (five optional slow tests deselected), Ruff, synthetic stub eval
 and image smoke. Public HTTPS checks verified release assets, readiness, authorized watchlist,

@@ -1,7 +1,7 @@
 # 038: Genuine personal-baseline phone demo
 
 Date: 2026-10-18. Scope: BL-15 follow-up, using existing BL-17/18 APIs.
-Status: local implementation; deployment, enrollment and physical-phone rehearsal pending.
+Status: deployed `0c94d3f` at 2026-10-18 13:56 UTC; enrollment and physical-phone rehearsal pending.
 
 The runner is unavailable. Dee requests actual recording, comparison against Dee's own rested
 baseline, prompt nurse updates and repeated check-ins. This replaces the selected presentation
@@ -49,8 +49,9 @@ the separate capture section. Speech processing/commit and optional drafting pre
 so a two-second polling interval is not an end-to-end latency guarantee.
 
 No endpoint, schema, threshold, escalation budget or provider contract changes. The hosted
-operator must retain the dedicated capture identity's no-escalate configuration and existing
-volumes. Deploy the reviewed frontend, then verify the same speaker/phone's five baseline takes,
+operator must configure the dedicated capture identity for no escalation and retain existing
+volumes. The rollout added that identity to the private no-escalate list, preserved prior entries
+and disabled audio retention, and retained stored check fingerprints. Verify the same speaker/phone's five baseline takes,
 one usable genuine live result and nurse readback. Physical iPhone/Android codec/microphone,
 hosted processing time and actual personal enrollment cannot be established by synthetic tests.
 Rollback restores the previous frontend; it does not delete recordings or change stored history.
@@ -61,3 +62,7 @@ Personal recorder/overview mode adapts that same disclosure to describe actual v
 analysis and unavailable-baseline states. The ordinary shared disclosure distinguishes fictional
 residents from live volunteer records; archived handoff keeps its authored-scenario disclosure.
 Personal mode controls use the shared secondary-button styling.
+
+Release validation: 691 Linux unit tests passed (five optional tests deselected), 384
+service-backed tests passed, Ruff, stub evaluation and image smoke passed; all 180 JavaScript
+scenarios and 36 public HTTPS rollout checks passed. The physical enrollment gate remains open.
