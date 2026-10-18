@@ -122,3 +122,31 @@ button.bl-cite{cursor:pointer;text-decoration:underline}
 .bl-note-export pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:480px;overflow:auto}
 
 .bl-parameters{white-space:pre-wrap;overflow-wrap:anywhere}.bl-action-detail{margin:12px 0;padding:12px;border-left:3px solid var(--green)}
+
+/* BL-34 motion: visible labels and touch targets without changing capture behavior. */
+.bl-motion{max-width:680px;margin:0 auto;font-size:17px;line-height:1.5;overflow-wrap:anywhere}
+.bl-motion h1{font-size:32px}
+.bl-motion-field{display:flex;flex-direction:column;gap:6px;margin:14px 0;font-weight:600}
+.bl-motion select,.bl-motion input[type=text]{width:100%;min-width:0;min-height:48px;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--white);color:var(--ink)}
+.bl-motion-permission{min-width:0;margin:24px 0;padding:12px 18px 18px;border:1px solid var(--line);border-radius:12px;background:var(--white)}
+.bl-motion-permission legend{padding:0 6px;font-weight:700}
+.bl-motion-checkbox{display:flex;gap:12px;align-items:center;min-height:48px;margin:12px 0;cursor:pointer}
+.bl-motion-checkbox input{flex:0 0 24px;width:24px;height:24px;margin:0;accent-color:var(--chart-line)}
+.bl-motion button{min-height:56px;padding:12px 18px;border:2px solid var(--line);border-radius:12px;background:var(--white);color:var(--ink);font:inherit;font-weight:600;cursor:pointer;white-space:normal}
+.bl-motion button:disabled{cursor:default}
+.bl-motion .bl-motion-start{background:var(--chart-line);border-color:var(--chart-line);color:#fff;font-size:22px;min-height:72px}
+.bl-motion-actions{display:grid;gap:12px;margin-top:24px}
+.bl-motion-status{padding:12px 16px;border-radius:8px;background:var(--pale);min-height:50px}
+.bl-motion video{display:block;width:100%;max-width:100%;aspect-ratio:4/3;object-fit:contain;background:#202923;border-radius:12px}
+.bl-motion :focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+body[data-motion-page] .bl-nav a{min-height:44px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+body[data-motion-page] .bl-nav .brand{min-width:44px}
+body[data-motion-page] .bl-nav .brand-mark{display:block}
+@media(max-width:640px){
+ body.baseline[data-motion-page]{padding-top:104px}
+ body[data-motion-page] .bl-nav{height:104px;display:grid;grid-template-columns:44px repeat(3,1fr);gap:0 8px;padding:4px 12px}
+ body[data-motion-page] .bl-nav-end{grid-column:1/-1;margin-left:0}
+ .bl-motion{font-size:18px}
+ .bl-motion-permission{padding:10px 12px 14px}
+ .bl-motion-permission button{width:100%}
+}

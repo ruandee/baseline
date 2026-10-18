@@ -2,6 +2,14 @@
 window.renderMotion = async function(host) {
   const params = checkParams();
   const resident = params.mode === 'resident';
+  document.body.setAttribute('data-motion-page', '');
+  const panel = el('section', '', {class: 'bl-motion', 'data-mode': params.mode,
+    'aria-label': 'Movement check'});
+  const field = (text, control) => {
+    const label = el('label', text, {class: 'bl-motion-field'});
+    label.append(control);
+    return label;
+  };
   const title = el('h1', resident ? "Let's move together" : 'Movement check');
   const copy = el('p', 'With someone nearby, sit in a chair facing or sideways to a steady phone. '
     + 'Keep your shoulders, hips and feet in view. Stand up and take three steps during the 10-second check.');
@@ -13,9 +21,10 @@ window.renderMotion = async function(host) {
     select.append(option);
   }
   const baseline = el('input', '', {type: 'checkbox'});
-  const baselineLabel = el('label', ' Use as a baseline capture'); baselineLabel.prepend(baseline);
+  const baselineLabel = el('label', ' Use as a baseline capture', {class: 'bl-motion-checkbox'}); baselineLabel.prepend(baseline);
   baselineLabel.hidden = resident;
-  const permission = el('fieldset', 'Movement-check permission'); permission.hidden = resident;
+  const permission = el('fieldset', '', {class: 'bl-motion-permission'}); permission.hidden = resident;
+  permission.append(el('legend', 'Movement-check permission'));
   const decision = el('select', '', {'aria-label': 'Permission decision'});
   for (const [value, label] of [['granted', 'The person agrees'], ['declined', 'The person declines'],
     ['withdrawn', 'Permission withdrawn']]) decision.append(el('option', label, {value}));
@@ -25,22 +34,29 @@ window.renderMotion = async function(host) {
   const reference = el('input', '', {type: 'text', maxlength: '200',
     'aria-label': 'Substitute decision maker reference, required when applicable'});
   const confirmed = el('input', '', {type: 'checkbox'});
-  const confirmLabel = el('label', ' I have confirmed this movement-check decision.');
+  const confirmLabel = el('label', ' I have confirmed this movement-check decision.',
+    {class: 'bl-motion-checkbox'});
   confirmLabel.prepend(confirmed);
   const savePermission = el('button', 'Record movement permission', {type: 'button'});
   savePermission.disabled = true;
   confirmed.addEventListener('change', () => { savePermission.disabled = !confirmed.checked; });
-  permission.append(decision, decidedBy, reference, confirmLabel, savePermission);
+  permission.append(field('Permission decision', decision), field('Decision maker', decidedBy),
+    field('Substitute decision maker reference (required when applicable)', reference),
+    confirmLabel, savePermission);
   const video = el('video', '', {playsinline: '', muted: '', 'aria-label': 'Local camera preview'});
   video.muted = true; video.playsInline = true;
-  const status = el('p', 'Camera is off.', {role: 'status'});
+  const status = el('p', 'Camera is off.', {role: 'status', class: 'bl-motion-status'});
   const prepare = el('button', 'Prepare local motion model', {type: 'button'});
   const start = el('button', 'Start 10-second check', {type: 'button'}); start.disabled = true;
   const cancel = el('button', 'Cancel / turn camera off', {type: 'button'});
+  start.setAttribute('class', 'bl-motion-start');
+  const actions = el('div', '', {class: 'bl-motion-actions'});
+  actions.append(prepare, start, cancel);
   const result = el('section', '', {'aria-label': 'Movement result'});
   const capture = new MotionCapture(video);
-  host.replaceChildren(title, copy, privacy, select, permission, baselineLabel,
-    prepare, start, cancel, status, video, result);
+  panel.append(title, copy, privacy, field('Person', select), permission, baselineLabel,
+    actions, status, video, result);
+  host.replaceChildren(panel);
   let disposed = false, operation = 0;
   const readiness = () => api(`/v1/patients/${select.value}/motion-checks/readiness`);
   const failure = () => {
