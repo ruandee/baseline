@@ -65,6 +65,16 @@ def enroll(client, patient_id, clips, device_id, output, *, record_consent=False
     if consent["state"] != "granted":
         raise EnrollmentError("Granted voice-check consent is required; existing refusal, withdrawal "
                               "or expiry is never overridden by this tool")
+    profile = check_response(client.get(root + "/check-profile"))
+    if (profile.get("state") != "ready" or profile.get("preferred_locale") != "en"
+            or profile.get("protocol_locale") != "en"
+            or profile.get("prompt_version") != "count20-days-v1"):
+        raise EnrollmentError("Configure the volunteer's explicit English counting profile with "
+                              "the nurse before enrolling recordings")
+    try:
+        profile_version = str(UUID(str(profile["version"])))
+    except (KeyError, ValueError, TypeError) as exc:
+        raise EnrollmentError("A current explicit counting profile version is required") from exc
     # Also verify scoring/readback access before local decode or audio transmission.
     check_response(client.get(root + "/overview"))
     output = Path(output)
@@ -107,6 +117,7 @@ def enroll(client, patient_id, clips, device_id, output, *, record_consent=False
                 with wav.open("rb") as audio:
                     result = check_response(client.post(root + "/checks", data={
                         "mode": "runner", "device_id": device_id, "is_baseline": "true",
+                        "profile_version": profile_version, "protocol_locale": "en",
                     }, files={"audio": (wav.name, audio, "audio/wav")}))
                 report["checks"].append({"check_id": str(UUID(result["check_id"])),
                     "ts": result["ts"], "usable": result["usable"], "input_sha256": hashes[index]})

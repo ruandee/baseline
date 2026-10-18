@@ -6,7 +6,7 @@ window.checkSetup = async function(host, patientId, changed) {
   section.append(el('h2', 'Care-team counting setup'),
     el('p', `For ${person ? person.name : patientId}`), message);
   host.append(section);
-  const controller = {ready: false, profile: null, generation: 0};
+  const controller = {ready: false, profile: null, generation: 0, mutationEpoch: 0};
   let pendingMutations = 0, closed = false;
   const notify = (ready) => {
     controller.ready = Boolean(ready);
@@ -92,7 +92,7 @@ window.checkSetup = async function(host, patientId, changed) {
   saveProfile.addEventListener('click', async () => {
     if (closed || !profileConfirmed.checked) return;
     let pending = true;
-    saveProfile.disabled = true; pendingMutations++; notify(false);
+    saveProfile.disabled = true; pendingMutations++; controller.mutationEpoch++; notify(false);
     try {
       await api(profilePath, {method: 'PUT', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({first_name: name.value.trim() || null, preferred_locale: locale.value.trim() || null})});
@@ -106,7 +106,7 @@ window.checkSetup = async function(host, patientId, changed) {
   saveConsent.addEventListener('click', async () => {
     if (closed || !consentConfirmed.checked) return;
     let pending = true;
-    saveConsent.disabled = true; pendingMutations++; notify(false);
+    saveConsent.disabled = true; pendingMutations++; controller.mutationEpoch++; notify(false);
     try {
       if (!decision.value || !maker.value) throw new Error('Choose the actual decision and decision maker.');
       const body = {scope: 'voice_check', status: decision.value, decided_by: maker.value};

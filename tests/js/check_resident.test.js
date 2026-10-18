@@ -491,3 +491,19 @@ test('residentStep never allows more than one retry', () => {
   }
   assert.deepEqual(views, ['retry', 'accepted', 'done', 'done']);
 });
+
+test('late microphone rejection after resident pagehide does not repaint the exited screen', async () => {
+  let rejectMic;
+  const page = loadPage('/check?mode=resident&patient=p1');
+  await until(() => q(page, '.bl-record'));
+  page.window.navigator.mediaDevices.getUserMedia = () => new Promise((resolve, reject) => { rejectMic = reject; });
+  q(page, '.bl-record').click();
+  await until(() => rejectMic);
+  for (const handler of page.window.listeners.pagehide || []) handler();
+  const text = page.main.textContent;
+  rejectMic(new Error('synthetic held microphone rejection'));
+  await new Promise(resolve => setTimeout(resolve, 40));
+  assert.equal(page.main.textContent, text);
+  assert.equal(q(page, '.bl-record').disabled, true);
+  assert.equal(posts(page, '/v1/patients/p1/checks').length, 0);
+});

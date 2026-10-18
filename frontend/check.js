@@ -294,6 +294,7 @@ async function renderCheck(main) {
   let limit = null;
   let lastBlob = null;
   let setup = null, captureProfile = null, capturePending = false, discard = false, disposed = false, sending = false;
+  let captureMutationEpoch = null;
   window.addEventListener('pagehide', () => {
     disposed = true; discard = true;
     if (setup) setup.dispose();
@@ -324,6 +325,7 @@ async function renderCheck(main) {
     sending = true;
     retry.hidden = true;
     button.disabled = true;
+    const admittedMutationEpoch = captureMutationEpoch;
     const fields = {patient_id: patientId, mode: params.mode, device_id: checkDeviceId(params),
                     device_ts: new Date().toISOString(),
                     is_baseline: baselineBox.checked ? 'true' : 'false',
@@ -334,8 +336,10 @@ async function renderCheck(main) {
         ? await mockCheck(params.fixture)
         : await uploadCheck(blob, fields, (s) => { if (!disposed) setStatus(s); }, {send: async (audio, values) => {
           if (disposed) { const error = new Error('Capture ended.'); error.status = 409; throw error; }
-          if (setup && (!await setup.refresh() || !setup.ready
-              || disposed || setup.profile.version !== captureProfile.version)) {
+          if (setup && (setup.mutationEpoch !== admittedMutationEpoch
+              || !await setup.refresh() || !setup.ready || disposed
+              || setup.mutationEpoch !== admittedMutationEpoch
+              || setup.profile.version !== fields.profile_version)) {
             const error = new Error('Counting setup or permission changed; record a new check.');
             error.status = 409; throw error;
           }
@@ -384,6 +388,7 @@ async function renderCheck(main) {
         if (!ready || !setup.ready) { failure('Recording blocked. Check the current profile and voice permission.'); return; }
         captureProfile = {...setup.profile};
         admittedGeneration = setup.generation;
+        captureMutationEpoch = setup.mutationEpoch;
       }
       stream = await navigator.mediaDevices.getUserMedia({audio: true});  // permission on first tap
     } catch (error) {

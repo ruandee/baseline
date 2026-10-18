@@ -8,6 +8,19 @@ import pytest
 
 from scripts import enroll_voice_baseline as enrollment
 
+PROFILE_VERSION = str(uuid4())
+
+
+def ready_profile():
+    return {"state": "ready", "preferred_locale": "en", "protocol_locale": "en",
+            "prompt_version": "count20-days-v1", "version": PROFILE_VERSION}
+
+
+def get_response(request):
+    value = ({"state": "granted"} if request.url.path.endswith("/consent")
+             else ready_profile() if request.url.path.endswith("/check-profile") else {})
+    return httpx.Response(200, json=value)
+
 
 @pytest.fixture
 def clips(tmp_path, monkeypatch):
@@ -32,7 +45,7 @@ def test_five_distinct_takes_use_existing_api_and_preserve_receipts(clips, tmp_p
         if request.url.path.endswith("/consent"):
             return httpx.Response(200, json={"state": "granted"})
         if request.method == "GET":
-            return httpx.Response(200, json={})
+            return get_response(request)
         posts.append(request)
         return httpx.Response(200, json={"check_id": str(uuid4()), "ts": "2026-10-18T12:00:00Z",
                                          "usable": True, "transcript": "must not enter receipt"})
@@ -49,6 +62,8 @@ def test_five_distinct_takes_use_existing_api_and_preserve_receipts(clips, tmp_p
         assert b'name="mode"\r\n\r\nrunner' in request.content
         assert b'name="device_id"\r\n\r\ndee-demo-phone' in request.content
         assert b"Content-Type: audio/wav" in request.content
+        assert b'name="profile_version"\r\n\r\n' + PROFILE_VERSION.encode() in request.content
+        assert b'name="protocol_locale"\r\n\r\nen' in request.content
     assert "transcript" not in output.read_text()
 
 
@@ -65,13 +80,13 @@ def test_different_containers_with_identical_decoded_samples_never_upload(clips,
     def handler(request):
         calls.append((request.method, request.url.path))
         assert request.method == "GET", "Duplicate decoded audio must not be uploaded"
-        return httpx.Response(200, json={"state": "granted"} if request.url.path.endswith("/consent") else {})
+        return get_response(request)
 
     output = tmp_path / "receipt.json"
     with client_for(handler) as client:
         with pytest.raises(enrollment.EnrollmentError, match="Decoded recordings are duplicates"):
             enrollment.enroll(client, uuid4(), clips, "device", output)
-    assert len(calls) == 2  # consent and authorized overview only
+    assert len(calls) == 3  # consent, explicit profile and authorized overview only
     assert not output.exists()
 
 
@@ -81,7 +96,7 @@ def test_decoded_duration_guard_precedes_upload(clips, tmp_path, monkeypatch, se
 
     def handler(request):
         assert request.method == "GET"
-        return httpx.Response(200, json={"state": "granted"} if request.url.path.endswith("/consent") else {})
+        return get_response(request)
 
     with client_for(handler) as client:
         with pytest.raises(enrollment.EnrollmentError, match="6-30 seconds"):
@@ -115,7 +130,7 @@ def test_real_wav_metadata_cannot_make_identical_synthetic_audio_distinct(tmp_pa
 
     def handler(request):
         assert request.method == "GET", "Metadata-only variants must not become baseline uploads"
-        return httpx.Response(200, json={"state": "granted"} if request.url.path.endswith("/consent") else {})
+        return get_response(request)
 
     with client_for(handler) as client:
         with pytest.raises(enrollment.EnrollmentError, match="Decoded recordings are duplicates"):
@@ -149,7 +164,7 @@ def test_explicit_unknown_consent_decision_precedes_upload(clips, tmp_path):
             assert json.loads(request.content)["decided_by"] == "resident"
             return httpx.Response(201, json={"state": "granted"})
         if request.method == "GET":
-            return httpx.Response(200, json={})
+            return get_response(request)
         return httpx.Response(200, json={"check_id": str(uuid4()), "ts": "2026-10-18T12:00:00Z",
                                          "usable": True})
 
@@ -167,7 +182,7 @@ def test_failures_stop_without_retries_and_keep_partial_receipt(clips, tmp_path,
         if request.url.path.endswith("/consent"):
             return httpx.Response(200, json={"state": "granted"})
         if request.method == "GET":
-            return httpx.Response(200, json={})
+            return get_response(request)
         posted.append(request)
         if failure == "network":
             raise httpx.ReadTimeout("response lost")
@@ -191,3 +206,58 @@ def test_failures_stop_without_retries_and_keep_partial_receipt(clips, tmp_path,
 def test_credentials_only_go_to_explicit_secure_origin(url):
     with pytest.raises(enrollment.EnrollmentError):
         enrollment.validate_url(url)
+
+
+@pytest.mark.parametrize("damage", ["unconfigured", "unsupported", "wrong_protocol", "wrong_locale",
+                                    "missing_version", "null_version", "invalid_version"])
+def test_explicit_supported_versioned_profile_required_before_decode_or_upload(clips, tmp_path, monkeypatch, damage):
+    profile = ready_profile()
+    if damage == "unconfigured":
+        profile.update(state="unconfigured", preferred_locale=None)
+    elif damage == "unsupported":
+        profile.update(state="unsupported", preferred_locale="fr")
+    elif damage == "wrong_protocol":
+        profile["prompt_version"] = "other-protocol"
+    elif damage == "wrong_locale":
+        profile["protocol_locale"] = "fr"
+    elif damage == "missing_version":
+        profile.pop("version")
+    else:
+        profile["version"] = None if damage == "null_version" else "invalid"
+    calls = []
+    monkeypatch.setattr(enrollment, "normalize", lambda *a, **kw: pytest.fail("profile must admit before decode"))
+
+    def handler(request):
+        calls.append((request.method, request.url.path))
+        assert request.method == "GET", "No profile/consent inference or capture upload"
+        return httpx.Response(200, json=profile) if request.url.path.endswith("/check-profile") else get_response(request)
+
+    with client_for(handler) as client:
+        with pytest.raises(enrollment.EnrollmentError):
+            enrollment.enroll(client, uuid4(), clips, "device", tmp_path / "receipt")
+    assert len(calls) == 2 and calls[-1][1].endswith("/check-profile")
+    assert not (tmp_path / "receipt").exists()
+
+
+def test_changed_profile_stops_partial_enrollment_without_retry_or_silent_adoption(clips, tmp_path):
+    posted, profile_reads = [], []
+
+    def handler(request):
+        if request.method == "GET":
+            if request.url.path.endswith("/check-profile"):
+                profile_reads.append(request)
+            return get_response(request)
+        posted.append(request)
+        assert b'name="profile_version"\r\n\r\n' + PROFILE_VERSION.encode() in request.content
+        if len(posted) == 2:
+            return httpx.Response(409, json={"error": {"code": "check_profile_changed"}})
+        return httpx.Response(200, json={"check_id": str(uuid4()), "ts": "2026-10-18T12:00:00Z", "usable": True})
+
+    output = tmp_path / "receipt.json"
+    with client_for(handler) as client:
+        with pytest.raises(enrollment.EnrollmentError, match="409"):
+            enrollment.enroll(client, uuid4(), clips, "device", output)
+    assert len(profile_reads) == 1 and len(posted) == 2
+    receipt = json.loads(output.read_text())
+    assert receipt["status"] == "incomplete" and len(receipt["checks"]) == 1
+    assert receipt["pending_clip"] == 2

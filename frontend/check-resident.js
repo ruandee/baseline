@@ -232,6 +232,7 @@ async function renderResidentCheck(main, params, patientId) {
     heading.focus();
   };
   const needHelp = (error) => {
+    if (disposed) return;
     if (error) console.error(error);  // technical detail stays in the console, never on screen
     if (flow.done || skipping) return;
     card.dataset.state = 'help';

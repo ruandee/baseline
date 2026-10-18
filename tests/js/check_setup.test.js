@@ -255,3 +255,78 @@ for (const phase of ['record', 'upload']) {
     assert.equal(h.main.textContent, text, 'late response does not repaint an exited capture');
   });
 }
+
+for (const mutation of ['consent', 'profile']) {
+  for (const outcome of ['ready', 'blocked', 'failure']) {
+    test(`automatic upload retry discards old clip after ${mutation} save (${outcome})`, async () => {
+      let uploads = 0, releaseRetry, finishMutation;
+      let consent = {state: 'granted'};
+      let profile = {state: 'ready', preferred_locale: 'en', protocol_locale: 'en',
+        prompt_version: 'count20-days-v1', first_name: 'Alex', version: 'same-version',
+        can_configure: true, can_record_consent: true};
+      const savePath = mutation === 'consent' ? 'POST /v1/patients/p1/consents'
+        : 'PUT /v1/patients/p1/check-profile';
+      const h = loadPage('/check?mode=live&patient=p1', {routes: {
+        'GET /v1/patients/p1/check-profile': () => profile,
+        'GET /v1/patients/p1/consent?scope=voice_check': () => consent,
+        'POST /v1/patients/p1/checks': () => { uploads++; throw {status: 500}; },
+        [savePath]: () => new Promise((resolve, reject) => {
+          finishMutation = () => {
+            if (outcome === 'failure') { reject({status: 503}); return; }
+            if (outcome === 'blocked') {
+              if (mutation === 'consent') consent = {state: 'withdrawn'};
+              else profile = {...profile, state: 'unsupported', preferred_locale: 'fr'};
+            }
+            resolve(mutation === 'consent' ? consent : profile);
+          };
+        })}});
+      await until(() => button(h, 'Record') && !button(h, 'Record').disabled);
+      const originalTimeout = h.window.setTimeout;
+      h.window.setTimeout = (fn, ms) => ms === 1000 ? (releaseRetry = fn, {held: true}) : originalTimeout(fn, ms);
+      button(h, 'Record').click(); await until(() => button(h, 'Stop')); button(h, 'Stop').click();
+      await until(() => releaseRetry);
+      assert.equal(uploads, 1, 'the valid capture uploads before any mutation');
+      if (mutation === 'consent') {
+        choose(select(h, 'Voice permission decision'), outcome === 'blocked' ? 'withdrawn' : 'granted');
+        choose(select(h, 'Voice decision maker'), 'resident');
+      }
+      confirm(h.main.querySelectorAll('fieldset')[mutation === 'consent' ? 1 : 0]);
+      button(h, mutation === 'consent' ? 'Record voice permission' : 'Save counting profile').click();
+      await until(() => finishMutation);
+      finishMutation();
+      await until(() => outcome === 'failure'
+        ? h.main.textContent.includes(mutation === 'consent' ? 'Permission not recorded:' : 'Profile not saved:')
+        : outcome === 'blocked' ? h.main.textContent.includes(mutation === 'consent' ? 'voice permission: withdrawn' : 'Profile: unsupported')
+          : h.main.textContent.includes('Counting is ready.'));
+      releaseRetry();
+      await until(() => h.main.textContent.includes('Recording discarded.'));
+      assert.equal(uploads, 1, 'a confirmed save invalidates even an old retry closure');
+      assert.equal(button(h, 'Try again').hidden, true);
+      if (outcome === 'ready') {
+        await until(() => !button(h, 'Record').disabled);
+        button(h, 'Record').click();
+        await until(() => button(h, 'Stop'));
+        button(h, 'Stop').click();
+        await until(() => uploads === 2); // A new deliberate capture remains admissible.
+        for (const handler of h.window.listeners.pagehide || []) handler();
+        if (releaseRetry) releaseRetry();
+      }
+    });
+  }
+}
+
+test('automatic upload retry remains valid across readiness reads with no setup mutation', async () => {
+  let uploads = 0, releaseRetry;
+  const h = loadPage('/check?mode=runner&patient=p1', {routes: {
+    'POST /v1/patients/p1/checks': () => {
+      if (++uploads === 1) throw {status: 500};
+      return {usable: true};
+    }}});
+  await until(() => button(h, 'Record') && !button(h, 'Record').disabled);
+  const originalTimeout = h.window.setTimeout;
+  h.window.setTimeout = (fn, ms) => ms === 1000 ? (releaseRetry = fn, {held: true}) : originalTimeout(fn, ms);
+  button(h, 'Record').click(); await until(() => button(h, 'Stop')); button(h, 'Stop').click();
+  await until(() => releaseRetry);
+  releaseRetry(); await until(() => h.main.textContent.includes('Thank you.'));
+  assert.equal(uploads, 2);
+});

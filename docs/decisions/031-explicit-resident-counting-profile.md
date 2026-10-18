@@ -65,3 +65,12 @@ that occur after a client preflight.
 Verification covers score-free RLS and role denial, unsupported/missing predecode rejection,
 version races, append-only provenance, preserved seed choices, explicit multiword first names,
 URL mismatch and PSW blocking, plus actual-shell phone browser screenshots without recording.
+
+Integration with the live enrollment helper requires a ready explicit English profile and UUID
+version before local decode. Each baseline upload binds that version and registered locale;
+profile changes stop partial enrollment, without inference, automatic profile updates or retries.
+The nurse capture controller separately tracks confirmed setup mutations. A captured clip and
+every upload attempt retain its admission mutation epoch. Any profile/consent save, including a
+failed save or a regrant that preserves profile version, invalidates an old retry closure and
+requires a fresh capture. Ordinary readiness reads do not change that mutation epoch. Late
+resident microphone errors after page exit cannot repaint the discarded screen.
