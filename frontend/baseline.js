@@ -340,8 +340,10 @@ async function renderUnit(main) {
 }
 
 async function renderPage(current, renderer) {
+  const activeRoute = current.name === 'check' && new URLSearchParams(location.search).get('type') === 'motion'
+    ? 'movement' : current.name;
   document.querySelectorAll('[data-route]').forEach((a) => {
-    if (a.dataset.route === current.name) a.setAttribute('aria-current', 'page');
+    if (a.dataset.route === activeRoute) a.setAttribute('aria-current', 'page');
   });
   const main = document.getElementById('bl-main');
   try {
@@ -355,6 +357,7 @@ async function renderPage(current, renderer) {
 
 async function render() {
   const current = route();
+  document.title = `${current.title} | Baseline`;
   const demo = location.search ? new URLSearchParams(location.search).get('demo') : null;
   if ((current.name === 'unit' || current.name === 'check')
       && (demo === 'handoff' || demo === 'days')) {
@@ -398,6 +401,8 @@ async function render() {
   }
   if (current.name === 'resident') {
     document.querySelectorAll('[data-route]').forEach((a) => a.removeAttribute('aria-current'));
+    const notesLink = document.querySelector('[data-route=notes]');
+    if (notesLink) notesLink.setAttribute('href', `/?patient=${encodeURIComponent(current.id)}`);
     const main = document.getElementById('bl-main');
     try {
       const mock = new URLSearchParams(location.search).get('mock') === '1';
