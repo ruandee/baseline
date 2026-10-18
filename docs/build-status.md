@@ -389,8 +389,8 @@ keep January 3 with `snapshot_mode: "fixed"`. The hosted handover's explicit, ed
 UTC default does not overwrite date edits on resident change or retry. API permissions,
 consent, scoring and the separate decision036 presentation semantics are unchanged.
 
-Local validation passed Ruff, 667 unit tests (five optional tests deselected) and 162 JavaScript
-checks. Headless Chrome passed 25 core workflow checks, five presentation checks and 24 further
+Local validation passed Ruff, 667 unit tests (five optional tests deselected) and 165 JavaScript
+checks. Headless Chrome passed 27 core workflow checks, five presentation checks and 24 further
 screen checks at desktop/phone widths. It also exercised two actual Chrome MediaRecorder takes
 per width on generated WebAudio, verifying current permission/profile admission, enrollment,
 unknown verdict handling and blocking after withdrawal. All four tracks ended; four multipart

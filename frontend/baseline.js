@@ -176,19 +176,36 @@ function unitHeader(shift) {
 function renderUnitData(body, data) {
   const headerText = body.querySelector('[data-unit=shift]');
   headerText.textContent = unitHeader(data.shift);
+  const search = body.querySelector('[data-unit=search]');
+  const query = (search.value || '').trim().toLocaleLowerCase();
+  const matches = data.residents.filter((resident) => {
+    const person = ((state.session && state.session.patients) || [])
+      .find((entry) => entry.id === resident.patient_id);
+    return `${resident.display_name || ''} ${(person && person.reference) || ''}`
+      .toLocaleLowerCase().includes(query);
+  });
   const rows = body.querySelector('tbody');
-  rows.replaceChildren(...data.residents.map(unitRow));
+  rows.replaceChildren(...matches.map(unitRow));
+  body.querySelector('[data-unit=clear-search]').disabled = !query;
+  body.querySelector('[data-unit=no-match]').hidden = !query || matches.length > 0;
+  const searchStatus = body.querySelector('[data-unit=search-status]');
+  const searchText = query ? `${matches.length} of ${data.residents.length} visible people match. Unit totals are unchanged.` : '';
+  if (searchStatus.textContent !== searchText) searchStatus.textContent = searchText;
   const roster = data.residents.filter((resident) => !unitCapture(resident));
-  const priority = roster.filter((resident) => ['escalate', 'watch', 'explained'].includes(resident.latest_verdict));
+  const allPriority = roster.filter((resident) => ['escalate', 'watch', 'explained'].includes(resident.latest_verdict));
+  const matchingIds = new Set(matches.map((resident) => resident.patient_id));
+  const priority = allPriority.filter((resident) => matchingIds.has(resident.patient_id));
   const incomplete = roster.filter((resident) => !['escalate', 'watch', 'explained', 'within_normal'].includes(resident.latest_verdict));
   body.querySelector('[data-unit=priority]').replaceChildren(...priority.map(unitPriorityCard));
-  body.querySelector('[data-unit=quiet]').hidden = priority.length > 0 || !roster.length;
-  body.querySelector('[data-unit=priority-note]').textContent = priority.length
+  body.querySelector('[data-unit=quiet]').hidden = Boolean(query) || allPriority.length > 0 || !roster.length;
+  body.querySelector('[data-unit=priority-note]').textContent = query
+    ? `${priority.length} matching review flags; ${allPriority.length} total residents to review`
+    : priority.length
     ? `${priority.length} residents to review · listed in server review order`
     : roster.length ? 'No review flags in the current response' : 'No roster residents in the current response';
   body.querySelector('[data-unit=incomplete]').textContent = incomplete.length
     ? `${incomplete.length} residents have an unavailable assessment or are still enrolling. This is not a normal finding.` : '';
-  const captures = data.residents.filter(unitCapture);
+  const captures = matches.filter(unitCapture);
   const captureList = body.querySelector('[data-unit=capture-list]');
   captureList.replaceChildren(...captures.map((resident) => {
     const item = el('li', '', {class: 'unit-capture-item', 'data-capture': resident.patient_id});
@@ -199,8 +216,12 @@ function renderUnitData(body, data) {
     return item;
   }));
   body.querySelector('[data-unit=captures]').hidden = captures.length === 0;
-  body.querySelector('[data-unit=roster-label]').textContent = `All visible residents and capture identities (${data.residents.length})`;
-  body.querySelector('[data-unit=roster]').hidden = data.residents.length === 0;
+  body.querySelector('[data-unit=roster-label]').textContent = query
+    ? `Matching residents and capture identities (${matches.length})`
+    : `All visible residents and capture identities (${data.residents.length})`;
+  const fullRoster = body.querySelector('[data-unit=roster]');
+  fullRoster.hidden = matches.length === 0;
+  if (query) fullRoster.open = true;
   body.querySelector('[data-unit=empty]').hidden = data.residents.length > 0;
   ['escalate', 'watch', 'explained'].forEach((verdict) => {
     body.querySelector(`[data-unit=count-${verdict}]`).textContent =
@@ -257,8 +278,19 @@ async function renderUnit(main) {
   const updates = el('div', '', {class: 'unit-update-bar'});
   const freshness = el('span', 'Loading current assessments…', {'data-unit': 'freshness', role: 'status'});
   updates.append(freshness, retry);
+  const search = el('input', '', {type: 'search', id: 'unit-person-search',
+    placeholder: 'Name or reference', autocomplete: 'off', 'data-unit': 'search'});
+  search.value = '';
+  const searchLabel = el('label', 'Find a resident', {for: 'unit-person-search'});
+  searchLabel.append(search);
+  const clearSearch = el('button', 'Clear search', {type: 'button', 'data-unit': 'clear-search', disabled: ''});
+  const searchTools = el('div', '', {class: 'unit-search-tools'});
+  searchTools.append(searchLabel, clearSearch);
+  const searchStatus = el('p', '', {class: 'workspace-muted', role: 'status', 'data-unit': 'search-status'});
+  const noMatch = el('p', 'No residents match this search. Try another name or clear the search.',
+    {class: 'unit-quiet', 'data-unit': 'no-match', hidden: ''});
   body.append(heading, updates, notice, summary,
-    el('p', 'Loading shift information…', {class: 'bl-shift', 'data-unit': 'shift'}), listHeading,
+    searchTools, searchStatus, noMatch, el('p', 'Loading shift information…', {class: 'bl-shift', 'data-unit': 'shift'}), listHeading,
     el('div', '', {class: 'unit-priority-list', 'data-unit': 'priority'}),
     el('p', 'No residents are flagged for review. Assessments may still be incomplete; open the full roster to check.',
       {class: 'unit-quiet', 'data-unit': 'quiet', hidden: ''}),
@@ -270,7 +302,13 @@ async function renderUnit(main) {
   let timer = null;
   let inFlight = false;
   let stopped = false;
-  let loaded = false;
+  let loaded = false, loadedData = null;
+  function searchCurrentRoster() {
+    if (loadedData) renderUnitData(body, loadedData);
+    else searchStatus.textContent = 'Load the overview before searching.';
+  }
+  search.addEventListener('input', searchCurrentRoster);
+  clearSearch.addEventListener('click', () => { search.value = ''; searchCurrentRoster(); search.focus(); });
   async function refresh() {
     if (inFlight || stopped) return;
     inFlight = true;
@@ -285,6 +323,7 @@ async function renderUnit(main) {
         data = await api('/v1/watchlist');
       }
       if (stopped) return;
+      loadedData = data;
       renderUnitData(body, data);
       loaded = true;
       notice.hidden = true;
@@ -292,7 +331,10 @@ async function renderUnit(main) {
     } catch (error) {
       if (stopped) return;
       if ([401, 403, 404].includes(error.status)) {
-        // A denied refresh must not keep displaying a formerly authorized roster.
+        // A denied refresh must not keep displaying or searching a formerly authorized roster.
+        loadedData = null;
+        searchStatus.textContent = '';
+        noMatch.hidden = true;
         body.querySelector('tbody').replaceChildren();
         body.querySelector('[data-unit=priority]').replaceChildren();
         body.querySelector('[data-unit=capture-list]').replaceChildren();

@@ -345,3 +345,55 @@ test('a page opened in a background tab loads once and does not poll until visib
   assert.equal(page.watchlistCalls(), 2);
   assert.deepEqual([...page.intervals.values()].map((i) => i.ms), [10000]);
 });
+
+
+test('search finds stable residents in a large roster without sorting or changing unit totals', async () => {
+  const data = structuredClone(FIXTURE);
+  data.residents = Array.from({length: 64}, (_, index) => ({...FIXTURE.residents[0],
+    patient_id: `ward-${index}`, display_name: `Resident ${String(index).padStart(2, '0')}`,
+    latest_verdict: index % 4 ? 'within_normal' : 'watch'})).reverse();
+  const page = harness({responses: [data]});
+  await page.settle();
+  const search = page.main.querySelector('[data-unit=search]');
+  search.value = '  RESIDENT 1  ';
+  search.listeners.input[0]();
+  const expected = data.residents.filter((row) => row.display_name.includes('Resident 1'));
+  assert.deepEqual(renderedRows(page.main).map((row) => row.href),
+    expected.map((row) => `/resident/${row.patient_id}`));
+  assert.equal(expected.length, 10);
+  assert.equal(page.main.querySelector('[data-unit=count-total]').textContent, '64');
+  assert.equal(page.main.querySelector('[data-unit=count-watch]').textContent, '16');
+  assert.equal(page.main.querySelector('[data-unit=roster]').open, true);
+  assert.match(page.main.querySelector('[data-unit=search-status]').textContent, /10 of 64/);
+  assert.equal(page.watchlistCalls(), 1);
+  search.value = '';
+  search.listeners.input[0]();
+  assert.equal(renderedRows(page.main).length, 64);
+});
+
+test('reference search persists over polling and has a distinct no-match state', async () => {
+  const first = structuredClone(FIXTURE), next = structuredClone(FIXTURE);
+  const target = first.residents[0];
+  next.residents = next.residents.filter((row) => row.patient_id !== target.patient_id);
+  const page = harness({responses: [first, next], patients: [
+    {id: target.patient_id, reference: 'WARD-REFERENCE-42'}]});
+  await page.settle();
+  const search = page.main.querySelector('[data-unit=search]');
+  search.value = 'reference-42'; search.listeners.input[0]();
+  assert.equal(renderedRows(page.main).length, 1);
+  await page.tick();
+  assert.equal(search.value, 'reference-42');
+  assert.equal(renderedRows(page.main).length, 0);
+  assert.equal(page.main.querySelector('[data-unit=no-match]').hidden, false);
+  assert.equal(page.main.querySelector('[data-unit=empty]').hidden, true);
+});
+
+test('authorization denial clears the searchable snapshot so typing cannot restore old residents', async () => {
+  const page = harness({responses: [FIXTURE, {errorStatus: 403}]});
+  await page.settle();
+  await page.tick();
+  const search = page.main.querySelector('[data-unit=search]');
+  search.value = FIXTURE.residents[0].display_name; search.listeners.input[0]();
+  assert.equal(renderedRows(page.main).length, 0);
+  assert.match(page.main.querySelector('[data-unit=search-status]').textContent, /Load the overview/);
+});

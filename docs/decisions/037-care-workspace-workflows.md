@@ -160,3 +160,9 @@ for these screens, with zero media calls, remote calls or page errors. Its sourc
 session responses were intercepted fixtures. This does not demonstrate real SMS, live-provider,
 physical-device or resident usability acceptance. All fifteen screen types now have a first
 pass; final user review and exact-head CI remain release conditions.
+
+
+Before deployment the user requested unit search for larger wards. The search filters only
+already authorized visible names/session references, keeps server ordering and unit-wide
+counts, includes stable residents and persists across polls. Denial invalidates the searchable
+snapshot. No new API query, ward model, authorization grant or clinical sorting is introduced.

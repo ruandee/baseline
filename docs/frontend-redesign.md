@@ -29,12 +29,12 @@ its time limit, and Skip while listening discards. Runtime disclosure describes 
 
 ## Verification and release
 
-At this working milestone, the actual three-workflow Chrome fixture verification passed 25
+At this working milestone, the actual three-workflow Chrome fixture verification passed 27
 checks at desktop 1440px and phone 390px. Source dialogs, questions, handovers, loading/empty/error,
 permission-blocked and stale-selection guards were exercised without a microphone, remote
 provider or clinical API. Screenshots are in ignored `artifacts/workflow-browser/`.
 The fresh local regression passed Ruff, 667 unit tests (five optional tests deselected), and
-162 JavaScript checks. Demo browser checks used a WebAudio oscillator, never a physical
+165 JavaScript checks. Demo browser checks used a WebAudio oscillator, never a physical
 microphone, and intercepted two JSON receipts containing only duration and request ID.
 The prior functional base `8012dba` passed backend and image CI; that is not exact-head acceptance
 for these new visual changes. Record fresh regression results and final CI before release.
@@ -62,3 +62,19 @@ coverage; no reset or deploy is performed by the frontend review.
 A rendered contrast spot check found and corrected low-contrast secondary Notes/Unit labels
 and navigation symbols. This narrow computed-color check does not establish full WCAG
 conformance, keyboard/screen-reader acceptance or successful use by residents.
+
+
+Unit search (requested before deployment): name/reference filtering uses only the authorized
+watchlist response and session references, preserves server order and leaves whole-unit totals
+unchanged. Matches include stable residents and separate capture identities; searching opens
+the matching full roster. Query text survives polling. Authorization denial clears the cached
+searchable snapshot; no-match is distinct from an empty assignment list or failed load.
+A 64-person synthetic roster regression covers filtering and stable-resident discovery.
+
+Ontario's official 2023 Niagara-on-the-Lake project describes resident home areas of up to
+32 residents, larger than the twelve-person demo cohort. This is an example, not a universal
+ward-size claim: https://news.ontario.ca/en/release/1003684/ontario-breaks-ground-on-long-term-care-home-in-niagara-on-the-lake
+
+The user explicitly approved deployment, then requested unit search before release. That
+authorization persists for the combined candidate. Final CI must pass before the approved
+release is activated; existing data/baselines and private server configuration are preserved.

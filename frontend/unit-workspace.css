@@ -98,3 +98,9 @@
 
 /* Incomplete states and capture identities need the same readable contrast as body text. */
 .unit-incomplete,.unit-capture-kind,.unit-capture-item > span:last-child,.unit-roster-note,.unit-identity-label { color: var(--muted); }
+
+.unit-search-tools { display: flex; align-items: end; gap: 12px; margin: 20px 0 8px; }
+.unit-search-tools label { display: flex; flex-direction: column; gap: 6px; width: min(420px,100%); font-size: 13px; font-weight: 650; }
+.unit-search-tools input { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #a9b9ad; border-radius: 4px; background: #fff; color: var(--ink); font: inherit; }
+.unit-search-tools button { min-height: 46px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--ink); font: inherit; cursor: pointer; }
+@media(max-width:640px) { .unit-search-tools { align-items: stretch; flex-direction: column; }.unit-search-tools label { width: 100%; }.unit-search-tools button { align-self: flex-start; } }
