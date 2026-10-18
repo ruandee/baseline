@@ -80,7 +80,9 @@ def test_concurrent_delivery_and_failed_retries_are_at_most_once(kaze_sandbox, a
         return sms.send(k["cfg"], k["ids"]["service"], message, sender)
     with ThreadPoolExecutor(max_workers=2) as pool:
         jobs = [pool.submit(run) for _ in range(2)]
-        assert [job.result(timeout=10) for job in jobs] == ["failed", "failed"]
+        results = [job.result(timeout=10) for job in jobs]
+        # A duplicate may observe the durable pending claim before the first sender finishes.
+        assert "failed" in results and set(results) <= {"pending", "failed"}
     assert sender.calls == [message.event_id]
     assert sms.send(k["cfg"], k["ids"]["service"], message, sender) == "failed"
     assert len(sender.calls) == 1
