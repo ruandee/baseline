@@ -486,6 +486,7 @@ async function render() {
       if (!mock) await bootstrap();
       await window.renderResident(main, current.id,
         {api, el, svgEl, chip, formatTime, VERDICT_LABELS, mock,
+          demoContext: state.session?.patients?.some((p) => p.id === current.id && p.can_add_demo_context === true),
           displayName: state.session?.patients?.find((p) => p.id === current.id && p.capture_mode)?.name});
     } catch (error) {
       main.replaceChildren(el('h1', current.title),

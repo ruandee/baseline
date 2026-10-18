@@ -63,6 +63,7 @@ def roster(cfg, reader):
              if captures.get(row["id"]) == "live" and cfg.demo_live_name else row["external_id"],
              "reference": row["external_id"],
              "questions": [], "scripted_cohort": row["id"] in scripted,
+             "can_add_demo_context": row["id"] == uid("0/patient-2"),
              "capture_mode": captures.get(row["id"])} for row in rows]
 
 
