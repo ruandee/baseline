@@ -12,7 +12,7 @@ from pathlib import Path
 
 from scripts.load_baseline_demo import DemoScope, load_demo
 from tests.contract.test_frontend import workspace_client
-from tests.unit.test_unit_page_js import run_unit_page_js
+from tests.js_runner import run_js_suites
 
 ROOT = Path(__file__).resolve().parents[2]
 RANK = {"escalate": 0, "watch": 1, "explained": 2, "within_normal": 3, "enrolling": 3}
@@ -85,5 +85,5 @@ def test_unit_page_matches_the_live_watchlist_for_the_loaded_cohort(sandbox, tmp
     # Run the real page code against this captured response.
     fixture = tmp_path / "watchlist-live.json"
     fixture.write_text(json.dumps(data), encoding="utf-8")
-    result = run_unit_page_js(fixture)
+    result = run_js_suites("unit_page.test.mjs", fixture_env={"UNIT_WATCHLIST_FIXTURE": str(fixture)})
     print(result.stdout)

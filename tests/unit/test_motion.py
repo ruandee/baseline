@@ -1,7 +1,5 @@
 import hashlib
 import json
-import shutil
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -52,11 +50,3 @@ def test_pinned_local_pose_assets_match_the_committed_integrity_manifest():
     assert "https://" not in worker and "http://" not in worker
     assert "outputSegmentationMasks: false" in worker
     assert "forVisionTasks('/assets/vendor/mediapipe/wasm', true)" in worker
-
-
-@pytest.mark.skipif(not shutil.which("node"), reason="Node is required for local pose logic tests")
-def test_motion_geometry_and_camera_lifecycle_use_synthetic_landmarks_and_mock_devices():
-    result = subprocess.run(["node", "--test", "tests/js/motion.test.js",
-                             "tests/js/motion_page.test.js"], cwd=ROOT,
-                            capture_output=True, text=True, encoding="utf-8", timeout=30)
-    assert result.returncode == 0, result.stdout + result.stderr
