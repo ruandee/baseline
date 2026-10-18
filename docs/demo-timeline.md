@@ -67,7 +67,7 @@ and real phone audio were **not** exercised. This does not replace a rehearsal o
 | Nurse reload mid-flow | Pass. Both cards restored from the URL fragment. |
 | New rehearsal invalidates old links | Pass. Old runner and Dee keys return 404 on submit and read; a stale phone link shows the expired-link message; the new room starts empty. |
 | Interrupted submission | Found and fixed. The phone showed the browser's raw "Failed to fetch"; it now shows the retry message (commit "BL-17: show the retry message when the network drops during check-in", test in `tests/js/demo_handoff.test.js`). The recording was kept and the retry reused the same request ID. The same change briefly put the phone wording on the nurse screen; a later BL-17 commit gives the nurse screen "Reconnecting…" and its own test. |
-| Independent re-run on the rebased branch (Yuhan) | Pass. Fresh room at 1440 and 390 px with a WebAudio tone: runner Watch, then Explained after context, then Dee Watch, then Escalate with the 4AT section open. Screenshots are local only. Same limits: no real microphone prompt or physical phone. |
+| Second run on the rebased branch (separate session, same tester) | Pass. Fresh room at 1440 and 390 px with a WebAudio tone: runner Watch, then Explained after context, then Dee Watch, then Escalate with the 4AT section open. Screenshots are local only. Same limits: no real microphone prompt or physical phone. |
 | Room expiry (two hours) | Not waited. Covered by `tests/unit/test_demo_handoff.py` and `tests/js/demo_handoff.test.js`. |
 | "Switch to another day" shows three routes | Not applicable. That is the superseded one-tab flow (decision 036); it remains at `demo=legacy-days` and was not run. |
 
