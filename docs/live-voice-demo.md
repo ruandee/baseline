@@ -7,7 +7,7 @@ or clinical-detection claim. See [decision 034](decisions/034-three-day-local-vo
 
 ## Present Watch, Explained and Escalate
 
-After this release is deployed, open:
+Open the deployed presentation:
 
 ```text
 https://baseline.deeruan.com/check?mode=live&demo=days
