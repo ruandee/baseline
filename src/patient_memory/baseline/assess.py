@@ -17,7 +17,7 @@ from patient_memory.baseline.engine import (
     evaluate,
 )
 from patient_memory.baseline.sbar import sbar_template
-from patient_memory.baseline.signals import features_for
+from patient_memory.baseline.signals import features_for, signal_sources
 from patient_memory.baseline.verdict import (
     ACTION_LABELS,
     TAG_LABELS,
@@ -26,6 +26,7 @@ from patient_memory.baseline.verdict import (
     shift_bounds,
 )
 from patient_memory.config import Settings
+from patient_memory.errors import Problem
 from patient_memory.ingestion import lock_patient
 from patient_memory.storage import check_writer_access
 
@@ -79,9 +80,11 @@ def escalations_used(conn, now: datetime, cfg: Settings) -> int:
                             ).fetchone()["n"]
     # Counted by when the clip was recorded, so history loaded in bulk never uses today's budget.
     return conn.execute(
-        "SELECT count(*) AS n FROM assessments a JOIN voice_checks v ON v.tenant_id=a.tenant_id "
+        "SELECT count(*) AS n FROM assessments a LEFT JOIN voice_checks v ON v.tenant_id=a.tenant_id "
         "AND v.patient_id=a.patient_id AND v.id=a.check_id WHERE a.verdict='escalate' "
-        "AND v.session_id IS NULL AND v.ts>=%s AND v.ts<%s "
+        "AND v.session_id IS NULL AND a.params->>'session_id' IS NULL "
+        "AND COALESCE((a.params->>'signal_ts')::timestamptz,v.ts)>=%s "
+        "AND COALESCE((a.params->>'signal_ts')::timestamptz,v.ts)<%s "
         "AND COALESCE((a.params->>'over_budget')::boolean,false)=false "
         "AND COALESCE((a.params->>'no_escalate')::boolean,false)=false", (start, end)
     ).fetchone()["n"]
@@ -158,7 +161,8 @@ def _latest_modalities(conn, patient_id, check, revision):
             params.get("modality_status", row["change_status"]), scores,
             params.get("modality_fused_z", row["fused_z"]), (),
             params.get("engine_params", params)), str(row["check_id"]),
-            tuple(params.get("signal_evidence_ids", ()))))
+            tuple(params.get("signal_evidence_ids", ("check:" + str(row["check_id"]),)
+                             if modality == "speech" else ()))))
     return results
 
 
@@ -177,7 +181,12 @@ def assess_modality(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, chec
         raise ValueError("signal event time must be timezone-aware")
     if session_id is not None and check.modality != "speech":
         raise ValueError("KAZE sessions use only the speech protocol")
-    history = history_loader(conn)
+    if check.modality != "speech" and not conn.execute(
+            "SELECT pm_care(%s) AS ok", (patient_id,)).fetchone()["ok"]:
+        raise Problem(404, "not_found")
+    source_ids = signal_sources(conn, patient_id, check) if check.modality != "speech" else set()
+    history = [c for c in history_loader(conn) if c.modality == check.modality
+               and c.prompt_version == check.prompt_version and c.usable and c.ts < check.ts]
     mode = "enrolled" if sum(c.is_baseline for c in history) >= MIN_BASELINE else "rolling"
     result = evaluate(check, history, mode, engine_settings(cfg, check.prompt_version))
     source_revision = conn.execute("SELECT revision FROM patients WHERE id=%s",
@@ -212,7 +221,8 @@ def assess_modality(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, chec
               "modality_results": {name: {k: v for k, v in entry.items() if k != "per_feature"}
                                    for name, entry in modal["modalities"].items()},
               "draft_status": "unavailable_multimodal_evidence" if non_speech_flag else "speech",
-              "source_revision": source_revision, "source_ids": [t["source_id"] for t in tags], **flags}
+              "source_revision": source_revision,
+              "source_ids": sorted(source_ids | {t["source_id"] for t in tags}), **flags}
     assessment_id = uuid4()
     conn.execute(
         "INSERT INTO assessments(tenant_id,patient_id,id,check_id,change_status,fused_z,features,"

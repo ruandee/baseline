@@ -192,3 +192,13 @@ def test_unregistered_or_duplicate_modalities_are_refused(probe):
         combine([voice, voice], NOW)
     with pytest.raises(ValueError):
         combine([ModalityResult("unknown", NOW, voice.assessment)], NOW)
+
+
+def test_registered_but_missing_modality_is_explicitly_unavailable(probe):
+    combined = combine([result(speech(n=3), daily(speech))], NOW)
+    payload = combined_payload(combined)
+    assert payload["modalities"]["probe"]["status"] == "unavailable"
+    assert payload["modalities"]["probe"]["ts"] is None
+    assert payload["modalities"]["probe"]["per_feature"] == {}
+    assert payload["modalities"]["probe"]["current"] is False
+    assert not payload["corroborated"]

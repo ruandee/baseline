@@ -321,5 +321,9 @@ def combined_payload(combined: Combined) -> dict:
                    "per_feature": {f: {"value": v.value, "median": v.median, "scale": v.scale,
                                        "z": v.z, "ewma": v.ewma, "cusum": v.cusum}
                                    for f, v in r.assessment.features.items()}}
-            for name, r in sorted(combined.modalities.items())},
+            for name, r in sorted(combined.modalities.items())} | {
+                name: {"status": "unavailable", "ts": None, "check_id": None,
+                       "evidence_ids": [], "current": False, "fused_z": None,
+                       "params": {}, "baseline_checks": None, "per_feature": {}}
+                for name in sorted(REGISTRY) if name not in combined.modalities},
     }

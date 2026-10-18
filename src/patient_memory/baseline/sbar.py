@@ -8,6 +8,7 @@ from uuid import uuid4
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, ConfigDict, Field
 
+from patient_memory.baseline.signals import features_for
 from patient_memory.baseline.verdict import ACTION_LABELS, Decision
 from patient_memory.config import Settings
 from patient_memory.errors import Problem
@@ -174,12 +175,13 @@ def enrich_assessment_sbar(cfg, identity, patient_id, assessment_id):
         return
     with transaction(cfg, identity) as conn:
         snapshot = _draft_snapshot(conn, patient_id, assessment_id)
-    if snapshot["verdict"] not in ("escalate", "watch"):
+    if (snapshot["verdict"] not in ("escalate", "watch")
+            or snapshot["params"].get("draft_status", "speech") != "speech"):
         return
     draft = generate_sbar(
         cfg, snapshot["external_id"], snapshot["change_status"],
         Decision(snapshot["verdict"], snapshot["suggested_action"]),
-        str(snapshot["check_id"]), snapshot["features"], snapshot["reasons"])
+        str(snapshot["check_id"]), features_for(snapshot["features"]), snapshot["reasons"])
     with transaction(cfg, identity) as conn:
         lock_patient(conn, patient_id)
         current = _draft_snapshot(conn, patient_id, assessment_id, for_update=True)

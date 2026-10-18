@@ -166,3 +166,13 @@ consent part (422 consent_not_given). Resident-only VAD speech must reach8second
 analysis cap; staff-containing temporary audio is always removed regardless of KEEP_AUDIO.
 Checks remain prompt-scoped; first-change marker uses the displayed prompt. Real speech/Vox
 UI remain unvalidated, and overview prompt switching stays on hold (decision016).
+
+## BL-30 registry integration (engineering review)
+
+Declared modality features preserve the accepted speech engine. Persisted assessments report
+per-modality status and evidence, explicit missing/stale states and a corroborated flag; two
+current flagged modalities send change to the existing verdict table. Legacy flat speech rows,
+charts and SBAR inputs remain compatible. Non-speech drafts are withheld until an adapter has a
+supported-sentence contract. Only speech is registered in runtime; probe tests are synthetic.
+Migration010 follows session-budget009. See decision025; final exact-head DB-backed CI remains
+required. Gaze/wearable capture and clinical calibration are not implemented by this registry.
