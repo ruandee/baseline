@@ -42,6 +42,7 @@ No real-data integration is authorized by these implemented milestones.
 | BL-12 SBAR | Grounded sentence assembly, exact standard action, strict IDs/numbers/sections, template fallback and post-commit enrichment | [Decision 014](decisions/014-validated-sbar-drafts.md); provider work occurs outside DB transactions |
 | BL-14 loader | Twelve deterministic fictional residents, immutable published sources, authored synthetic checks, real runtime-role scoring and strict reports | [Decision 008](decisions/008-baseline-storyline-preparation.md), [loader guide](../fixtures/synthetic/baseline_storylines.README.md); approved +35% Mr. T scenario |
 | F01 / BL-16 frontend | Local evidence workspace plus Baseline shell and same-origin session/host guards | [Decision 003](decisions/003-local-patient-workspace.md), [Decision 005](decisions/005-baseline-frontend-location.md); full capture/resident readback needs frontend verification |
+| BL-20 hosting (draft #54 + #62) | Opt-in `compose.demo.yaml`: ffmpeg image, readiness-gated same-origin API/frontend behind digest-pinned Caddy, tenant-0 worker, explicit migrate/bootstrap/offline BL-14 `load` steps; RLS-read roster (6 seeded, 12 after load); admin URL refused by serve/worker; default JWT secret refused in hosted mode | [Decision 010](decisions/010-demo-hosting.md), [recipe](demo-hosting.md); CI image smoke on localhost only. Public HTTPS/DNS, phone/LTE capture and host p95 unverified; not merged to main |
 
 Only care-team roles can write voice checks; unauthorized patients/roles return 404 before audio
 work. Multipart is allowed only on the check route, with a 2 MB whole-body limit; other routes
@@ -117,7 +118,7 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
   been validated by the feature loader.
 - Public HTTPS/DNS/token configuration, LTE Safari/Chrome capture, warm host p95 below 5 s and
   full UI evidence/SBAR readback remain separate acceptance work.
-- Current-time/reset presentation, consuming the full 12-patient roster in hosting/frontend,
+- Current-time/reset presentation, consuming the full 12-patient roster in the frontend,
   and displaying Mrs. K's documented 37.1 C observation in overview/UI remain outstanding.
 - KAZE sessions/SMS/acknowledgement, Vox/experience/export feedback and stretch modalities are
   separate planned features; this handoff does not mark those tickets complete. Submission,
