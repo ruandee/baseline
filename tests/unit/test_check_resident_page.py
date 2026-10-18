@@ -1,29 +1,14 @@
-"""BL-31 resident/PSW /check experience: runs the node:test suite and checks static layout rules.
+"""BL-31 resident/PSW /check static layout and score-free readback checks.
 
 The behaviour tests live in tests/js (fake DOM, stubbed mic/speech/API). They need Node, which the
-CI runner has (it already runs `node --check` on frontend/*.js); without Node they are skipped.
+CI runner has; test_frontend_js.py runs them in the shared batch and skips when Node is absent.
 They are not a substitute for real-browser or phone acceptance.
 """
 import re
-import shutil
-import subprocess
 from pathlib import Path
-
-import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 FRONTEND = ROOT / "frontend"
-
-
-@pytest.mark.skipif(shutil.which("node") is None, reason="Node.js is not installed")
-def test_resident_experience_js_suite():
-    result = subprocess.run(
-        ["node", "--test", str(ROOT / "tests" / "js" / "check_resident.test.js"),
-         str(ROOT / "tests" / "js" / "check_setup.test.js")],
-        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120, cwd=ROOT)
-    assert result.returncode == 0, result.stdout[-4000:] + result.stderr[-2000:]
-    assert re.search(r"\bpass [1-9]\d*\b", result.stdout)  # "pass N" in spec or TAP output
-    assert re.search(r"\bfail 0\b", result.stdout)
 
 
 def test_resident_script_loads_before_check_and_shell():

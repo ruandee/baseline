@@ -40,11 +40,12 @@ The prior functional base `8012dba` passed backend and image CI; that is not exa
 for these new visual changes. Record fresh regression results and final CI before release.
 
 All fifteen screen types now have a first implementation/review pass. User feedback can
-require further iteration; this is engineering preparation, not final user acceptance. The
+require further iteration; this is engineering preparation, not clinical or resident-usability validation. The user approved deployment. The
 extended browser audit passed 24 checks and saved 28 screenshots in ignored
 `artifacts/full-direction/`, with zero physical-media, remote or page-error events. The
 acknowledgement page uses an exact stylesheet hash in its restrictive CSP; no script or
-external assets are permitted. Coordinate the proposed release with the user. No deployment is authorized by acceptance of a visual concept.
+external assets are permitted. The user explicitly approved deployment. The initial release is recorded in
+`frontend-release-2026-10-18.md`; tracker #38 is authoritative for later running revisions.
 Physical-phone, resident/staff usability and clinical validation remain separate acceptance.
 
 
@@ -78,3 +79,6 @@ ward-size claim: https://news.ontario.ca/en/release/1003684/ontario-breaks-groun
 The user explicitly approved deployment, then requested unit search before release. That
 authorization persists for the combined candidate. Final CI must pass before the approved
 release is activated; existing data/baselines and private server configuration are preserved.
+
+Decorative dividers were removed at the user's request after the initial rollout. Panels and
+rows use spacing/alignment; inputs, focus and active-state indicators stay identifiable.

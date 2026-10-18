@@ -9,7 +9,6 @@ from patient_memory.baseline.note import StoredSbar, validate_signal_citations
 from patient_memory.baseline.verdict import Decision
 from patient_memory.baseline.vitals import VITALS  # noqa: F401 registration
 from patient_memory.errors import Problem
-from tests.unit.test_resident_live_js import ROOT
 
 
 def entry():
@@ -71,26 +70,6 @@ def test_expired_multimodal_snapshot_fails_before_retrieval():
         validate_signal_citations(None, uuid4(), {"params": {"draft_status": "multimodal_template",
                                   "modality_results": {"vitals": rr}}}, StoredSbar.model_validate(draft))
     assert exc.value.code == "note_unavailable"
-
-
-def run_multimodal_js(fixture=None):
-    import os
-    import shutil
-    import subprocess
-
-    node = shutil.which("node")
-    if not node:
-        pytest.skip("node is not installed")
-    env = dict(os.environ)
-    if fixture:
-        env["MULTIMODAL_FIXTURE"] = str(fixture)
-    result = subprocess.run([node, "--test", "tests/js/multimodal_sbar.test.js"], cwd=ROOT, env=env,
-                            capture_output=True, text=True, timeout=30)
-    assert result.returncode == 0, result.stdout + result.stderr
-
-
-def test_multimodal_capture_citation_ui():
-    run_multimodal_js()
 
 
 def test_full_three_modality_ten_capture_baselines_keep_every_citation_in_export():

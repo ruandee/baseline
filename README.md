@@ -55,15 +55,16 @@ change or escalation. The local scripted presentation above needs no personal en
 Backup video, two complete rehearsals, phone/LTE checks, Devpost submission and the KAZE
 recipient test remain human acceptance work. See [rehearsal checklist](docs/submission/rehearsal-checklist.md).
 
-## Care-team workflows (redesign prepared, not deployed)
+## Care-team workflows (deployed)
 
 The shared navigation connects these tasks; source implementation is documented in
 [decision037](docs/decisions/037-care-workspace-workflows.md). Confirm the deployed release
-before expecting the redesigned pages on the public host.
+in the [deployment record](docs/frontend-release-2026-10-18.md) and tracker; the redesigned
+pages and Unit search are online on the public host.
 
 | Path | Task |
 | --- | --- |
-| `/unit` | Review the prioritized unit list, then open a resident and cited records. |
+| `/unit` | Search visible residents by name/reference, review the priority list, and open cited records. |
 | `/` or `/?patient=<assigned-id>` | Search assigned residents, review notes, prepare a handover and ask source-linked questions. Explicit unavailable links never fall back to another resident. |
 | `/check?nurse=1` | Nurse preparation: choose a person, review permission/profile/history, then enter the existing guarded recorder. |
 | `/check` | Existing score-free PSW/resident guided check; not a resident portal. |
@@ -73,9 +74,10 @@ before expecting the redesigned pages on the public host.
 Hosted notes use the session's current UTC cutoff; local fixed fixtures keep January 3, 2026.
 The hosted handover starts with an editable last-24-hours window. Adjust it to your shift;
 changing residents or reconnecting preserves your date edits. API permissions, consent and
-scoring are unchanged. Local checks passed 667 unit tests (five optional deselected), 161 JS scenarios and 25 synthetic
-Chrome checks at desktop/phone widths. Exact combined CI remains pending; physical phone/movement
-acceptance and deployment remain separate checks.
+scoring are unchanged. The initial release passed backend CI (667 unit and 383 service-backed
+tests), image smoke, 165 Node checks and desktop/phone browser verification. See the deployment
+record for exact commits, production checks and retained rollback. Physical-device, movement,
+SMS and resident/staff usability acceptance remain separate.
 
 ## Run locally
 

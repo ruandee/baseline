@@ -14,7 +14,7 @@ from tests.contract.test_context import post as post_context
 from tests.contract.test_motion import capture, grant
 from tests.integration.test_note_export import note_path
 from tests.integration.test_vitals_signal import example, overview, rr_payload
-from tests.unit.test_multimodal_sbar import run_multimodal_js
+from tests.js_runner import run_js_suites
 
 
 def test_multimodal_note_cites_actual_current_and_baseline_sources_without_model(sandbox, monkeypatch, tmp_path):
@@ -44,7 +44,7 @@ def test_multimodal_note_cites_actual_current_and_baseline_sources_without_model
                 assert nurse.get(f"/v1/patients/{sandbox[1]}/evidence/{eid}").status_code == 200
     fixture = tmp_path / "multimodal.json"
     fixture.write_text(json.dumps({"overview": page}), encoding="utf-8")
-    run_multimodal_js(fixture)
+    run_js_suites("multimodal_sbar.test.js", fixture_env={"MULTIMODAL_FIXTURE": str(fixture)})
     for role in ("patient", "psw", "admin"):
         assert client_for(sandbox, role).get(note_path(sandbox, latest["id"])).status_code == 404
 

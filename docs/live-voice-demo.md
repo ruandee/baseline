@@ -1,27 +1,31 @@
 # Phone-to-nurse live voice demo
 
 The selected presentation is now the two-resident flow in
-[decision036](decisions/036-phone-to-nurse-demo-handoff.md). After deploying this release, open
+[decision 036](decisions/036-phone-to-nurse-demo-handoff.md). Open
 `https://baseline.deeruan.com/unit?demo=handoff` or tap **Live demo** in the navigation.
+
+Deployment checkpoint: release `204f545` was verified on this host on 2026-10-18 UTC, including
+external phone-link navigation and the full three-browser flow with synthetic microphones.
+This is a verified release snapshot, not a claim that every later main commit is deployed.
 
 ## Selected phone-to-nurse sequence
 
 1. Keep the nurse tab open. Copy its two separate resident links privately to the runner and
    Dee. Do not share the nurse URL. The watch list checks for submissions every two seconds.
-2. Runner opens her link, allows microphone access, records the numbers/days prompt (up to30s),
+2. Runner opens her link, allows microphone access, records the numbers/days prompt (up to 30 s),
    listens to playback and taps **Submit check-in**. Audio stays on her phone; only a receipt
    containing duration and a UUID request ID reaches the server. Nurse sees Resident A as Watch.
 3. Nurse opens **Add context / possible explanation**, chooses **Recent exertion / just finished
    running**, and applies it. Resident A becomes Explained. Exertion is supplied, not detected.
 4. Dee opens the other link, records a slow/pause-filled take and submits. Resident B shows Watch.
 5. Dee records and submits another take using the same link. Resident B shows Escalate. Open
-   **Review baseline and finding**, then **Run4ATnow** to review the proposed action and handoff.
+   **Review baseline and finding**, then **Run 4AT now** to review the proposed action and handoff.
    This control sends no external alert and performs no assessment.
 6. **Start a new rehearsal** deletes the room and creates new phone links. Old links stop working.
 
 The small Demo scenario disclosure identifies the supplied fictional baselines and authored
 findings. Audio is live, but is not analyzed. There are no clinical history writes or enrollment
-requirements. Both takes may occur minutes apart; the authored confirmation is within24hours,
+requirements. Both takes may occur minutes apart; the authored confirmation is within 24 hours,
 not a change to the real clock. Ordinary resident scoring/permission paths remain separate.
 
 Rooms have separate nurse/capture capabilities, last two hours, and disappear on server restart.
@@ -33,19 +37,36 @@ Rehearse permission, audible playback, nurse arrival, exertion context, both Dee
 escalation guidance and reset on the exact phones/public HTTPS URL. Headless synthetic microphone
 checks do not establish physical phone/codec or presenter acceptance.
 
+## Waiting and frontend iteration
+
+The nurse screen waits until a phone explicitly submits a check-in. It does not advance on a
+timer or when a recording merely stops. Runner context also requires an explicit nurse action.
+No additional submission is needed to leave the screen waiting during a presentation pause.
+
+Frontend entry point: `frontend/demo-handoff.js` (`window.renderHandoff`). Scoped styles live in
+`frontend/baseline.css` under `.bl-handoff-*`; routing lives in `frontend/baseline.js`. The room
+API is in `scripts/demo_handoff.py`. Keep the small Demo scenario disclosure, separate resident
+links and metadata-only submission contract when changing the UI. Focused interaction checks:
+
+```sh
+node --test tests/js/demo_handoff.test.js
+```
+
+Server restarts clear rooms. After a deployment, start a fresh room and share new phone links.
+
 ## Superseded one-tab presentation
 
 The prior flow below remains reachable only with `demo=legacy-days`. Old `demo=days` links now
 open the replacement nurse setup above.
 
-The selected presentation records audio locally, then shows three visibly scripted outcomes for
+The previous presentation records audio locally, then shows three visibly scripted outcomes for
 a fictional resident. It requires no API enrollment, credentials or personal baseline. Start with
 Dee's clips, then use the teammate's clips or live microphone. There is no marathon, breathlessness
 or clinical-detection claim. See [decision 034](decisions/034-three-day-local-voice-demo.md).
 
-## Present Watch, Explained and Escalate
+### Legacy Watch, Explained and Escalate
 
-Open the deployed presentation:
+To open the retained legacy mode:
 
 ```text
 https://baseline.deeruan.com/check?mode=live&demo=legacy-days
@@ -73,14 +94,14 @@ sent to the backend. A failed microphone/import does not count as a recording or
 Rehearse twice on the exact HTTPS demo URL/device; grant microphone permission before presenting.
 Keep one labelled prerecorded clip and a backup video available. Local recordings should be
 30 seconds or less (known-duration WAV/MP4 is simplest), smaller than 20 MB, and kept outside Git.
-The existing four WAVs were exercised locally in Chrome; deployment and physical-phone rehearsal
-remain separate checks. The labelled local mode is deployed at baseline.deeruan.com on release f7f02c0; physical-device recording and rehearsal remain unverified.
+The existing four WAVs were exercised locally in Chrome. Physical-phone rehearsal remains a
+separate check; this legacy path is not the selected two-resident demo.
 
 ## Optional genuine baseline comparison (separate flow)
 
-The presenter is Dee, with a later caller planned. API enrollment is not yet complete. Use
-only the actual speaker's own baseline and device; the later caller needs a separate identity
-and baseline. The Dee examples below are not permission to mix two people's recordings.
+Latest execution handoff: API enrollment is on hold in this agent; a teammate will handle setup.
+Confirm the actual speaker before enrollment and use that person's own baseline and device.
+The Dee examples below are not permission to mix two people's recordings.
 
 ## Prepare
 
@@ -163,5 +184,5 @@ reported as exploratory, with no direction gate. Keep audio in ignored `data/raw
 commit personal recordings or add them to CI. This does not mark API enrollment, phone/host
 acceptance or rehearsal complete.
 
-The three-day mode above intentionally does not invoke the optional genuine enrollment path.
-Do not mix its fictional values with a real baseline or store its results as clinical history.
+Both presentation modes above bypass the optional genuine enrollment path. Do not mix their
+fictional values with a real baseline or store their results as clinical history.

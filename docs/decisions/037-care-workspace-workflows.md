@@ -1,6 +1,6 @@
 # 037: Organize the care workspace around care-team tasks
 
-Date: 2026-10-18 UTC. Status: implementation prepared for integrated review; not deployed.
+Date: 2026-10-18 UTC. Status: implemented and initially deployed; see frontend-release-2026-10-18.md.
 Scope: BL-16 frontend cohesion, with existing BL-17/18/19 behavior preserved.
 
 Visual review update, 2026-10-18: the user rejected the first preview's visual direction.
@@ -166,3 +166,9 @@ Before deployment the user requested unit search for larger wards. The search fi
 already authorized visible names/session references, keeps server ordering and unit-wide
 counts, includes stable residents and persists across polls. Denial invalidates the searchable
 snapshot. No new API query, ward model, authorization grant or clinical sorting is introduced.
+
+
+The user approved deployment; source `20be74b` passed CI and hosted checks. Their subsequent
+request removes decorative section, row and panel borders while preserving control/focus and
+active-state cues. Deployment and later polish are tracked separately from clinical or
+physical-device acceptance.

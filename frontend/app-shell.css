@@ -228,3 +228,28 @@ body.care-app:has(.bl-motion[data-mode=resident]) .nav-foot { flex: 0 1 auto; ma
 .measurement-guide { padding-block: 12px; color: var(--muted); font-size: 14px; }
 .measurement-guide summary { min-height: 44px; padding-block: 10px; color: var(--green); font-weight: 600; cursor: pointer; }
 .measurement-guide p { max-width: 850px; line-height: 1.65; }
+
+/* Quiet structure: spacing separates content; borders identify controls and active states. */
+.care-app .bl-nav { border-bottom: 0; }
+.care-app .workspace-panel,.care-app .nurse-readiness,.care-app .nurse-explainer { border: 0; }
+.care-app .readiness-list > div { border-bottom: 0; }
+.care-app .bl-unit-summary,.care-app .unit-priority-list,.care-app .unit-priority-card,
+.care-app .unit-captures,.care-app .unit-capture-item,.care-app .unit-roster { border: 0; }
+.care-app .unit-open { border: 0; text-decoration: underline; text-underline-offset: 4px; }
+.care-app .unit-roster .bl-table th,.care-app .unit-roster .bl-table td { border: 0; }
+.notes-app .roster,.notes-app .record,.notes-app .assistant,.notes-app .patient-button,
+.notes-app .patient-heading,.notes-app .tabs,.notes-app .topbar,.notes-app .roster-foot,
+.notes-app .page-foot,.notes-app .event { border: 0; }
+.care-app [data-workspace=resident-details] .bl-card,
+.care-app [data-workspace=resident-details] .bl-section,
+.care-app [data-workspace=resident-details] .bl-fig,
+.care-app .bl-check-card:not([data-mode=resident]),.care-app .bl-check-setup fieldset,
+.care-app .bl-motion-permission { border: 0; }
+.care-app .kaze-panel,.care-app .kaze-permission,.care-app .kaze-timeline,
+.care-app .kaze-event { border: 0; }
+.care-app .bl-handoff-info,.care-app .bl-handoff-content .bl-card,
+.care-app .bl-handoff-action,.care-app .bl-demo-capture,
+.care-app .bl-demo-banner,.care-app .bl-demo-timeline li,
+.care-app .bl-demo-timeline [aria-current=step] { border: 0; }
+.care-app .bl-source-quote,.notes-app blockquote { border: 0; }
+.care-app .bl-check-card[data-mode=resident] .bl-prompt { border: 0; }
