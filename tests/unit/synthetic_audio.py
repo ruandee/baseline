@@ -17,6 +17,28 @@ def silence(seconds, rng, noise=0.003):
     return noise * rng.standard_normal(round(seconds * SAMPLE_RATE))
 
 
+SPEAKER_F0 = {"resident": 140.0, "staff": 230.0, "other": 190.0}
+
+
+def encounter(segments, tail=0.5, seed=0):
+    """A synthetic mixed-speaker conversation laid out on the segments' timeline.
+
+    Each turn is 1.4 s syllable runs with 0.4 s pauses at its speaker's pitch, so resident-only
+    extraction can be checked by F0. Overlapping turns are summed, like crosstalk.
+    """
+    rng = np.random.default_rng(seed)
+    total = max(s["end"] for s in segments) + tail
+    audio = silence(total, rng)
+    for s in segments:
+        offset, end = round(s["start"] * SAMPLE_RATE), round(s["end"] * SAMPLE_RATE)
+        cursor = offset + round(0.3 * SAMPLE_RATE)
+        while cursor < end:
+            run = voiced(1.4, SPEAKER_F0[s["speaker"]])[:end - cursor]
+            audio[cursor:cursor + len(run)] += run
+            cursor += len(run) + round(0.4 * SAMPLE_RATE)
+    return np.clip(audio, -0.95, 0.95).astype(np.float32)
+
+
 def clip(plan, seed=0):
     """Concatenate ("v"|"s", seconds) segments into a float32 mono 16 kHz signal."""
     rng = np.random.default_rng(seed)

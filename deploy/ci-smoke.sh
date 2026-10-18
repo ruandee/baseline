@@ -12,6 +12,7 @@ PM_DEMO_DOMAIN=localhost
 PM_FRONTEND_HOSTS=localhost
 PM_JWT_SECRET=$(openssl rand -hex 32)
 PM_DEMO_TOKEN=
+PM_DEMO_PSW_TOKEN=
 PM_PROVIDER=stub
 PM_RATE_LIMIT=600
 PM_WHISPER_MODEL=tiny
@@ -26,7 +27,10 @@ status() { curl -sk -o /dev/null -w '%{http_code}' "$@"; }
 "${C[@]}" build
 "${C[@]}" up -d --wait db object-store
 "${C[@]}" run --rm -T migrate
-TOKEN=$("${C[@]}" run --rm -T bootstrap | tail -n1)
+CREDENTIALS=$("${C[@]}" run --rm -T bootstrap python -m scripts.hosted_demo bootstrap --json)
+TOKEN=$(jq -er .nurse <<<"$CREDENTIALS")
+PSW_TOKEN=$(jq -er .psw <<<"$CREDENTIALS")
+unset CREDENTIALS
 [ -n "$TOKEN" ] || fail "bootstrap printed no token"
 
 # Guards: each refusal must exit nonzero within 60 s AND name the reason on its output.
@@ -42,7 +46,7 @@ refuse "explicit hostnames" -e PM_DEMO_TOKEN="$TOKEN" -e PM_FRONTEND_HOSTS='*' "
 refuse "PM_DEMO_TOKEN must be" "${SERVE[@]}"
 refuse "deployment-only PM_JWT_SECRET" -e PM_DEMO_TOKEN="$TOKEN"   -e PM_JWT_SECRET=synthetic-local-only-change-before-any-deployment "${SERVE[@]}"
 
-sed -i "s|^PM_DEMO_TOKEN=.*|PM_DEMO_TOKEN=$TOKEN|" "$ENV_FILE"
+sed -i "s|^PM_DEMO_TOKEN=.*|PM_DEMO_TOKEN=$TOKEN|;s|^PM_DEMO_PSW_TOKEN=.*|PM_DEMO_PSW_TOKEN=$PSW_TOKEN|" "$ENV_FILE"
 "${C[@]}" up -d --wait --wait-timeout 600 api caddy
 "${C[@]}" exec -T api python -m scripts.hosted_demo check
 
@@ -85,6 +89,13 @@ timeout 900 "${C[@]}" run --rm -T load
 "${C[@]}" up -d --wait --wait-timeout 600 --force-recreate api
 [ "$(roster)" = 12 ] || fail "hosted roster is not the 12 loaded residents"
 echo "roster after load: 12"
+PSW_SESSION=$(curl -fsSk -H 'X-PM-Demo: 1' -H 'X-PM-Role: psw' -H "Origin: $BASE" "$BASE/demo/session")
+[ "$(jq -r .token <<<"$PSW_SESSION")" = "$PSW_TOKEN" ] || fail "PSW session token mismatch"
+[ "$(status -H "Authorization: Bearer $PSW_TOKEN" "$BASE/v1/watchlist")" = 404 ] || fail "PSW read risk data"
+curl -fsSk -H "Authorization: Bearer $PSW_TOKEN" "$BASE/v1/checks/due" > "$TMP/due.json"
+jq -e '.residents | length == 12' "$TMP/due.json" >/dev/null || fail "PSW roster missing residents"
+jq -e 'all(.residents[]; (has("fused_z") or has("verdict") or has("latest_verdict") or has("sbar")) | not)' "$TMP/due.json" >/dev/null || fail "PSW due list leaked risk data"
+
 
 # Load only into pristine seeded patients; uploads intentionally make loader preflight fail.
 SESSION=$(curl -fsSk -H 'X-PM-Demo: 1' -H "Origin: $BASE" "$BASE/demo/session")

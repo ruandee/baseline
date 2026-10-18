@@ -36,9 +36,39 @@ class Analysis:
     timings_ms: dict[str, int]
 
 
-def decode(upload: Path, wav: Path) -> np.ndarray:
-    normalize(upload, wav)
+def decode(upload: Path, wav: Path, max_seconds: float | None = None) -> np.ndarray:
+    normalize(upload, wav, max_seconds=max_seconds)
     return load_pcm(wav)
+
+
+class Timer:
+    """Whole-millisecond wall time per pipeline step, keyed by step name."""
+
+    def __init__(self):
+        self.timings: dict[str, int] = {}
+
+    def __call__(self, step, fn, *args):
+        started = time.perf_counter()
+        result = fn(*args)
+        self.timings[step] = round((time.perf_counter() - started) * 1000)
+        return result
+
+
+def decode_upload(upload: Path, work: Path, timer: Timer, max_seconds: float) -> np.ndarray:
+    """Decode to 16 kHz mono, refusing what will not decode or runs past `max_seconds`.
+
+    ffmpeg stops one second past the limit, so an over-long upload never decodes in full.
+    """
+    try:
+        audio = timer("normalize", decode, upload, work / "normalized.wav", max_seconds + 1)
+    except FileNotFoundError as exc:
+        raise DecoderUnavailable from exc
+    # A decode that outruns the 30 s timeout is a crafted file, so it is the caller's 422 too.
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError, RuntimeError) as exc:
+        raise InvalidAudio from exc
+    if len(audio) / vad.SAMPLE_RATE > max_seconds:
+        raise InvalidAudio
+    return audio
 
 
 def analyze(upload: Path, work: Path,
@@ -47,31 +77,24 @@ def analyze(upload: Path, work: Path,
 
     `work` is scratch space for the decoded wav; the caller owns both paths and deletes them.
     """
-    timings: dict[str, int] = {}
+    timer = Timer()
+    audio = decode_upload(upload, work, timer, MAX_DURATION_S)
+    return analyze_pcm(audio, transcribe, timer)
 
-    def timed(step, fn, *args):
-        started = time.perf_counter()
-        result = fn(*args)
-        timings[step] = round((time.perf_counter() - started) * 1000)
-        return result
 
-    try:
-        audio = timed("normalize", decode, upload, work / "normalized.wav")
-    except FileNotFoundError as exc:
-        raise DecoderUnavailable from exc
-    # A decode that outruns the 30 s timeout is a crafted file, so it is the caller's 422 too.
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError, RuntimeError) as exc:
-        raise InvalidAudio from exc
+def analyze_pcm(audio: np.ndarray, transcribe: Callable[[np.ndarray], list[asr.Word]],
+                timer: Timer, on_script: bool = True) -> Analysis:
+    """VAD, ASR, prosody and the quality gate on decoded 16 kHz mono audio.
+
+    `on_script=False` is for free conversation, which has no prompt to stay on.
+    """
     seconds = len(audio) / vad.SAMPLE_RATE
-    if seconds > MAX_DURATION_S:
-        raise InvalidAudio
-
-    runs = timed("vad", lambda: vad.voiced_runs(vad.frame_flags(audio)))
+    runs = timer("vad", lambda: vad.voiced_runs(vad.frame_flags(audio)))
     span, pauses = vad.speech_span(runs), vad.pauses(runs)
     # Whisper invents words for silence, so with no voiced run there is nothing to transcribe.
-    words = timed("asr", lambda: transcribe(audio) if runs else [])
-    f0 = timed("prosody", f0_or_none, audio)
-    gate = assess(audio, words, runs)
+    words = timer("asr", lambda: transcribe(audio) if runs else [])
+    f0 = timer("prosody", f0_or_none, audio)
+    gate = assess(audio, words, runs, on_script=on_script)
     timing = timing_features(words, pauses, span)
     snr = snr_db(audio, runs)
     return Analysis(
@@ -83,7 +106,7 @@ def analyze(upload: Path, work: Path,
                  "reasons": list(gate.reasons)},
         features={"speech_rate_wpm": timing.speech_rate_wpm, "pause_ratio": timing.pause_ratio,
                   "mean_pause_s": timing.mean_pause_s, "f0_median_hz": f0},
-        words=words, pauses=pauses, timings_ms=timings)
+        words=words, pauses=pauses, timings_ms=timer.timings)
 
 
 def f0_or_none(audio: np.ndarray) -> float | None:

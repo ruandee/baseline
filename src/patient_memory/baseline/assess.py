@@ -17,6 +17,16 @@ from patient_memory.config import Settings
 from patient_memory.ingestion import lock_patient
 from patient_memory.storage import check_writer_access
 
+COUNTING_PROMPT = "count20-days-v1"
+FREE_CONVERSATION = "free-conversation-v1"
+
+
+def engine_settings(cfg: Settings, prompt_version: str) -> Settings:
+    """Free conversation uses its own, higher z threshold (PM_Z_THRESHOLD_FREE)."""
+    if prompt_version == FREE_CONVERSATION:
+        return cfg.model_copy(update={"z_threshold": cfg.z_threshold_free})
+    return cfg
+
 
 def lock_assessment(conn, tenant_id: UUID, patient_id: UUID):
     """All admission paths, including synthetic fixture scoring, use this lock order."""
@@ -96,7 +106,7 @@ def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_i
     history = _history(conn, patient_id, ts, prompt_version, session_id)
     mode = "enrolled" if sum(c.is_baseline for c in history) >= MIN_BASELINE else "rolling"
     check = Check(str(check_id), ts, device_id, prompt_version, is_baseline, True, dict(features))
-    result = evaluate(check, history, mode, cfg)
+    result = evaluate(check, history, mode, engine_settings(cfg, prompt_version))
     tags = valid_tags(conn, patient_id, ts)
     decision = decide(result.status, result.fused, [(t["kind"], t["tag"]) for t in tags])
     no_escalate = str(patient_id) in {p.strip() for p in cfg.no_escalate_patients.split(",")}
@@ -116,7 +126,8 @@ def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_i
         "INSERT INTO assessments(tenant_id,patient_id,id,check_id,change_status,fused_z,features,"
         "params,verdict,reasons,suggested_action,sbar) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (tenant_id, patient_id, assessment_id, check_id, result.status, result.fused,
-         Jsonb(change["per_feature"]), Jsonb({**result.params, "mode": mode, "source_revision": source_revision,
+         Jsonb(change["per_feature"]), Jsonb({**result.params, "mode": mode, "prompt_version": prompt_version,
+                                                "source_revision": source_revision,
                                                 "source_ids": [t["source_id"] for t in tags], **flags}),
          decision.verdict, Jsonb(reasons), decision.action, Jsonb(sbar) if sbar else None))
     payload = {"id": str(assessment_id), "verdict": decision.verdict,
