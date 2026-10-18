@@ -36,18 +36,18 @@ All three new tables carry `tenant_id, patient_id`, composite FKs to `patients`,
 
 | Column | Type | Meaning |
 | --- | --- | --- |
-| `display_name` | text 1–40 | Name used in texts ("{name} asked us to check on them…") |
+| `display_name` | text 1â€“40 | Name used in texts ("{name} asked us to check on themâ€¦") |
 | `status` | text | `arming`, `active`, `escalating`, `acknowledged`, `ended` (see ladder) |
 | `created_at` | timestamptz | Arm request time (server clock) |
 | `activated_at` | timestamptz null | When the 3rd usable baseline clip arrived |
 | `ends_at` | timestamptz | Planned end; `created_at < ends_at <= created_at + 24 h` |
-| `interval_min` | int 1–180, default 45 | Check-in interval; demo uses 1 |
-| `context_tags` | text[] ⊆ {`exertion`,`loud_venue`} | Explainers declared at arm time |
+| `interval_min` | int 1â€“180, default 45 | Check-in interval; demo uses 1 |
+| `context_tags` | text[] âŠ† {`exertion`,`loud_venue`} | Explainers declared at arm time |
 | `escalation_enabled` | bool, default true | false: nudges only, never SMS |
 | `baseline_required` | int, 3 | Usable baseline clips needed to activate |
 | `next_due_at` | timestamptz null | Next check-in due; null while arming or ended |
 | `last_checkin_at` | timestamptz null | Server time of the last usable session check-in |
-| `ladder_level` | int 0–4, default 0 | Highest ladder level executed in the current episode |
+| `ladder_level` | int 0â€“4, default 0 | Highest ladder level executed in the current episode |
 | `episode` | int, default 0 | Incremented by BL-26 each time a new overdue/change episode starts |
 | `ladder_trigger` | text null | `missed_checkin` or `speech_change` for the current episode |
 | `acknowledged_at` | timestamptz null | Time of the ack that moved the session to `acknowledged` |
@@ -59,18 +59,18 @@ At most one non-ended session per patient (partial unique index); a second arm i
 `session_open`.
 
 `safety_contacts` (PK `tenant_id, patient_id, session_id, contact_index`): `contact_index` 1 or 2,
-`name` 1–40 chars, `phone_e164` (`^\+[1-9][0-9]{7,14}$`). FK to the session, so a contact cannot
+`name` 1â€“40 chars, `phone_e164` (`^\+[1-9][0-9]{7,14}$`). FK to the session, so a contact cannot
 point at another person's session. Read by the care team; inserted only with the session.
 
 `escalation_events` (PK `tenant_id, patient_id, id`)
 
 | Column | Type | Meaning |
 | --- | --- | --- |
-| `session_id` | uuid | FK `(tenant_id, patient_id, session_id)` → session |
+| `session_id` | uuid | FK `(tenant_id, patient_id, session_id)` â†’ session |
 | `episode` | int | Session episode this step belongs to |
-| `level` | int 1–4 | Ladder level executed |
+| `level` | int 1â€“4 | Ladder level executed |
 | `trigger` | text | `missed_checkin` or `speech_change` |
-| `channel` | text | `nudge` (level 1, no contact) or `sms` (levels 2–4, one row per contact) |
+| `channel` | text | `nudge` (level 1, no contact) or `sms` (levels 2â€“4, one row per contact) |
 | `contact_index` | int null | FK to `safety_contacts`; required for `sms`, null for `nudge` |
 | `sent_at` | timestamptz | Server time |
 | `delivery` | text | `pending`, `logged` (stub sender), `sent`, `failed` |
@@ -101,18 +101,18 @@ the session, so a check cannot attach to another person's session.
 
 Transitions:
 
-- `arming → active`: the 3rd usable `is_baseline` session check (mode `live`). Sets
+- `arming â†’ active`: the 3rd usable `is_baseline` session check (mode `live`). Sets
   `activated_at`, `next_due_at = activated_at + interval_min`. Unusable clips do not count.
-- `active/escalating/acknowledged → active`: a usable session check-in whose change status is not
+- `active/escalating/acknowledged â†’ active`: a usable session check-in whose change status is not
   `change`/`provisional` with no session explainer (BL-26). Resets `ladder_level = 0`,
   `ladder_trigger = null`, `next_due_at = check ts + interval_min`. An unusable clip never resets.
-- `active → active (level 1)`, `active → escalating (2)`, `escalating (2→3→4)`: BL-26 only, each step
+- `active â†’ active (level 1)`, `active â†’ escalating (2)`, `escalating (2â†’3â†’4)`: BL-26 only, each step
   inserting its `escalation_events` row(s). The first step after a reset (from `ladder_level = 0`)
   increments `episode` in the same update. `escalation_enabled = false` caps the ladder at level 1.
-- `escalating → acknowledged`: `pm_acknowledge_escalation(sha256(token))` when the token is
+- `escalating â†’ acknowledged`: `pm_acknowledge_escalation(sha256(token))` when the token is
   unexpired, its event's `episode` equals the session's and the session is `escalating`. An ack for
   an old episode or non-escalating session is recorded on the event but changes no state.
-- any non-ended → `ended`: `POST …/end` (`user`) or `ends_at` passing (`expired`, applied by the
+- any non-ended â†’ `ended`: `POST â€¦/end` (`user`) or `ends_at` passing (`expired`, applied by the
   retention job and by BL-26). Sets `ended_at`, `delete_after = ended_at + 24 h`, clears
   `next_due_at`. Ending is idempotent.
 - Nothing leaves `ended`. The ladder never auto-dials anyone.
@@ -120,8 +120,8 @@ Transitions:
 ### Endpoints (bearer auth; 404 on any scope failure)
 
 - `POST /v1/patients/{id}/sessions` (importer, safety tenant) body
-  `{display_name, ends_at, interval_min=45, contacts: [{name, phone_e164}] (1–2),
-  context_tags: [] , escalation_enabled: true}`; optional `Idempotency-Key`. 201 → session in
+  `{display_name, ends_at, interval_min=45, contacts: [{name, phone_e164}] (1â€“2),
+  context_tags: [] , escalation_enabled: true}`; optional `Idempotency-Key`. 201 â†’ session in
   `arming`. 409 `session_open`, 422 `invalid_request` (`ends_at` in the past, before one interval, or
   more than 24 h ahead).
 - `GET /v1/patients/{id}/sessions` (care team): the person's sessions, newest first.
@@ -130,7 +130,7 @@ Transitions:
   change_status, has_location}]` and `escalations: [{id, episode, level, trigger, channel,
   contact_index, sent_at, delivery, message, ack_at}]`. Raw phone numbers, coordinates and token
   hashes are never returned.
-- `POST /v1/patients/{id}/sessions/{sid}/end` (importer) body `{}` → 200 ended session.
+- `POST /v1/patients/{id}/sessions/{sid}/end` (importer) body `{}` â†’ 200 ended session.
 - `POST /v1/patients/{id}/checks` adds optional form fields `session_id`, `lat`, `lon`,
   `accuracy_m`. With a session: mode must be `live`; `arming` takes only `is_baseline=true`, other
   open states only `is_baseline=false` (422 `invalid_request`); `ended` or past `ends_at` is 409
@@ -185,13 +185,13 @@ DELETE grant is added.
   session explainers, never from `over_budget`, `no_escalate` or the care-home verdict.
 - BL-26 reads open sessions (`status IN ('active','escalating')`, `next_due_at`) as `kaze-service`
   and updates `ladder_level`, `ladder_trigger`, `episode`, `next_due_at`, `status` under row lock
-  (`SELECT … FOR UPDATE`), taking the patient advisory lock (`lock_patient`) first, as check
+  (`SELECT â€¦ FOR UPDATE`), taking the patient advisory lock (`lock_patient`) first, as check
   admission does. Last known location for a text: latest session check with `lat`.
 - BL-27 generates tokens with `secrets.token_urlsafe(32)`, stores only `sha256` in
   `ack_token_hash`, renders the fixed neutral text from `docs/06-baseline.md`, and never sends real
   SMS in CI. `/ack/{token}` hashes the token and calls `pm_acknowledge_escalation(hash)`, which
   returns `acknowledged`, `recorded` or `invalid` and nothing else.
-- BL-28 polls `GET …/sessions/{sid}` and uploads clips with `session_id` and location.
+- BL-28 polls `GET â€¦/sessions/{sid}` and uploads clips with `session_id` and location.
 
 ## Consequences
 
@@ -239,3 +239,6 @@ postcommit delivery claim, and network I/O outside all transactions/locks. Migra
 only delivery_started_at and acknowledgement expiry hardening; migration 007 remains consent.
 See [decision 023](023-kaze-sms-delivery.md). GET acknowledgement retains the specified mutation
 contract; no scanner/confirmation policy change is introduced.
+BL-26 integration preserves session exclusion in PCC escalation counting after consent/PSW
+scoring integration. Clearing session profile flags must not make those assessments consume
+the resident shift budget. Session assessment responses retain false PCC suppression flags.
