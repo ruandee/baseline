@@ -10,7 +10,7 @@ import psycopg
 import pytest
 from psycopg.types.json import Jsonb
 
-from patient_memory.baseline.safety import STANDARD, LogSender, advance, run_pass
+from patient_memory.baseline.safety import STANDARD, advance, run_pass
 from patient_memory.baseline.sessions import after_check
 from patient_memory.storage import transaction
 from tests.integration.test_safety_rls import add_event, add_session, clock
@@ -110,7 +110,7 @@ def test_expiry_rechecked_after_waiting_for_session_lock(kaze_sandbox, admin):
     admin.execute("UPDATE safety_sessions SET ends_at=%s WHERE id=%s", (expires, sid))
     def run():
         with transaction(k["cfg"], k["ids"]["service"]) as conn:
-            return advance(conn, k["patient"], sid, None, STANDARD, LogSender())
+            return advance(conn, k["patient"], sid, None, STANDARD, k["cfg"], [])
     with ThreadPoolExecutor(max_workers=1) as pool:
         with psycopg.connect(k["cfg"].admin_database_url) as locker:
             locker.execute("SELECT id FROM safety_sessions WHERE id=%s FOR UPDATE", (sid,))
@@ -142,7 +142,7 @@ def test_checkin_committed_while_scheduler_waits_cancels_overdue_step(kaze_sandb
     sid, _ = active(k, admin)
     def run():
         with transaction(k["cfg"], k["ids"]["service"]) as conn:
-            return advance(conn, k["patient"], sid, None, STANDARD, LogSender())
+            return advance(conn, k["patient"], sid, None, STANDARD, k["cfg"], [])
     with ThreadPoolExecutor(max_workers=1) as pool:
         with transaction(k["cfg"], k["ids"]["person"]) as owner:
             row = owner.execute("SELECT * FROM safety_sessions WHERE id=%s FOR UPDATE", (sid,)).fetchone()

@@ -187,3 +187,7 @@ BL-26 scheduler integration records the standard missed-check/speech-change ladd
 serialized reset/acknowledgement/expiry and independent KAZE assessment/profile rules. Session
 checks do not consume the resident shift budget. Exact integrated CI and phone gates remain
 required; no live SMS is enabled by this scheduler-only branch.
+
+BL-27 adds token-scoped public acknowledgement and immutable delivery claims outside DB locks,
+with explicit logged/sent/failed/pending outcomes and migration008/009. Hosted external document
+navigation reaches only the public token capability; verified phone receipt remains open.

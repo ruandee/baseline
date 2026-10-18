@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from evals.run import CORPUS, fixture_identity, load_profile
 from patient_memory.api import create_app
 from patient_memory.auth import Identity, decode_token, synthetic_token
+from patient_memory.baseline.ack import well_formed as ack_token_well_formed
 from patient_memory.config import Settings
 from patient_memory.consent import grant_fixture_consent
 from patient_memory.objects import ObjectStore
@@ -103,12 +104,21 @@ def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None, psw=No
     async def local_only(request: Request, call_next):
         host = request.url.hostname
         origin = request.headers.get("origin")
+        # SMS/webmail links navigate from another site. This public token capability is
+        # deliberately GET-based; keep the exception narrower than an API/origin bypass.
+        ack_token = request.url.path.removeprefix("/ack/")
+        public_ack_navigation = (
+            request.method == "GET" and request.url.path.startswith("/ack/")
+            and ack_token_well_formed(ack_token)
+            and request.headers.get("sec-fetch-mode") == "navigate"
+            and request.headers.get("sec-fetch-dest") == "document")
         # Behind a TLS proxy the client address is the visitor's, so hosted mode relies on
         # the Host allowlist; without extra hosts the client must still be loopback.
         if ((not extra_hosts and (not request.client or request.client.host not in LOOPBACK))
                 or host not in allowed
                 or (origin and origin != f"{request.url.scheme}://{request.url.netloc}")
-                or request.headers.get("sec-fetch-site") == "cross-site"):
+                or (request.headers.get("sec-fetch-site") == "cross-site"
+                    and not public_ack_navigation)):
             return JSONResponse({"error": {"message": "Local workspace only"}}, status_code=403)
         response = await call_next(request)
         response.headers["Cache-Control"] = "no-store"

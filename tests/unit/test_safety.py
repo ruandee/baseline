@@ -1,17 +1,12 @@
 """Pure KAZE ladder rules (decision 018) on a deterministic clock."""
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
 
 import pytest
 
 from patient_memory.baseline.safety import (
     STANDARD,
-    Delivery,
-    LogSender,
-    OutboundEvent,
     SessionState,
-    checked_delivery,
     checkin_update,
     level_contacts,
     plan,
@@ -189,31 +184,3 @@ def test_check_ins_that_do_not_reset(usable, is_baseline, change_status, explain
     assert checkin_update(status, usable, is_baseline, change_status, explainers, DUE, 45) is None
 
 
-def event(**fields):
-    base = dict(event_id=uuid4(), tenant_id=uuid4(), patient_id=uuid4(), session_id=uuid4(),
-                episode=1, level=2, trigger="missed_checkin", contact_index=1,
-                contact_name="Dee", phone_e164="+14165550101", display_name="Sam",
-                missed_at=DUE, last_location=None, sent_at=at(5),
-                ack_expires_max=at(5) + timedelta(hours=24))
-    return OutboundEvent(**{**base, **fields})
-
-
-def test_delivery_validation_rejects_malformed_ack_fields():
-    e = event()
-    good = Delivery("sent", "text [ack link]", b"x" * 32, at(60))
-    assert checked_delivery(good, e) is good
-    assert checked_delivery(Delivery("sent", "t", b"x" * 31, at(60)), e).status == "failed"
-    assert checked_delivery(Delivery("sent", "t", b"x" * 32, None), e).status == "failed"
-    assert checked_delivery(Delivery("sent", "t", None, at(60)), e).status == "failed"
-    assert checked_delivery(Delivery("sent", "t", b"x" * 32, at(5) + timedelta(hours=25)),
-                            e).status == "failed"
-    assert checked_delivery(Delivery("sent", "t", b"x" * 32, at(5)), e).status == "failed"
-    assert checked_delivery("sent", e).status == "failed"
-    assert checked_delivery(Delivery("logged"), e) == Delivery("logged")
-
-
-def test_log_sender_never_logs_the_phone_number(caplog):
-    caplog.set_level("INFO", logger="patient_memory.safety")
-    result = LogSender().send(event())
-    assert result.status == "logged" and result.ack_token_hash is None
-    assert "+14165550101" not in caplog.text and "0101" in caplog.text
