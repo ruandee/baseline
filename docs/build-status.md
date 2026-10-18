@@ -42,6 +42,7 @@ No real-data integration is authorized by these implemented milestones.
 | BL-12 SBAR | Grounded sentence assembly, exact standard action, strict IDs/numbers/sections, template fallback and post-commit enrichment | [Decision 014](decisions/014-validated-sbar-drafts.md); provider work occurs outside DB transactions |
 | BL-14 loader | Twelve deterministic fictional residents, immutable published sources, authored synthetic checks, real runtime-role scoring and strict reports | [Decision 008](decisions/008-baseline-storyline-preparation.md), [loader guide](../fixtures/synthetic/baseline_storylines.README.md); approved +35% Mr. T scenario |
 | F01 / BL-16 frontend | Local evidence workspace plus Baseline shell and same-origin session/host guards | [Decision 003](decisions/003-local-patient-workspace.md), [Decision 005](decisions/005-baseline-frontend-location.md); full capture/resident readback needs frontend verification |
+| BL-20 hosting (draft #54 + #62) | Opt-in `compose.demo.yaml`: ffmpeg image, readiness-gated same-origin API/frontend behind digest-pinned Caddy, tenant-0 worker, explicit migrate/bootstrap/offline BL-14 `load` steps; RLS-read roster (6 seeded, 12 after load); admin URL refused by serve/worker; default JWT secret refused in hosted mode | [Decision 010](decisions/010-demo-hosting.md), [recipe](demo-hosting.md); CI image smoke on localhost only. Public HTTPS/DNS, phone/LTE capture and host p95 unverified; not merged to main |
 
 Only care-team roles can write voice checks; unauthorized patients/roles return 404 before audio
 work. Multipart is allowed only on the check route, with a 2 MB whole-body limit; other routes
@@ -117,7 +118,7 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
   been validated by the feature loader.
 - Public HTTPS/DNS/token configuration, LTE Safari/Chrome capture, warm host p95 below 5 s and
   full UI evidence/SBAR readback remain separate acceptance work.
-- Current-time/reset presentation, consuming the full 12-patient roster in hosting/frontend,
+- Current-time/reset presentation, consuming the full 12-patient roster in the frontend,
   and displaying Mrs. K's documented 37.1 C observation in overview/UI remain outstanding.
 - KAZE sessions/SMS/acknowledgement, Vox/experience/export feedback and stretch modalities are
   separate planned features; this handoff does not mark those tickets complete. Submission,
@@ -126,3 +127,21 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
 Follow README/operations and the exact CI order before claiming a new integrated milestone done.
 Do not introduce real patient data before source permissions, hosting, provider handling and
 clinical ownership are decided.
+
+## BL-18 live acceptance (Refs #20)
+
+`tests/contract/test_unit_watchlist_live.py` loads the BL-14 cohort (scenario-snapshots,
+offline) into a sandbox tenant, reads `/v1/watchlist` through the workspace app and demo token
+the page uses, checks that every field `/unit` reads in `frontend/baseline.js` exists in the
+live payload, checks the sort contract (Mrs. K escalate, Mrs. L watch, Mr. T explained, nine
+within-normal by fused z, the patient with no checks last) and then runs
+`tests/js/unit_page.test.mjs` under Node against that captured response. The JS test asserts
+rendered order equals API order (no client re-sort), a 10 s interval, no timer or requests
+while hidden, an immediate refresh and a new 10 s interval when visible again, and a single
+load for a background-opened tab. `tests/unit/test_unit_page_js.py` runs the same JS test on a
+committed schema-shaped fixture; both skip only when Node is missing.
+
+Known gap: `scripts.frontend` mints its token for the eval-corpus workspace tenant, while the
+loader writes the cohort to `uid("tenant-0")`. A default local `/unit` therefore lists the
+workspace patients with no voice checks; it shows the cohort only when `PM_DEMO_TOKEN` is set
+to the loader's `artifacts/baseline-demo/session.json` nurse token (BL-21 reset work).
