@@ -225,3 +225,9 @@ BL-35 integration: explicit resting HR/RR observations feed current-revision sig
 and isolated synthetic RR-rise acceptance; unknown rest/time/units stay unavailable. ADR028
 records engineering-only vitals parameters and012scoped PSW facts; ordinary evidence remains
 denied. Final motion011 from main is preserved unchanged. Speech/canonical cohort unchanged.
+
+BL-12/BL-33 follow-up (ADR029): deterministic multimodal watch/escalate drafts and preliminary
+export use exact current/baseline evidence, actual event times, declared labels/units, current
+context and existing actions. Source lifecycle/expiry and permissions are rechecked on readback.
+Motion remains explicitly client-derived/unverified; missing provenance withholds the whole draft.
+No model, threshold/action policy change, clinical sign-off or writeback is introduced.

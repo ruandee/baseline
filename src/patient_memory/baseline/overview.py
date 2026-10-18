@@ -4,6 +4,7 @@ from uuid import UUID
 
 from patient_memory.baseline.assess import COUNTING_PROMPT, escalations_used, valid_tags
 from patient_memory.baseline.engine import FEATURES
+from patient_memory.baseline.note import draft_note
 from patient_memory.baseline.observations import documented_observations
 from patient_memory.baseline.signals import features_for, stored_modalities
 from patient_memory.baseline.verdict import (
@@ -110,6 +111,23 @@ def overview(conn, cfg: Settings, patient: dict, days: int, now: datetime | None
     assessment = None
     if latest:
         assessment = _assessment_payload(latest, tags, features_for(latest["features"]))
+        if latest["params"].get("draft_status") == "multimodal_template" and latest["sbar"]:
+            try:
+                draft_note(conn, pid, latest["id"])
+            except Problem as exc:
+                if exc.status != 409:
+                    raise
+                assessment["sbar"] = None
+                assessment["draft_status"] = "unavailable_multimodal_evidence"
+            else:
+                check_ids = {e.removeprefix("check:") for sentence in latest["sbar"]["sentences"]
+                             for e in sentence["evidence_ids"] if e.startswith("check:")}
+                assessment["cited_checks"] = {str(r["id"]): {
+                    "id": str(r["id"]), "ts": r["ts"].isoformat(), "synthetic": r["synthetic"],
+                    "features": {f: r[f] for f in FEATURES}, "prompt_version": r["prompt_version"]}
+                    for r in conn.execute("SELECT * FROM voice_checks WHERE patient_id=%s "
+                        "AND id=ANY(%s::uuid[]) AND usable AND session_id IS NULL",
+                        (pid, list(check_ids))).fetchall()}
     if latest_speech:
         speech_features = features_for(latest_speech["features"])
         baseline = {"mode": latest_speech["params"].get("mode"), "prompt_version": prompt,

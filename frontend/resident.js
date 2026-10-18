@@ -135,20 +135,24 @@
       // Reauthorize readback, and refuse to mix a newer assessment with the displayed draft.
       const current = ctx.mock ? initial : await load(h, ctx);
       const assessment = current.latest_assessment;
+      const cited = assessment && assessment.cited_checks
+        && assessment.cited_checks[evidenceId.slice('check:'.length)];
+      const legacy = assessment && assessment.check && `check:${assessment.check.id}` === evidenceId;
       if (!assessment || assessment.id !== initial.latest_assessment.id
-          || !assessment.check || `check:${assessment.check.id}` !== evidenceId) {
+          || !assessment.sbar || (!cited && !legacy)) {
         throw new Error('Check evidence changed or unavailable; reload the resident.');
       }
       if (target.dataset.request !== request) return;
+      const capture = cited || assessment.check;
       const panel = h.el('section', '', {class: 'bl-check-evidence'});
       panel.append(h.el('h3', 'Stored voice check'),
-        h.el('p', `Recorded ${h.formatTime(assessment.check.ts)}`),
-        h.el('p', assessment.check.synthetic
+        h.el('p', `Recorded ${h.formatTime(capture.ts)}`),
+        h.el('p', capture.synthetic
           ? 'Authored synthetic measurements; no audio or source-document quote.'
           : 'Voice-derived measurements; no source-document quote.'));
-      Object.entries(assessment.change.per_feature || {}).forEach(([name, feature]) => {
+      Object.entries(cited ? cited.features : (assessment.change.per_feature || {})).forEach(([name, feature]) => {
         const meta = current.features[name] || {label: name, unit: ''};
-        panel.append(h.el('p', `${meta.label}: ${fmt(name, feature.value)}`
+        panel.append(h.el('p', `${meta.label}: ${fmt(name, cited ? feature : feature.value)}`
           + (name === 'pause_ratio' ? '' : ` ${meta.unit}`)));
       });
       target.replaceChildren(panel);
@@ -227,7 +231,28 @@
                                     'data-evidence-id': id});
           chipButton.addEventListener('click', () => {
             sourcePanel.hidden = false;
-            openEvidence(h, ctx, id, sourcePanel);
+            if (data.latest_assessment.draft_status !== 'multimodal_template') {
+              openEvidence(h, ctx, id, sourcePanel);
+              return;
+            }
+            const request = String(Number(sourcePanel.dataset.request || 0) + 1);
+            sourcePanel.dataset.request = request;
+            sourcePanel.replaceChildren(h.el('p', 'Checking current draft evidence...'));
+            (async () => {
+              try {
+                const current = ctx.mock ? data : await load(h, ctx);
+                const latest = current.latest_assessment;
+                if (!latest || latest.id !== data.latest_assessment.id || !latest.sbar
+                    || !latest.sbar.sentences.some((line) => line.evidence_ids.includes(id))) {
+                  throw new Error('Draft evidence changed or unavailable; reload the resident.');
+                }
+                if (sourcePanel.dataset.request !== request) return;
+                await openEvidence(h, ctx, id, sourcePanel);
+              } catch (error) {
+                if (sourcePanel.dataset.request !== request) return;
+                sourcePanel.replaceChildren(h.el('p', error.message, {class: 'bl-status', 'data-state': 'error'}));
+              }
+            })();
           });
           p.append(' ', chipButton);
         });
