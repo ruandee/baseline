@@ -183,7 +183,17 @@ and refreshed authorization. All reason, observation and SBAR citation buttons a
 including withheld readback after assessment change/revocation. Headless Chrome renders desktop
 and phone-width synthetic fixtures; this does not claim physical-phone or live-audio acceptance.
 
-BL-30 registry review adds scoped per-modality assessments, explicit unavailable/stale states,
-corroboration, flat speech compatibility and source-safe first-change markers. Speech charts and
-check citations retain their original contract; non-speech drafts stay unavailable. Only speech
-is registered at runtime. Migration010 follows009; decision025 and exact-head CI track acceptance.
+BL-28 pages add separate KAZE bootstrap, arming, baseline/session recording, countdown/reminders
+and a delivery/acknowledgement timeline. Logged/failed attempts never claim sent SMS. Latest
+SMS integration preserves public acknowledgement navigation and clinical/bootstrap guards.
+Physical phone/SMS/rehearsal gates remain open; page setup is in docs/kaze-pages.md.
+
+BL-25 loud-venue follow-up scopes the specified 3 dB SNR tolerance to authorized stored session
+context and adds the open-session quiet-place hint. All other quality gates remain unchanged;
+synthetic checks do not establish real venue or golden-recording acceptance.
+
+BL-30 registry review adds scoped modalities, explicit missing/stale states, corroboration and
+legacy speech compatibility. New captures reproject eligible immutable modalities at current
+revision without restoring invalidated decisions; first-change markers reject stale/session
+snapshots. Only speech is registered in this base. Decision025 and migration010 track the
+contract; final exact-head CI remains authoritative.

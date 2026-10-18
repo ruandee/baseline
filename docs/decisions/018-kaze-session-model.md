@@ -201,44 +201,11 @@ DELETE grant is added.
 - Not done here: scheduler, SMS, ack route, pages, `loud_venue` quality tolerance, and integrated
   acceptance after the PointClickCare path reaches BL-13.
 
+### BL-28 page integration
 
-### BL-26 scheduler integration (17 Oct 2026)
-
-The worker checks visible active/escalating sessions every 15 seconds (between ingestion passes).
-Level 1 is 2.5 minutes overdue, level 2 is 5 minutes overdue or an unexplained raw session
-`change`/`provisional`, and levels 3/4 wait 10 minutes after the preceding recorded step. A delayed
-worker advances at most one SMS level per pass, giving each contact its full acknowledgement
-window. No compressed demo timing is introduced while the outstanding product questions remain
-on hold.
-
-The scheduler takes the patient advisory lock then the session row lock and reads a fresh DB
-clock after waiting. It expires sessions at their original `ends_at`, keeping `delete_after`
-exactly 24 hours later. Check-in reset, acknowledgement and end serialize on the same session row;
-current state is re-read before publishing a step. Each committed episode/level/contact is unique.
-Usable normal/explained check-ins restart the due timer; unusable clips never reset it. An
-acknowledged session stays frozen until a qualifying check-in, and subsequent episodes increment
-the episode counter so old acknowledgement links cannot stop them.
-
-KAZE consumes raw change status and the session's immutable `context_tags`, independently of the
-PCC assessment verdict, context evidence, shift budget and `PM_NO_ESCALATE_PATIENTS`. Session
-assessments do not consume the PCC shift budget either. Declared `exertion`/`loud_venue` explainers
-suppress the speech-change trigger; they do not suppress missed check-ins. `escalation_enabled`
-false caps either trigger at the level-1 nudge. No speech quality threshold is changed here.
-
-BL-26's sender is strictly an offline logging adapter: no configuration enables SMS. It runs
-under the locks and its final message/hash metadata is inserted once, respecting migration 006's
-immutable event columns. This supersedes the earlier issue-comment proposal to UPDATE those
-columns. BL-27's saved `prepare_sms` / commit / `send` contract must be integrated before real
-delivery: never call a network sender from this locked adapter. Its postcommit delivery/crash
-semantics and public acknowledgement route remain BL-27 work, with no real delivery verified here.
-The six held product questions remain undecided.
-
-
-BL-27 replaces the offline adapter with prepared immutable messages, a durable once-only
-postcommit delivery claim, and network I/O outside all transactions/locks. Migration 008 adds
-only delivery_started_at and acknowledgement expiry hardening; migration 007 remains consent.
-See [decision 023](023-kaze-sms-delivery.md). GET acknowledgement retains the specified mutation
-contract; no scanner/confirmation policy change is introduced.
-BL-26 integration preserves session exclusion in PCC escalation counting after consent/PSW
-scoring integration. Clearing session profile flags must not make those assessments consume
-the resident shift budget. Session assessment responses retain false PCC suppression flags.
+The synthetic /out pages use the standard session clock and a separately configured self-custody
+KAZE identity. Capture cancels pending callbacks at end or expiry; explicit opt-in controls
+location. Timeline redacts links/coordinates and labels actual delivery outcomes; acknowledgement
+latency measures escalation attempts, not delivered texts. See ../kaze-pages.md. BL-27's public
+acknowledgement navigation retains origin/host and clinical-route guards (decision 023). Held
+policy questions and loud-venue SNR adjustment remain separate.

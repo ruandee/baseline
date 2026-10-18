@@ -20,8 +20,9 @@ async function api(path, options = {}) {
 async function bootstrap() {
   const psw = location.pathname === '/check' && typeof checkParams === 'function'
     && checkParams().mode === 'resident';
+  const kaze = location.pathname === '/out' || location.pathname.startsWith('/out/session/');
   state.session = await api('/demo/session', {headers: {'X-PM-Demo': '1',
-                                                      ...(psw ? {'X-PM-Role': 'psw'} : {})}});
+    ...(kaze ? {'X-PM-Role': 'kaze'} : psw ? {'X-PM-Role': 'psw'} : {})}});
   // BL-31: /check resident mode acts as the PSW, whose token never receives scores.
   if (state.session.psw_token && location.pathname === '/check'
       && typeof checkParams === 'function' && checkParams().mode === 'resident') {
@@ -32,6 +33,8 @@ async function bootstrap() {
 function route() {
   const path = location.pathname;
   const resident = path.match(/^\/resident\/([^/]+)$/);
+  const out = path.match(/^\/out\/session\/([^/]+)$/);
+  if (path === '/out' || out) return {name: 'out', title: 'Baseline Out', id: out ? out[1] : null};
   if (path === '/unit') return {name: 'unit', title: 'Unit watch list', ticket: 'BL-18'};
   if (path === '/check') return {name: 'check', title: 'Voice check', ticket: 'BL-17'};
   if (resident) return {name: 'resident', title: 'Resident', ticket: 'BL-19', id: resident[1]};
@@ -221,6 +224,10 @@ async function renderPage(current, renderer) {
 
 async function render() {
   const current = route();
+  if (current.name === 'out') {
+    await renderPage(current, (main) => renderKaze(main, current.id));
+    return;
+  }
   if (current.name === 'unit') {
     await renderPage(current, renderUnit);
     return;
