@@ -7,7 +7,14 @@ submissions show Watch/Escalate. Findings/baselines are authored and disclosed a
 Rooms are isolated from clinical history, expire in two hours, and require the single-process
 host. Old `demo=days` links enter the replacement; `demo=legacy-days` retains the old local mode.
 This supersedes the selected presentation in decision034, not genuine engine or consent rules.
-Deployment and physical-phone rehearsal must be verified on this release separately.
+Verified deployment checkpoint: merged release `204f545` on 2026-10-18 UTC. CI passed 659 unit
+and 383 database-backed tests (five optional slow tests deselected), Ruff, synthetic stub eval
+and image smoke. Public HTTPS checks verified release assets, readiness, authorized watchlist,
+external document navigation and retained API/origin guards. A three-tab Chrome synthetic-mic
+run verified runner Watch -> exertion context -> Explained, Dee Watch -> Escalate, nurse reload
+and 390px layouts, with three metadata-only receipts and no clinical API calls. The test room
+was deleted. Physical-phone permission/playback/codec acceptance and presenter rehearsal remain
+unverified. This checkpoint does not claim that later main commits are deployed.
 
 BL-17 follow-up: live checks display eligible prior baseline checks from the engine contract
 and report measured engine/verdict elapsed milliseconds. This does not change scoring policy;
@@ -250,7 +257,9 @@ the feedback-only freshness and exact current-citation gates. Exact-head CI rema
 
 ## Acceptance audit against all Baseline tickets
 
-Snapshot: main `b4a804d`, reviewed 2026-10-18 UTC, with pending PR #94 noted separately.
+Historical snapshot: main `b4a804d`, reviewed 2026-10-18 UTC, before the replacement demo rollout.
+PR #94 was later superseded by #104; #114/#115 shipped the current two-resident flow. The current
+deployment checkpoint above supersedes the old rollout statements in this historical audit.
 The acceptance text comes from
 `baseline-tickets.json` and `06-baseline.md`; adopted decisions supersede the original frontend
 location, unsafe hypertables and approved change-policy/scenario assumptions. A green synthetic
@@ -300,7 +309,8 @@ Golden recordings, hosting, actual phone contacts and presenter run logs are ext
 Do not replace them with mock screenshots, provider acceptance, a written checklist or historic
 test counts. This audit does not establish real-data pilot readiness or clinical validation.
 
-Deployment update,2026-10-18 UTC: `https://baseline.deeruan.com/unit` is reachable. Read-only
+Earlier deployment snapshot, before release `204f545`, 2026-10-18 UTC:
+`https://baseline.deeruan.com/unit` is reachable. Read-only
 checks returned200 for the HTML shell, header-authorized demo bootstrap with12 residents,
 `/v1/health/live` and the authenticated watchlist. The public host returned404 for
 `check-setup.js`, `kaze-consent.js` and `/v1/health/ready`; it has not received the pending
@@ -318,11 +328,13 @@ Accepted ADR032 adds only the assigned safety custodian's own voice permission; 
 the default. Migrations014/015 passed combined CI at03ab933:633unit/380DB tests, stub evaluation and image
 smoke; merged in #100 asb4a804d. Physical acceptance and hosted rollout remain unverified.
 
-## Local three-day presentation follow-up
+## Historical local three-day presentation follow-up
 
-The opt-in `/check?mode=live&demo=days` renders explicitly authored fictional outcomes after
+At the time of decision034, `/check?mode=live&demo=days` rendered fictional outcomes after
 a local recording/import. It bypasses bootstrap and all API/upload/provider/history writes.
 It does not compare the speaker with a measured personal baseline. ADR034 distinguishes it
 from ordinary live checks. A held stale recorder callback cannot cancel a newer stop timer;
 synthetic-only browser proof covered all three labelled days and resource cleanup. Combined
-release CI is required; no deployed rollout or real-device acceptance is claimed here.
+release CI was required; no deployed rollout or real-device acceptance was claimed then.
+Decision036 supersedes this selection. The old local flow now uses `demo=legacy-days`; `demo=days`
+opens the current phone-to-nurse setup instead.
