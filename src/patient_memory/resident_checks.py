@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 from psycopg.errors import InsufficientPrivilege
 
+from patient_memory.check_profiles import read_profile
 from patient_memory.config import Settings
 from patient_memory.consent import check_gate, consent_record
 from patient_memory.domain import ConsentInput, SkipInput
@@ -35,12 +36,15 @@ def due_checks(conn, cfg: Settings, now: datetime | None = None) -> dict:
     for row in rows:
         state = consent_record(conn, row["id"])["state"]
         last = row["last_check_ts"]
+        profile = read_profile(conn, row["id"])
         status = ("consent_needed" if state != "granted"
+                  else "language_unavailable" if profile["state"] != "ready"
                   else "done" if last and last >= start
                   else "skipped" if row["skipped_today"] else "due")
         residents.append({"patient_id": row["id"], "display_name": row["external_id"],
                           "status": status, "consent_state": state, "last_check_ts": last,
-                          "skipped_today": row["skipped_today"], "observation_helped": row["observation_helped"]})
+                          "skipped_today": row["skipped_today"], "check_profile": profile,
+                          "observation_helped": row["observation_helped"]})
     return {"day_start": start, "residents": residents}
 
 
@@ -62,7 +66,7 @@ def has_role(conn, patient_id: UUID, role: str) -> bool:
 
 
 def append_consent(conn, identity, patient_id: UUID, body: ConsentInput, request_id: UUID) -> dict:
-    """Nurses record resident/SDM decisions; importers may write explicit fixture consent."""
+    """Nurses record care decisions; a safety custodian may record only their voice decision."""
     check_gate(conn, patient_id)
     lock_patient(conn, patient_id)
     check_gate(conn, patient_id)
@@ -70,6 +74,9 @@ def append_consent(conn, identity, patient_id: UUID, body: ConsentInput, request
         allowed = has_role(conn, patient_id, "importer")
     else:
         allowed = has_role(conn, patient_id, "nurse")
+        if not allowed and body.decided_by == "resident" and body.scope == "voice_check":
+            allowed = conn.execute("SELECT pm_safety_voice_custodian(%s) AS ok",
+                                   (patient_id,)).fetchone()["ok"] is True
     if not allowed:
         raise Problem(403, "forbidden", "This role cannot record that consent decision")
     try:

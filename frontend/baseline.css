@@ -124,6 +124,15 @@ button.bl-cite{cursor:pointer;text-decoration:underline}
 .bl-parameters{white-space:pre-wrap;overflow-wrap:anywhere}.bl-action-detail{margin:12px 0;padding:12px;border-left:3px solid var(--green)}
 
 /* BL-34 motion: visible labels and touch targets without changing capture behavior. */
+.bl-check-setup{max-width:680px;margin:0 auto 28px;text-align:left;font-size:16px;line-height:1.5;overflow-wrap:anywhere}
+.bl-check-setup fieldset{min-width:0;margin:16px 0;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--white)}
+.bl-check-setup legend{padding:0 6px;font-weight:700}
+.bl-setup-field{display:flex;flex-direction:column;gap:6px;margin:12px 0}
+.bl-check-setup input[type=text],.bl-check-setup select{width:100%;min-height:48px;min-width:0;padding:10px;font:inherit;border:1px solid var(--line);border-radius:8px;background:var(--white);color:var(--ink)}
+.bl-setup-confirm{display:flex;align-items:center;gap:12px;min-height:48px;margin:12px 0}
+.bl-setup-confirm input{width:24px;height:24px;flex:0 0 24px}
+.bl-check-setup button{min-height:56px;padding:12px 18px;font:inherit;font-weight:600;background:var(--white);color:var(--ink);border:2px solid var(--line);border-radius:12px}
+.bl-check-setup :focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 .bl-motion{max-width:680px;margin:0 auto;font-size:17px;line-height:1.5;overflow-wrap:anywhere}
 .bl-motion h1{font-size:32px}
 .bl-motion-field{display:flex;flex-direction:column;gap:6px;margin:14px 0;font-weight:600}
@@ -150,3 +159,18 @@ body[data-motion-page] .bl-nav .brand-mark{display:block}
  .bl-motion-permission{padding:10px 12px 14px}
  .bl-motion-permission button{width:100%}
 }
+.bl-demo-banner{background:#fff6d9;border:2px solid #ac7a20;border-radius:10px;padding:16px;margin:16px 0}
+.bl-demo-banner strong{letter-spacing:.06em;color:#694407}
+.bl-demo-banner p{margin:8px 0 0;max-width:72ch}
+.bl-demo-timeline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0;list-style:none}
+.bl-demo-timeline li{padding:12px;border:1px solid #c8d3c7;border-radius:8px;background:#fff}
+.bl-demo-timeline [aria-current=step]{border:2px solid #236752;background:#edf3ef;font-weight:600}
+.bl-demo-controls{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}
+.bl-demo-controls button,.bl-demo-record{min-height:48px;padding:10px 18px}
+.bl-demo-file-label{display:block;margin:18px 0 8px}
+.bl-demo-file{display:block;max-width:100%;margin-top:8px}
+.bl-demo-preview audio{display:block;max-width:100%;margin-top:12px}
+.bl-demo-result:not(:empty){background:#fff;border:2px solid #ac7a20;border-radius:10px;padding:20px;margin-top:20px;overflow-x:auto}
+.bl-demo-disclosure{font-weight:600;color:#694407}
+.bl-demo-source{margin-top:16px}
+@media(max-width:640px){.bl-demo-timeline{grid-template-columns:1fr}.bl-demo-controls{flex-direction:column}}

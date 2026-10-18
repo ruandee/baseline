@@ -61,9 +61,10 @@ provides S3-compatible source storage in the demo; do not describe it as a produ
 
 - Code: https://github.com/ruandee/patient-memory-backend — currently private; a repo admin must
   decide on publication after the history/secret review. Do not change visibility as part of this draft.
-- Demo: https://baseline.deeruan.com/unit — visually checked in connected Chrome on release
-  `258a1f61df30b64a272ade487539b187efc7bfc2`, at desktop and phone widths. The nurse roster
-  currently includes twelve scripted residents plus two separate capture volunteers.
+- Demo: https://baseline.deeruan.com/unit — verified on release
+  `f7f02c0a77d60b29efceb32c61b11cd96d74d193` (the same application tree as main
+  `250cd51fbb56f1a7d9206439b2cc80be2f55d09f`), per the current deployment handoff.
+  Historical scenario snapshots are separate from actual live measurements.
   Recheck immediately before submission; the original VM is scheduled to stop October 18 at
   about 9:09 PM Toronto time. Newer merged features are not automatically deployed.
 - Video: add the actual uploaded video URL and verify access from a signed-out browser.
@@ -85,12 +86,14 @@ provides S3-compatible source storage in the demo; do not describe it as a produ
 ### Final editing checks
 
 - Keep the three fictional cases and a screenshot of the actual nurse screen.
-- At the latest hosted check, Mr. T had a newer check and his latest verdict was within normal,
-  rather than the authored explained snapshot. Existing records were preserved. Confirm that
-  segment with the deployment operator, or cut it; do not delete recordings to force the story.
 - Remove any sentence describing a feature that cannot be shown in the final demo.
 - Replace the fallback-provider sentence only after verifying the configured live model.
-- If including a runner or live speaker, confirm permission, personal baseline and an actual
-  working capture. No exertion or clinical-detection claim is supported by the scripted cohort.
+- The accepted live plan uses Dee instead of the remote runner (decision 030). Claim that
+  segment only after successful same-person rested enrollment and rehearsal; an actual live
+  result may be normal. The separate three-day local demo has authored results, not measurements
+  computed from its recording (decision 034). Neither proves exertion or clinical detection.
+- Audio is deleted after processing unless a developer retention flag is enabled. Measurements,
+  transcript and word timings remain with the check; confirm consent and data handling before
+  recording a real person.
 - Public submission, prize selection, repository visibility, video publication and real-person
   recording remain separate human actions. This document does not complete #24 or #25.

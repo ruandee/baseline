@@ -43,7 +43,10 @@ def test_psw_authorship_is_explicit_and_only_care_notes_accept_principal_attribu
 
 def test_feedback_contract_can_never_report_a_negative_or_include_scores():
     row = {"patient_id": uuid4(), "display_name": "Synthetic resident", "status": "due",
-           "consent_state": "granted", "last_check_ts": None, "skipped_today": False}
+           "consent_state": "granted", "last_check_ts": None, "skipped_today": False,
+           "check_profile": {"state": "unconfigured", "preferred_locale": None,
+                             "first_name": None, "version": None, "protocol_locale": None,
+                             "prompt_version": None}}
     assert DueResident(**row).observation_helped is None
     assert DueResident(**row, observation_helped=True).observation_helped is True
     for addition in ({"observation_helped": False}, {"verdict": "escalate"}):

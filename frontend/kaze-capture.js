@@ -1,6 +1,6 @@
 // Session-only recorder. Reuses the normal MIME/upload helpers; no location outside a session.
 // A generation counter invalidates asynchronous mic, location and stop callbacks on cancel.
-function kazeCapture({getSession, getMedia, Recorder, upload, locate, onState,
+function kazeCapture({getSession, requirePermission, getMedia, Recorder, upload, locate, onState,
                        now = () => Date.now(), later = setTimeout, cancelLater = clearTimeout}) {
   let generation = 0, recorder = null, stream = null, timer = null, busy = false;
   const open = (s) => s && s.status !== 'ended' && new Date(s.ends_at).getTime() > now();
@@ -20,6 +20,7 @@ function kazeCapture({getSession, getMedia, Recorder, upload, locate, onState,
     try {
       onState('Requesting microphone permission');
       session = await getSession();
+      await requirePermission();
       if (!current() || !open(session)) throw new Error('Session ended');
       const baseline = session.status === 'arming';
       const acquired = await getMedia();
@@ -29,6 +30,12 @@ function kazeCapture({getSession, getMedia, Recorder, upload, locate, onState,
         if (current()) busy = false; return;
       }
       stream = acquired;
+      await requirePermission();
+      const admitted = await getSession();
+      if (!current()) return; // A cancelled callback must not release a replacement stream.
+      if (!open(admitted) || (admitted.status === 'arming') !== baseline) {
+        release(); busy = false; return;
+      }
       const chunks = [];
       recorder = new Recorder(stream);
       recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
@@ -41,6 +48,7 @@ function kazeCapture({getSession, getMedia, Recorder, upload, locate, onState,
         try {
           onState('Saving check-in');
           const fresh = await getSession();
+          await requirePermission();
           if (!current() || !open(fresh) || (fresh.status === 'arming') !== baseline) {
             throw new Error('Session ended or baseline changed; record a new clip');
           }
@@ -54,6 +62,7 @@ function kazeCapture({getSession, getMedia, Recorder, upload, locate, onState,
             if (position) Object.assign(fields, {lat: position.coords.latitude,
               lon: position.coords.longitude, accuracy_m: position.coords.accuracy});
           }
+          await requirePermission();
           if (!current() || !open(fresh)) throw new Error('Session ended');
           const result = await upload(new Blob(chunks, {type: recorder.mimeType || 'audio/webm'}), fields);
           if (current()) onState(result.usable ? 'Check-in saved' : 'Clip not usable; please try again', result);
@@ -67,7 +76,7 @@ function kazeCapture({getSession, getMedia, Recorder, upload, locate, onState,
     } catch (error) {
       if (current()) {
         release(); busy = false;
-        onState('Could not start. Check microphone permission and session end time.');
+        onState('Could not start. Check stored voice permission, microphone access and session end time.');
       }
     }
   }

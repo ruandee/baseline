@@ -16,6 +16,7 @@ from psycopg.types.json import Jsonb
 from patient_memory.auth import Identity, synthetic_token
 from patient_memory.baseline import engine
 from patient_memory.baseline.assess import assess_check, lock_assessment
+from patient_memory.check_profiles import seed_english_profile
 from patient_memory.config import Settings
 from patient_memory.consent import grant_fixture_consent
 from patient_memory.domain import SourceInput
@@ -150,6 +151,7 @@ def provision(cfg, scope, residents):
                              "ON CONFLICT DO NOTHING", (scope.tenant_id, pid, actor, role))
             # Decision 017: explicit synthetic consent; never overrides a later withdrawal.
             grant_fixture_consent(conn, scope.tenant_id, pid, scope.importer_id)
+            seed_english_profile(conn, scope.tenant_id, pid, scope.importer_id)
 
 
 def _preflight(cfg, scope, residents, presentation):

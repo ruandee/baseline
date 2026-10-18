@@ -24,7 +24,7 @@ pytestmark = [
 # One scale unit of the change engine (docs/06-baseline.md, "Per-feature score"): the larger of 5%
 # of the baseline value and the feature's abs_floor. A single take has no MAD to add, and the engine
 # only flags at 2 units, so asking for 1 is the least a real change should show.
-ABS_FLOOR = {"speech_rate_wpm": 5.0, "pause_ratio": 0.02, "f0_median_hz": 5.0}
+ABS_FLOOR = {"speech_rate_wpm": 5.0, "pause_ratio": 0.02}
 
 
 @pytest.fixture(scope="module")
@@ -39,6 +39,10 @@ def checks(tmp_path_factory):
         scratch = work / stem
         scratch.mkdir()
         results[stem] = analyze(takes(stem)[0], scratch)
+    # Decision 030: natural exertion is exploratory, not a guaranteed pitch direction.
+    # Keep its quality gate, and report measurements without tuning a detector to one take.
+    print("Exploratory stairs comparison:",
+          {stem: results[stem].features for stem in ("normal", "stairs")})
     return results
 
 
@@ -73,8 +77,3 @@ def test_pausey_clip_raises_pause_ratio(checks):
     assert pausey > normal + margin(checks, "pause_ratio"), measured(checks, "normal", "pausey")
     assert len(checks["pausey"].pauses) > len(checks["normal"].pauses), (
         measured(checks, "normal", "pausey"))
-
-
-def test_stairs_clip_raises_pitch(checks):
-    normal, stairs = (feature(checks, stem, "f0_median_hz") for stem in ("normal", "stairs"))
-    assert stairs > normal + margin(checks, "f0_median_hz"), measured(checks, "normal", "stairs")
