@@ -268,7 +268,7 @@ remaining branches land.
 | BL-17 | Recording/retry/permission/race and MIME engineering tests | Physical iPhone/Android HTTPS/LTE acceptance unrun (#19) |
 | BL-18 | Real cohort/API-captured JS proves API sort order and hidden-tab polling stop/resume | Specified engineering gate accepted; #20 closed |
 | BL-19 | Real API-captured resident DOM proves four bands/markers, every citation readback, action and draft; headless Chrome layouts | Physical-phone hosted readback still unrun; #21's specified engineering gate accepted |
-| BL-20 | Opt-in image, same-origin proxy, secret/host guards and deployment helpers merged | No server/domain provisioned; public HTTPS/LTE result unverified (#22) |
+| BL-20 | Opt-in image, same-origin proxy, secret/host guards and deployment helpers merged; user supplied baseline.deeruan.com and read-only HTTPS checks returned the shell,12-person roster and watchlist | Hosted assets predate pending profile/permission fixes; deployment operator/release, physical LTE capture and latency still need verification (#22) |
 | BL-21 | Merged fixture-only current-time reset; DB interruption/resumption/concurrency and volunteer-preservation tests | One-command hosted reset under1minute unmeasured (#23) |
 | BL-22 | Draft submission material only | Public visibility and actual Devpost submission unverified; original deadline is not proof (#24) |
 | BL-23 | README/run guides, draft write-up and video shot list merged | Clean-clone host walkthrough and video saved in two locations unverified (#25) |
@@ -288,3 +288,12 @@ remaining branches land.
 Golden recordings, hosting, actual phone contacts and presenter run logs are external inputs.
 Do not replace them with mock screenshots, provider acceptance, a written checklist or historic
 test counts. This audit does not establish real-data pilot readiness or clinical validation.
+
+Deployment update,2026-10-18 UTC: `https://baseline.deeruan.com/unit` is reachable. Read-only
+checks returned200 for the HTML shell, header-authorized demo bootstrap with12 residents,
+`/v1/health/live` and the authenticated watchlist. The public host returned404 for
+`check-setup.js`, `kaze-consent.js` and `/v1/health/ready`; it has not received the pending
+profile/permission integration. No credentials were printed, data changed or audio uploaded.
+The server/deployment operator, live speaker and personal baselines, physical phones and SMS
+recipient are being confirmed. This supersedes earlier statements that no host was provisioned;
+it does not establish readiness, hosted latency or a completed rehearsal.
