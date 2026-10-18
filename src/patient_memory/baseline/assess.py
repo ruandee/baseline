@@ -1,5 +1,6 @@
 """Score a stored check, decide the verdict and persist the assessment."""
 from datetime import datetime
+from time import perf_counter
 from uuid import UUID, uuid4
 
 from psycopg.types.json import Jsonb
@@ -98,7 +99,8 @@ def change_payload(assessment, mode: str) -> dict:
 def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_id: UUID,
                  ts: datetime, device_id: str, prompt_version: str, is_baseline: bool,
                  features: dict, display_name: str,
-                 session_id: UUID | None = None) -> tuple[dict, dict]:
+                 session_id: UUID | None = None,
+                 timings_ms: dict[str, int] | None = None) -> tuple[dict, dict]:
     """Returns the (change, assessment) payloads of POST /checks and stores the assessment row."""
     check_writer_access(conn, patient_id)
     lock_assessment(conn, tenant_id, patient_id)
@@ -106,13 +108,19 @@ def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_i
     history = _history(conn, patient_id, ts, prompt_version, session_id)
     mode = "enrolled" if sum(c.is_baseline for c in history) >= MIN_BASELINE else "rolling"
     check = Check(str(check_id), ts, device_id, prompt_version, is_baseline, True, dict(features))
+    started = perf_counter()
     result = evaluate(check, history, mode, engine_settings(cfg, prompt_version))
+    engine_ms = round((perf_counter() - started) * 1000)
+    started = perf_counter()
     tags = valid_tags(conn, patient_id, ts)
     decision = decide(result.status, result.fused, [(t["kind"], t["tag"]) for t in tags])
     no_escalate = str(patient_id) in {p.strip() for p in cfg.no_escalate_patients.split(",")}
     decision, flags = apply_profile(
         decision, escalations_used=escalations_used(conn, ts, cfg),
         budget=cfg.escalation_budget, no_escalate=no_escalate)
+    verdict_ms = round((perf_counter() - started) * 1000)
+    if timings_ms is not None:
+        timings_ms.update(engine=engine_ms, verdict=verdict_ms)
     change = change_payload(result, mode)
     reasons = [t for t in tags if t["kind"] == "amplifier"] if decision.verdict in (
         "escalate", "watch") and any(t["kind"] == "amplifier" for t in tags) else (

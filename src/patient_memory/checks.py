@@ -87,12 +87,14 @@ def _store_check(conn, identity, patient_id, request_id, analysis, mode, device_
          accuracy, prompt_version)).fetchone()["ts"]
     audit(conn, identity, patient_id, "create_check", request_id)
     change = assessment = None
+    timings = dict(analysis.timings_ms)
     if analysis.usable:  # unusable clips are stored for audit but never scored
         name = conn.execute("SELECT external_id FROM patients WHERE id=%s",
                             (patient_id,)).fetchone()["external_id"]
         change, assessment = assess_check(
             conn, cfg, patient_id, identity.tenant_id, check_id, ts, device_id,
-            prompt_version, is_baseline, features, name, session_id=session_id)
+            prompt_version, is_baseline, features, name, session_id=session_id,
+            timings_ms=timings)
     summary = sessions.after_check(conn, session, ts, analysis.usable, is_baseline) if session else None
     return CheckResult(
         session=summary,
@@ -100,4 +102,4 @@ def _store_check(conn, identity, patient_id, request_id, analysis, mode, device_
         check_id=check_id, ts=ts, usable=analysis.usable, quality=analysis.quality,
         features=features, words=words,
         pauses=[{"start": p.start, "end": p.end} for p in analysis.pauses],
-        timings_ms=analysis.timings_ms)
+        timings_ms=timings)
