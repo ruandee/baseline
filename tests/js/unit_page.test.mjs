@@ -127,7 +127,9 @@ function renderedRows(main) {
     return {href: link.getAttribute('href'), name: link.textContent,
             verdict: verdict.children[0].textContent, fused: fused.textContent,
             synthetic: name.children.some((c) => typeof c !== 'string'
-                                           && c.getAttribute('class') === 'bl-synthetic')};
+                                           && c.getAttribute('class') === 'bl-synthetic'),
+            syntheticChip: name.children.find((c) => typeof c !== 'string'
+                                               && c.getAttribute('class') === 'bl-synthetic')};
   });
 }
 
@@ -152,6 +154,8 @@ test('rendered rows follow the API order exactly, with labelled verdicts', async
     assert.equal(rows[i].fused, typeof resident.fused_z === 'number'
       ? resident.fused_z.toFixed(1) : '—');
     assert.equal(rows[i].synthetic, resident.synthetic === true);
+    // The chip stays in the DOM for label logic but the page shows one "Demo scenario" disclosure.
+    if (rows[i].synthetic) assert.equal(rows[i].syntheticChip.hidden, true);
   });
   const shift = page.main.querySelector('[data-unit=shift]').textContent;
   assert.match(shift, new RegExp(`${FIXTURE.shift.escalations_used} of ` +

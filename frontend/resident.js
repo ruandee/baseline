@@ -327,7 +327,7 @@
       return;
     }
     const title = h.el('h1', data.display_name);
-    if (data.synthetic) title.append(' ', h.el('span', 'synthetic', {class: 'bl-synthetic'}));
+    if (data.synthetic) title.append(' ', h.el('span', 'synthetic', {class: 'bl-synthetic', hidden: ''}));
     const grid = h.el('div', '', {class: 'bl-charts'});
     Object.entries(data.features || {}).forEach(([name, meta]) => {
       const fig = h.el('figure', '', {class: 'bl-fig'});

@@ -48,7 +48,7 @@ function selectPatient(id) {
   $('evidence-dialog').close();
   $('patient-name').textContent = state.patient.name;
   $('patient-avatar').textContent = initials(state.patient.name);
-  $('patient-reference').textContent = `${state.patient.reference ? state.patient.reference.toUpperCase() : 'Reference not provided'} / Synthetic resident`;
+  $('patient-reference').textContent = state.patient.reference ? state.patient.reference.toUpperCase() : 'Reference not provided';
   $('scope-name').textContent = state.patient.name + '’s';
   $('question').value=''; $('ask').disabled=false; $('generate-summary').disabled=false;
   $('generate-summary').textContent='Create handover';

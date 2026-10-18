@@ -19,11 +19,11 @@
   <span class="nav-section-label">Explore</span>
   <a href="/check?type=motion">Movement</a>
   <a href="/unit?demo=handoff">Live demo</a>
-  <div class="nav-foot"><span class="demo-badge">SYNTHETIC DEMO</span><p>Fictional records.<br>Evidence you can inspect.</p></div>
+  <div class="nav-foot"><details id="nav-disclosure" class="nav-disclosure"><summary class="demo-badge">Demo scenario</summary><div>Fictional residents. Baselines, findings and records are authored for this demo; nothing here is clinically validated.</div></details></div>
 </nav>
 <div class="shell">
   <header class="topbar"><span>Care team / Notes</span><span id="connection" class="connection" role="status">Connecting</span></header>
-  <div class="page-title"><div><h1>Notes workspace</h1><p>Review a resident's record, prepare a handover, or ask a question.</p></div><span class="fictional">Synthetic records</span></div>
+  <div class="page-title"><div><h1>Notes workspace</h1><p>Review a resident's record, prepare a handover, or ask a question.</p></div></div>
   <div id="global-error" class="global-error" hidden role="alert"></div>
   <main id="notes-main" class="workspace">
     <section class="roster" aria-label="Find a resident">
@@ -57,7 +57,7 @@
       <p class="assistant-foot">Missing documentation does not establish a negative finding.</p>
     </aside>
   </main>
-  <footer class="page-foot">Synthetic research prototype. Review source records and unresolved conflicts before using a handover.</footer>
+  <footer class="page-foot">Review source records and unresolved conflicts before using a handover.</footer>
 </div>
 <dialog id="evidence-dialog" aria-labelledby="evidence-title"><div class="dialog-head"><div><h2 id="evidence-title">Cited source</h2><p>Exact excerpt and record details</p></div><button id="close-evidence" class="icon-button" aria-label="Close cited source">&#215;</button></div><div id="evidence-content"></div></dialog>
 </body>

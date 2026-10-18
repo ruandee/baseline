@@ -111,7 +111,7 @@ function unitRow(resident) {
                                                class: 'bl-name',
                                                'aria-label': `Open details for ${resident.display_name}`});
   name.append(link);
-  if (resident.synthetic) name.append(' ', el('span', 'synthetic', {class: 'bl-synthetic'}));
+  if (resident.synthetic) name.append(' ', el('span', 'synthetic', {class: 'bl-synthetic', hidden: ''}));
   const capture = unitCapture(resident);
   if (capture) name.append(el('span', `${capture.capture_mode} capture identity`,
                               {class: 'unit-identity-label'}));
@@ -401,8 +401,12 @@ async function render() {
   const current = route();
   document.title = `${current.title} | Baseline`;
   const demo = location.search ? new URLSearchParams(location.search).get('demo') : null;
-  if ((current.name === 'unit' || current.name === 'check')
-      && (demo === 'handoff' || demo === 'days')) {
+  const handoff = (current.name === 'unit' || current.name === 'check')
+    && (demo === 'handoff' || demo === 'days');
+  // The handoff room carries its own "Demo scenario" disclosure; show only one.
+  const navDisclosure = document.getElementById('nav-disclosure');
+  if (navDisclosure) navDisclosure.hidden = handoff;
+  if (handoff) {
     await window.renderHandoff(document.getElementById('bl-main'),
       {el, chip, bootstrap, api, VERDICT_LABELS});
     return;
