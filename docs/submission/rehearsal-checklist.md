@@ -63,7 +63,9 @@ page, editing data, restarting the API, switching to the video. Any fix means th
 
 From `docs/06-baseline.md`, plus items found while preparing:
 
-- [ ] Run `scripts/demo_reset.py` (once BL-21 exists); confirm the watch list loads with fresh tokens
+- [ ] Once BL-21 is merged, run `bash deploy/reset-demo.sh` on the configured demo host; confirm
+      the printed watch-list URL loads with fresh tokens. Follow `docs/deployment-walkthrough.md`
+      for initial setup. Time the command; the under-one-minute gate remains unverified.
 - [ ] Do one live check from the demo phone in the judging room; note the noise level
 - [ ] Confirm the runner's two race clips arrived and show `explained`; if not, use the labelled stairs backup clip
 - [ ] Run one Gemini extraction; if it fails, confirm the template SBAR and offline tags still show

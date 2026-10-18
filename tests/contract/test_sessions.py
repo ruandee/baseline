@@ -377,7 +377,19 @@ def test_three_baseline_clips_activate_the_session(kaze_sandbox, usable_clip):
     due = datetime.fromisoformat(status["next_due_at"])
     assert due - datetime.fromisoformat(status["activated_at"]) == timedelta(minutes=1)
     assert [c["has_location"] for c in status["checks"]] == [True, True, True]
-    assert "43.65" not in str(status)  # coordinates are never returned
+    # Inspect structured fields: a timestamp may coincidentally contain "43.65".
+    # Coordinates must remain private even if accidentally nested under a new field.
+    pending = [status]
+    while pending:
+        value = pending.pop()
+        if isinstance(value, dict):
+            private_fields = {"lat", "lon", "latitude", "longitude", "accuracy_m", "coordinates"}
+            assert not private_fields & value.keys()
+            pending.extend(value.values())
+        elif isinstance(value, list):
+            pending.extend(value)
+        elif isinstance(value, (int, float)):
+            assert value not in (43.65, -79.38)
     rows = admin_rows(k, "SELECT lat,lon,accuracy_m FROM voice_checks WHERE session_id=%s", (sid,))
     assert rows == [(43.65, -79.38, 12.0)] * 3
 
