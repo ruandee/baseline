@@ -414,6 +414,7 @@ class CheckProfile(Contract):
     prompt_version: Literal["count20-days-v1"] | None
     can_configure: bool = False
     can_record_consent: bool = False
+    voice_consent_state: ConsentState = "unknown"
 
 
 class DueResident(Contract):

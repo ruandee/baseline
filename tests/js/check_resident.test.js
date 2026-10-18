@@ -247,7 +247,7 @@ test('unsupported requested language blocks without falling back to English', as
 test('explicit full first name is used without splitting or using the roster display name', async () => {
   const page = loadPage('/check?mode=resident&patient=p1', {patients: [{id: 'p1', name: 'Mrs. K'}], routes: {
     'GET /v1/patients/p1/check-profile': () => ({state: 'ready', protocol_locale: 'en',
-      prompt_version: 'count20-days-v1', first_name: 'Mary Ann', version: 'v1'}),
+      prompt_version: 'count20-days-v1', first_name: 'Mary Ann', version: 'v1', voice_consent_state: 'granted'}),
     'POST /v1/patients/p1/checks': () => ESCALATE}});
   await ready(page);
   await record(page);
@@ -275,7 +275,7 @@ test('profile changed before tap is blocked before asking for the microphone', a
   let reads = 0, camera = 0;
   const page = loadPage('/check?mode=resident&patient=p1', {routes: {
     'GET /v1/patients/p1/check-profile': () => ({state: 'ready', protocol_locale: 'en',
-      prompt_version: 'count20-days-v1', first_name: 'Mary Ann', version: ++reads === 1 ? 'v1' : 'v2'})}});
+      prompt_version: 'count20-days-v1', first_name: 'Mary Ann', voice_consent_state: 'granted', version: ++reads === 1 ? 'v1' : 'v2'})}});
   await ready(page);
   page.window.navigator.mediaDevices.getUserMedia = () => { camera++; throw Error('must not request'); };
   q(page, '.bl-record').click();
@@ -283,6 +283,60 @@ test('profile changed before tap is blocked before asking for the microphone', a
   assert.equal(camera, 0);
   assert.match(message(page), /setup changed/);
 });
+
+for (const attempt of ['idle', 'retry', 'resend']) {
+  test(`effective consent is refreshed before resident ${attempt} without SDM retrieval`, async () => {
+    let consent = 'granted', microphone = 0, uploads = 0;
+    const page = loadPage('/check?mode=resident&patient=p1', {routes: {
+      'GET /v1/patients/p1/check-profile': () => ({state: 'ready', protocol_locale: 'en',
+        prompt_version: 'count20-days-v1', version: 'v1', first_name: null,
+        voice_consent_state: consent}),
+      'POST /v1/patients/p1/checks': () => {
+        uploads++;
+        if (attempt === 'resend') throw {status: 400};
+        return {usable: false};
+      }}});
+    await ready(page);
+    const original = page.window.navigator.mediaDevices.getUserMedia;
+    page.window.navigator.mediaDevices.getUserMedia = (...args) => { microphone++; return original(...args); };
+    if (attempt !== 'idle') {
+      await record(page);
+      await until(() => attempt === 'retry' ? cardState(page) === 'retry' : !q(page, '.bl-retry').hidden);
+    }
+    const before = {microphone, uploads};
+    consent = 'withdrawn';
+    q(page, attempt === 'resend' ? '.bl-retry' : '.bl-record').click();
+    await until(() => cardState(page) === 'consent');
+    assert.equal(microphone, before.microphone);
+    assert.equal(uploads, before.uploads);
+    assert.equal(q(page, '.bl-record').hidden, true);
+    assert(!page.calls.some(c => c.key.includes('/consent?') || c.key.endsWith('/consent')));
+    assertNoLeak(page.main);
+  });
+}
+
+for (const action of ['skip', 'pagehide']) {
+  test(`late resident preflight response cannot resume after ${action}`, async () => {
+    let reads = 0, release, microphone = 0;
+    const profile = {state: 'ready', protocol_locale: 'en', prompt_version: 'count20-days-v1',
+      version: 'v1', first_name: null, voice_consent_state: 'granted'};
+    const page = loadPage('/check?mode=resident&patient=p1', {routes: {
+      'GET /v1/patients/p1/check-profile': () => ++reads === 1 ? profile
+        : new Promise(resolve => { release = () => resolve(profile); }),
+      'POST /v1/patients/p1/checks/skips': () => ({skip_id: 's'})}});
+    await ready(page);
+    page.window.navigator.mediaDevices.getUserMedia = () => { microphone++; throw Error('must not request'); };
+    q(page, '.bl-record').click(); await until(() => release);
+    if (action === 'skip') {
+      q(page, '.bl-skip').click(); q(page, '[data-reason=asleep]').click();
+      await until(() => cardState(page) === 'skipped');
+    } else for (const handler of page.window.listeners.pagehide || []) handler();
+    release(); await tick(30);
+    assert.equal(microphone, 0);
+    assert.equal(q(page, '.bl-record').disabled, true);
+    assert.equal(posts(page, '/v1/patients/p1/checks').length, 0);
+  });
+}
 
 test('keyboard: every control is a native button or link, Escape stops listening', async () => {
   const page = loadPage('/check?mode=resident&patient=p1&mock=1&fixture=normal');

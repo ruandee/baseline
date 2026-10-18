@@ -81,7 +81,7 @@ API tests must cover role × route × patient ownership, not just happy paths. C
 Implementation additions: administrators manage assignments through `PUT /patients/{id}/assignments`; importers can change source visibility with `PUT .../sources/{version}/visibility` and request active-store erasure with `POST .../sources/{version}/purge`. Those source mutations require idempotency keys; purge returns 202. Unsupported request content types return 415. When retrieved evidence exists but the model selects none, unknown reason is `selection_abstained`, distinct from `not_documented`.
 
 
-BL-31 explicit care-note attribution (decision 030): assigned importers may supply a same-tenant,
+BL-31 explicit care-note attribution (decision 033): assigned importers may supply a same-tenant,
 same-patient active `author_principal_id` matching the note's `nurse` or `psw` author role.
 PSW authorship requires that explicit principal; no PSW import capability is granted. Omitted
 attribution retains exact legacy source serialization and remains unknown. The score-free due

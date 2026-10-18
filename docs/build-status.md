@@ -229,9 +229,35 @@ Nurse live/runner capture pages provide explicit profile and standing voice-perm
 so setup needs no terminal. Permission requires the actual decision, decision maker, confirmation
 and SDM reference when applicable. Missing/withdrawn permission keeps Record disabled; the PSW
 view receives no setup form or SDM details.
+Beginning any setup mutation immediately clears readiness and invalidates microphone/recorder
+callbacks; stale preflight reads cannot re-enable capture during a pending write. A fresh tap
+is required after setup returns ready. Resident microphone attempts and both resident/nurse
+uploads, resends and automatic retries recheck current effective consent and profile; PSWs use
+only the score-free consent-state field in the existing profile projection.
 Phone screenshots use synthetic loopback responses with no microphone access; real-device,
 golden-recording and clinical acceptance gates remain open.
+BL-34 motion integration (pending main CI): local-only camera/pose processing uses pinned
+self-hosted assets and uploads bounded client-derived measurements with unknown-by-default
+motion consent. Final migration011 guards require explicit scoring authorization, including
+unset-context denial. Exact source provenance, RLS, purge and projection tests passed on the
+feature head; real Chrome model startup/failure used no camera or remote requests. Physical
+phone/camera and three measurements in under15seconds remain unverified (Refs #36).
 
+BL-35 integration: explicit resting HR/RR observations feed current-revision signal projections
+and isolated synthetic RR-rise acceptance; unknown rest/time/units stay unavailable. ADR028
+records engineering-only vitals parameters and012scoped PSW facts; ordinary evidence remains
+denied. Final motion011 from main is preserved unchanged. Speech/canonical cohort unchanged.
+
+BL-12/BL-33 follow-up (ADR029): deterministic multimodal watch/escalate drafts and preliminary
+export use exact current/baseline evidence, actual event times, declared labels/units, current
+context and existing actions. Source lifecycle/expiry and permissions are rechecked on readback.
+Motion remains explicitly client-derived/unverified; missing provenance withholds the whole draft.
+No model, threshold/action policy change, clinical sign-off or writeback is introduced.
+
+BL-31 attribution follow-up adds importer-asserted, patient-scoped immutable note authorship and
+true-or-unknown own-note credit in the score-free due list. Ordinary PSW clinical retrieval stays
+denied; legacy source serialization/reset hashes are preserved. Decision033/migration013 record
+the feedback-only freshness and exact current-citation gates. Exact-head CI remains required.
 
 BL-28 explicit voice permission (accepted decision032, migration015): the existing assigned
 safety custodian can grant/decline/withdraw only resident voice_check permission. `/out` keeps

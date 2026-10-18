@@ -2444,6 +2444,18 @@
             "type": "boolean",
             "title": "Can Record Consent",
             "default": false
+          },
+          "voice_consent_state": {
+            "type": "string",
+            "enum": [
+              "granted",
+              "declined",
+              "withdrawn",
+              "expired",
+              "unknown"
+            ],
+            "title": "Voice Consent State",
+            "default": "unknown"
           }
         },
         "additionalProperties": false,

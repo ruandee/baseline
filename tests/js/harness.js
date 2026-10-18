@@ -152,6 +152,7 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, s
   const profiles = Object.fromEntries(session.patients.map((p) => [p.id,
     {state: 'ready', preferred_locale: 'en', protocol_locale: 'en', prompt_version: 'count20-days-v1',
       version: `profile-${p.id}`, can_configure: true, can_record_consent: true,
+      voice_consent_state: consent[p.id] || 'granted',
       first_name: patients ? null : ({p1: 'Alex', p2: 'Jamie', p3: 'Sam'}[p.id] || null)}]));
   const profileRoutes = Object.fromEntries(session.patients.map((p) => [
     `GET /v1/patients/${p.id}/check-profile`, () => profiles[p.id]]));
