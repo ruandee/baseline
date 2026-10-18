@@ -278,3 +278,15 @@ def test_new_revision_recomputes_raw_voice_never_restores_old_verdict(sandbox, p
         assert old["params"]["invalidated"]
         assert conn.execute("SELECT count(*) AS n FROM assessments WHERE check_id=%s",
                             (original.check_id,)).fetchone()["n"] == 1
+
+
+def test_late_recording_keeps_actual_event_time_under_current_knowledge(sandbox, probe):
+    at = datetime.now(UTC)-timedelta(hours=1)
+    imported = import_note(sandbox, source_payload(
+        text=None, kind="observation", author_role="system", recorded_at=datetime.now(UTC).isoformat(),
+        effective_from=at.isoformat(), records=[{"concept": "synthetic_probe", "value": "Synthetic late entry"}]))
+    with transaction(sandbox[0], sandbox[2]["nurse"]) as conn:
+        fact = conn.execute("SELECT id FROM facts WHERE source_id=%s",
+                            (imported["source_version_id"],)).fetchone()["id"]
+    change, _ = admit(sandbox, capture(str(fact), at))
+    assert change["modalities"]["probe"]["ts"] == at.isoformat()
