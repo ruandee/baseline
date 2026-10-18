@@ -62,7 +62,13 @@ class Element_ extends Node_ {
     }
     return this.getAttribute('value') || '';
   }
-  set value(v) { this.setAttribute('value', v); }
+  set value(v) {
+    this.setAttribute('value', v);
+    if (this.tagName === 'SELECT') this.children.forEach((option) => {
+      if (option.getAttribute('value') === String(v)) option.setAttribute('selected', '');
+      else option.removeAttribute('selected');
+    });
+  }
   addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); }
   removeEventListener(type, fn) { this.listeners[type] = (this.listeners[type] || []).filter((f) => f !== fn); }
   dispatchEvent(event) {
@@ -192,8 +198,9 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, s
     console: {error: (e) => errors.push(e), log() {}, warn() {}},
     getComputedStyle: () => ({getPropertyValue: () => ''}),
     MediaRecorder: FakeRecorder,
-    stored,
+    stored, mediaCalls: 0,
     navigator: {mediaDevices: {getUserMedia: async () => {
+      window.mediaCalls++;
       if (mic !== 'granted') { const e = new Error('NotAllowedError: Permission denied'); e.name = 'NotAllowedError'; throw e; }
       return {getTracks: () => [{stop() {}}]};
     }}},
@@ -220,7 +227,7 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, s
       }
     });
   };
-for (const file of ['check-resident.js', 'check-setup.js', 'check.js', 'demo-days.js', 'demo-handoff.js', 'resident-fixtures.js', 'note-export.js', 'signal-panel.js', 'resident.js',
+for (const file of ['check-resident.js', 'check-setup.js', 'check.js', 'nurse-checks.js', 'demo-days.js', 'demo-handoff.js', 'resident-fixtures.js', 'note-export.js', 'signal-panel.js', 'resident.js',
     ...(kaze ? ['kaze-core.js', 'kaze-capture.js', 'kaze-consent.js', 'kaze.js'] : []), 'motion-core.js', 'motion-capture.js', 'motion.js', 'baseline.js']) {
     vm.runInContext(fs.readFileSync(path.join(FRONTEND, file), 'utf8'), ctx, {filename: file});
   }

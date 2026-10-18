@@ -20,14 +20,16 @@ async function api(path, options = {}) {
 }
 
 async function bootstrap() {
+  const nurseWorkspace = location.pathname === '/check'
+    && new URLSearchParams(location.search).get('nurse') === '1';
   const psw = location.pathname === '/check' && typeof checkParams === 'function'
-    && checkParams().mode === 'resident';
+    && checkParams().mode === 'resident' && !nurseWorkspace;
   const kaze = location.pathname === '/out' || location.pathname.startsWith('/out/session/');
   state.session = await api('/demo/session', {headers: {'X-PM-Demo': '1',
     ...(kaze ? {'X-PM-Role': 'kaze'} : psw ? {'X-PM-Role': 'psw'} : {})}});
   // BL-31: /check resident mode acts as the PSW, whose token never receives scores.
   if (state.session.psw_token && location.pathname === '/check'
-      && typeof checkParams === 'function' && checkParams().mode === 'resident') {
+      && typeof checkParams === 'function' && checkParams().mode === 'resident' && !nurseWorkspace) {
     state.session.token = state.session.psw_token;
   }
 }
@@ -276,13 +278,28 @@ async function render() {
   }
   if (current.name === 'check') {
     const query = new URLSearchParams(location.search);
+    if (query.get('nurse') === '1') {
+      await renderPage(current, (main) => window.renderNurseChecks(main, {api, el, session: state.session}));
+      return;
+    }
     if (query.get('mode') === 'live' && query.get('demo') === 'legacy-days') {
       // Public fictional presentation only: no session bootstrap, retrieval or API writes.
       window.renderDemoDays(document.getElementById('bl-main'), {el, chip, maxSeconds: CHECK_MAX_S});
       return;
     }
     const motion = new URLSearchParams(location.search).get('type') === 'motion';
-    await renderPage(current, motion ? window.renderMotion : renderCheck);
+    await renderPage(current, async (main) => {
+      await (motion ? window.renderMotion(main) : renderCheck(main));
+      if (!motion && query.get('from') === 'nurse') {
+        const person = (state.session.patients || []).find((entry) => entry.id === query.get('patient'));
+        const context = el('header', '', {class: 'nurse-capture-context'});
+        context.append(el('a', '← Voice checks', {href: '/check?nurse=1', class: 'workspace-text-link'}),
+          el('h1', person ? person.name : 'Voice check'),
+          el('p', 'Confirm setup and permission, record the fixed prompt, then review the actual result.',
+            {class: 'workspace-muted'}));
+        main.prepend(context);
+      }
+    });
     return;
   }
   if (current.name === 'resident') {
