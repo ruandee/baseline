@@ -1,5 +1,9 @@
 # Implementation status and remaining gates
 
+BL-17 follow-up: live checks display eligible prior baseline checks from the engine contract
+and report measured engine/verdict elapsed milliseconds. This does not change scoring policy;
+real phone/audio and hosted latency acceptance remain open.
+
 This is the current runtime handoff after the explicitly approved policy/scenario adoption
 (PRs #60 and #61), built on the backend MVP and reviewed Baseline core. Implementation and
 synthetic engineering checks do not establish clinical validation or real-data pilot readiness.
@@ -160,7 +164,9 @@ KAZE session model, expiry/retention hardening and synthetic engineering tests f
 are integrated. Migration 007 follows 006; explicit synthetic session fixtures record consent.
 Scheduler, delivery and real-device acceptance remain separate work.
 
-BL-17 contract polish: live enrollment labels use engine baseline_checks/min_baseline and
-explicitly count eligible prior checks. Usable responses measure engine and verdict stages in
-timings_ms; unexecuted stages are omitted and PSW receipts remain score-free. Real phone/audio
-and host p95 acceptance remain open. See decision005 response clarification.
+BL-32 Vox mock adapter integration: care-team authorization, standing `vox_encounter` consent
+before decode and locked publication (403 consent_required), plus exactly one raw true request
+consent part (422 consent_not_given). Resident-only VAD speech must reach8seconds after the
+analysis cap; staff-containing temporary audio is always removed regardless of KEEP_AUDIO.
+Checks remain prompt-scoped; first-change marker uses the displayed prompt. Real speech/Vox
+UI remain unvalidated, and overview prompt switching stays on hold (decision016).
