@@ -26,6 +26,7 @@ from patient_memory.baseline.notes import extract_pending_notes
 from patient_memory.baseline.overview import overview as build_overview
 from patient_memory.baseline.overview import watchlist as build_watchlist
 from patient_memory.baseline.sbar import enrich_assessment_sbar
+from patient_memory.check_profiles import read_profile, require_protocol, write_profile
 from patient_memory.checks import care_gate, store_check
 from patient_memory.config import Settings
 from patient_memory.consent import (
@@ -40,6 +41,8 @@ from patient_memory.domain import (
     Answer,
     AssignmentInput,
     CheckMode,
+    CheckProfile,
+    CheckProfileInput,
     CheckReceipt,
     CheckResult,
     ConsentInput,
@@ -391,12 +394,24 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             audit(conn, actor, patient_id, "motion_evidence", request.state.request_id)
             return result
 
+    @app.get("/v1/patients/{patient_id}/check-profile", response_model=CheckProfile)
+    def get_check_profile(patient_id: UUID, actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            return read_profile(conn, patient_id)
+
+    @app.put("/v1/patients/{patient_id}/check-profile", response_model=CheckProfile)
+    def put_check_profile(patient_id: UUID, body: CheckProfileInput, request: Request, actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            return write_profile(conn, actor, patient_id, body, request.state.request_id)
+
     @app.post("/v1/patients/{patient_id}/checks", response_model=CheckResult | CheckReceipt)
     def create_check(patient_id: UUID, audio: UploadFile, mode: Annotated[CheckMode, Form()],
                      device_id: Annotated[str, Form(min_length=1, max_length=128)],
                      request: Request, actor=actor_dep,
                      device_ts: Annotated[AwareDatetime | None, Form()] = None,
                      is_baseline: Annotated[bool, Form()] = False,
+                     profile_version: Annotated[UUID | None, Form()] = None,
+                     protocol_locale: Annotated[str | None, Form(max_length=35)] = None,
                      session_id: Annotated[UUID | None, Form()] = None,
                      lat: Annotated[float | None, Form(ge=-90, le=90)] = None,
                      lon: Annotated[float | None, Form(ge=-180, le=180)] = None,
@@ -411,6 +426,11 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
                 raise Problem(422, "invalid_request")
             location = (lat, lon, accuracy_m)
         loud_venue = False
+        profile = None
+        if session_id is None:
+            with transaction(cfg, actor) as conn:
+                profile = require_protocol(conn, patient_id, expected_version=profile_version,
+                                           requested_locale=protocol_locale)
         if session_id is not None:
             with transaction(cfg, actor) as conn:
                 care_gate(conn, patient_id)
@@ -435,7 +455,8 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             with transaction(cfg, actor) as conn:
                 result = store_check(conn, actor, patient_id, request.state.request_id, analysis,
                                      mode, device_id, device_ts, is_baseline, cfg,
-                                     session_id=session_id, location=location)
+                                     session_id=session_id, location=location,
+                                     profile_snapshot=profile)
                 care = check_gate(conn, patient_id)
         except ConsentRequired:  # withdrawn while the clip was decoded: nothing was stored
             audit_consent_block(cfg, actor, patient_id, request.state.request_id)

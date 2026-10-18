@@ -1,6 +1,6 @@
 """PSW-facing check workflow (BL-31, decision 017): due list, skips and consent records.
 
-Nothing here reads assessments, verdicts or features: the responses are score-free by
+A closed database aggregate returns positive own-note credit without exposing clinical rows: the responses are score-free by
 construction, so a PSW device never receives a score.
 """
 from datetime import UTC, datetime
@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 from psycopg.errors import InsufficientPrivilege
 
+from patient_memory.check_profiles import read_profile
 from patient_memory.config import Settings
 from patient_memory.consent import check_gate, consent_record
 from patient_memory.domain import ConsentInput, SkipInput
@@ -27,7 +28,7 @@ def due_checks(conn, cfg: Settings, now: datetime | None = None) -> dict:
     start = day_start(now or datetime.now(UTC), cfg.shift_timezone)
     rows = conn.execute(
         "SELECT p.id, p.external_id,"
-        " pm_last_check_at(p.id) AS last_check_ts,"
+        " pm_last_check_at(p.id) AS last_check_ts, pm_observation_helped(p.id) AS observation_helped,"
         " EXISTS(SELECT FROM check_skips s WHERE s.tenant_id=p.tenant_id AND s.patient_id=p.id"
         "  AND s.recorded_at>=%s) AS skipped_today"
         " FROM patients p WHERE pm_checker(p.id) ORDER BY p.external_id, p.id", (start,)).fetchall()
@@ -35,12 +36,15 @@ def due_checks(conn, cfg: Settings, now: datetime | None = None) -> dict:
     for row in rows:
         state = consent_record(conn, row["id"])["state"]
         last = row["last_check_ts"]
+        profile = read_profile(conn, row["id"])
         status = ("consent_needed" if state != "granted"
+                  else "language_unavailable" if profile["state"] != "ready"
                   else "done" if last and last >= start
                   else "skipped" if row["skipped_today"] else "due")
         residents.append({"patient_id": row["id"], "display_name": row["external_id"],
                           "status": status, "consent_state": state, "last_check_ts": last,
-                          "skipped_today": row["skipped_today"], "observation_helped": None})
+                          "skipped_today": row["skipped_today"], "check_profile": profile,
+                          "observation_helped": row["observation_helped"]})
     return {"day_start": start, "residents": residents}
 
 

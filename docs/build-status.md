@@ -215,6 +215,28 @@ BL-21 reset (merged #79): fixture-only current-time reset verifies all twelve
 canonical outcomes, preserves unrelated recordings/consent, refreshes private nurse/PSW/KAZE
 credentials and configures runner suppression. Hosted reset under one minute remains unverified.
 
+BL-31 resident counting profiles (decision031/migration014, following013): assigned care staff
+explicitly configure a nullable given name and preferred locale using `GET/PUT
+/v1/patients/{id}/check-profile`. Only exact `en` maps to the existing English
+`count20-days-v1` protocol. Missing/unsupported profiles block counting before decode and
+appear as a score-free language-setup state on the PSW due list/direct check page; no English
+fallback or roster-name guessing occurs. Admission rejects profile-version changes during
+processing and appends a protocol snapshot without rewriting historical checks or fixture hashes.
+Known fixture loaders explicitly seed English with no inferred given name, preserving existing
+choices. Volunteer capture people remain unconfigured until the care team deliberately sends,
+for example, `{"preferred_locale":"en","first_name":"Mary Ann"}` to that endpoint; this
+does not grant consent. KAZE session and Vox free-conversation contracts remain unchanged.
+Nurse live/runner capture pages provide explicit profile and standing voice-permission forms,
+so setup needs no terminal. Permission requires the actual decision, decision maker, confirmation
+and SDM reference when applicable. Missing/withdrawn permission keeps Record disabled; the PSW
+view receives no setup form or SDM details.
+Beginning any setup mutation immediately clears readiness and invalidates microphone/recorder
+callbacks; stale preflight reads cannot re-enable capture during a pending write. A fresh tap
+is required after setup returns ready. Resident microphone attempts and both resident/nurse
+uploads, resends and automatic retries recheck current effective consent and profile; PSWs use
+only the score-free consent-state field in the existing profile projection.
+Phone screenshots use synthetic loopback responses with no microphone access; real-device,
+golden-recording and clinical acceptance gates remain open.
 BL-34 motion integration (pending main CI): local-only camera/pose processing uses pinned
 self-hosted assets and uploads bounded client-derived measurements with unknown-by-default
 motion consent. Final migration011 guards require explicit scoring authorization, including
@@ -250,3 +272,8 @@ export use exact current/baseline evidence, actual event times, declared labels/
 context and existing actions. Source lifecycle/expiry and permissions are rechecked on readback.
 Motion remains explicitly client-derived/unverified; missing provenance withholds the whole draft.
 No model, threshold/action policy change, clinical sign-off or writeback is introduced.
+
+BL-31 attribution follow-up adds importer-asserted, patient-scoped immutable note authorship and
+true-or-unknown own-note credit in the score-free due list. Ordinary PSW clinical retrieval stays
+denied; legacy source serialization/reset hashes are preserved. Decision033/migration013 record
+the feedback-only freshness and exact current-citation gates. Exact-head CI remains required.

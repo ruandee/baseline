@@ -28,17 +28,7 @@ const SKIP_REASONS = [['declined', "Doesn't want to today"], ['asleep', 'Asleep'
                       ['unwell', 'Unwell'], ['not_available', 'Not available'], ['other', 'Other']];
 
 function residentLanguage(code) {
-  return Object.prototype.hasOwnProperty.call(RESIDENT_PROMPTS, code) ? code : 'en';
-}
-
-function firstNameOf(patientId) {
-  const patients = (state.session && state.session.patients) || [];
-  const found = patients.find((p) => p.id === patientId);
-  const first = found && found.name ? found.name.trim().split(/\s+/)[0] : '';
-  // An honorific or anonymized initial is not a given name. Keep the close warm without
-  // addressing someone as "Mrs." or guessing a name that the roster does not supply.
-  return !first || /^(?:mr|mrs|ms|miss|mx|dr)\.?$/i.test(first)
-    || /^\p{L}\.?$/u.test(first) ? null : first;
+  return Object.prototype.hasOwnProperty.call(RESIDENT_PROMPTS, code) ? code : null;
 }
 
 // One-retry rule (docs/06-baseline.md): first unusable clip earns one more try, a second
@@ -51,7 +41,7 @@ function residentStep(flow, usable) {
     : {flow: {...flow, unusable}, view: 'retry'};
 }
 
-const DUE_ORDER = {due: 0, consent_needed: 1, skipped: 2, done: 3};
+const DUE_ORDER = {due: 0, consent_needed: 1, language_unavailable: 2, skipped: 3, done: 4};
 
 // Rows of GET /v1/checks/due, named from the demo session where possible. Only fields that
 // carry no score are copied, so nothing else can be rendered by accident.
@@ -62,6 +52,7 @@ function dueNowItems(residents, sessionPatients) {
     name: names.get(r.patient_id) || r.display_name || 'Resident',
     status: Object.prototype.hasOwnProperty.call(DUE_ORDER, r.status) ? r.status : 'consent_needed',
     last_check_ts: r.last_check_ts || null,
+    profile_state: r.check_profile && r.check_profile.state,
     // Server-computed and currently always null (unknown); shown only when exactly true.
     observation_helped: r.observation_helped === true,
   })).sort((a, b) => (DUE_ORDER[a.status] - DUE_ORDER[b.status])
@@ -71,7 +62,6 @@ function dueNowItems(residents, sessionPatients) {
 function residentLink(params, patientId) {
   const q = new URLSearchParams({mode: 'resident'});
   if (patientId) q.set('patient', patientId);
-  if (params.lang && params.lang !== 'en') q.set('lang', params.lang);
   if (params.device) q.set('device', params.device);
   if (params.mock) { q.set('mock', '1'); q.set('fixture', params.fixture); }
   return `/check?${q}`;
@@ -106,6 +96,11 @@ async function renderResidentLanding(main, params) {
       if (!linked && item.status === 'consent_needed') {
         row.append(el('span', 'Consent not recorded. Ask the nurse.', {class: 'bl-due-note'}));
       }
+      if (!linked && item.status === 'language_unavailable') {
+        row.append(el('span', item.profile_state === 'unsupported'
+          ? 'This language is not supported yet. Ask the nurse.'
+          : 'Language not configured. Ask the nurse.', {class: 'bl-due-note'}));
+      }
       if (item.observation_helped) row.append(el('span', 'Your observation helped', {class: 'bl-helped'}));
       li.append(row);
       ul.append(li);
@@ -118,6 +113,7 @@ async function renderResidentLanding(main, params) {
     'still to check today.' : 'Nobody is waiting for a check right now.';
   if (due.length) section.append(list(due, true));
   if (of('consent_needed').length) section.append(el('h2', 'Needs consent'), list(of('consent_needed'), false));
+  if (of('language_unavailable').length) section.append(el('h2', 'Needs language setup'), list(of('language_unavailable'), false));
   if (of('skipped').length) section.append(el('h2', 'Skipped today'), list(of('skipped'), true));
   if (of('done').length) section.append(el('h2', 'Done today'), list(of('done'), false));
 }
@@ -136,9 +132,30 @@ function speakPrompt(text, lang) {
 }
 
 async function renderResidentCheck(main, params, patientId) {
-  const lang = residentLanguage(params.lang);
+  let disposed = false, disposeCapture = () => {};
+  window.addEventListener('pagehide', () => { disposed = true; disposeCapture(); }, {once: true});
+  let profile;
+  try {
+    // Mock mode declares an English protocol explicitly; roster text is never a given name.
+    profile = params.mock ? {state: 'ready', protocol_locale: 'en', prompt_version: 'count20-days-v1',
+      first_name: null, version: 'mock', voice_consent_state: 'granted'} : await api(`/v1/patients/${patientId}/check-profile`);
+  } catch (_) { profile = {state: 'unconfigured'}; }
+  if (disposed) return;
+  const lang = residentLanguage(profile.protocol_locale);
+  if (profile.state !== 'ready' || !lang || profile.prompt_version !== RESIDENT_PROMPTS[lang].promptVersion
+      || (params.lang && params.lang !== lang)) {
+    const blocked = el('section', '', {class: 'bl-check-card', 'data-mode': 'resident', 'data-state': 'language_unavailable'});
+    blocked.append(el('h1', "Let's pause here"), el('p',
+      profile.state === 'unsupported' || (params.lang && params.lang !== lang)
+        ? 'This language is not supported yet. Please ask a staff member to help.'
+        : 'The counting language needs to be set up. Please ask a staff member to help.',
+      {class: 'bl-resident-message', role: 'status'}),
+    el('a', 'Back to the list', {href: residentLink(params, null), class: 'bl-back'}));
+    main.replaceChildren(blocked);
+    return;
+  }
   const prompt = RESIDENT_PROMPTS[lang];
-  const name = firstNameOf(patientId);
+  const name = profile.first_name;
   main.replaceChildren();
   const card = el('section', '', {class: 'bl-check-card', 'data-mode': 'resident', 'data-state': 'ready'});
   const heading = el('h1', prompt.title, {tabindex: '-1'});
@@ -189,11 +206,19 @@ async function renderResidentCheck(main, params, patientId) {
   let discard = false;
   let capturePending = false;
   let skipping = false;
+  let operation = 0;
+  disposeCapture = () => {
+    operation++; discard = true; kept = null;
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    stop();
+    if (canSpeak) window.speechSynthesis.cancel();
+  };
 
   const say = (lines) => {
     message.replaceChildren(...lines.map((line) => el('p', line)));
   };
   const finish = (lines, view) => {
+    operation++;
     flow = {...flow, done: true};
     card.dataset.state = view;
     record.hidden = true;
@@ -216,6 +241,7 @@ async function renderResidentCheck(main, params, patientId) {
   // The server refuses checks without granted consent (403 consent_required); mirror that so
   // nobody is asked to speak for a clip that would be refused.
   const consentBlocked = () => {
+    operation++; kept = null; record.disabled = true;
     card.dataset.state = 'consent';
     record.hidden = true;
     hear.hidden = true;
@@ -223,6 +249,17 @@ async function renderResidentCheck(main, params, patientId) {
     listening.hidden = true;
     say([RESIDENT_TEXT.consent]);
     heading.focus();
+  };
+  const validateSetup = async (op) => {
+    const current = await api(`/v1/patients/${patientId}/check-profile`);
+    if (disposed || flow.done || skipping || op !== operation) return false;
+    if (current.voice_consent_state !== 'granted') { consentBlocked(); return false; }
+    if (current.state !== 'ready' || current.version !== profile.version) {
+      kept = null;
+      finish(['The counting setup changed. Please ask a staff member to reload this page.'], 'help');
+      return false;
+    }
+    return true;
   };
 
   function stop() {
@@ -232,28 +269,41 @@ async function renderResidentCheck(main, params, patientId) {
   }
 
   async function submit(blob) {
-    if (flow.done || skipping) return;
+    if (disposed || flow.done || skipping) return;
+    const op = ++operation;
     resend.hidden = true;
     record.disabled = true;
     card.dataset.state = 'sending';
     say([RESIDENT_TEXT.sending]);
     const fields = {patient_id: patientId, mode: 'resident', device_id: checkDeviceId(params),
-                    device_ts: new Date().toISOString(), is_baseline: 'false'};
+                    device_ts: new Date().toISOString(), is_baseline: 'false',
+                    profile_version: profile.version, protocol_locale: lang};
     let data;
     try {
       const fixtures = params.fixture.split(',');
       data = params.mock
         ? await mockCheck(fixtures[Math.min(attempt, fixtures.length - 1)])
-        : await uploadCheck(blob, fields, () => {});
+        : await uploadCheck(blob, fields, () => {}, {send: async (audio, values) => {
+          if (!await validateSetup(op)) {
+            const error = new Error('Counting setup no longer admits this attempt.');
+            error.status = 409; throw error;
+          }
+          return postCheck(audio, values);
+        }});
     } catch (error) {
-      if (flow.done || skipping) return;
+      if (disposed || flow.done || skipping || op !== operation) return;
       record.disabled = false;
+      if (error.status === 409) {
+        kept = null;
+        finish(['The counting setup changed. Please ask a staff member to reload this page.'], 'help');
+        return;
+      }
       if (error.status === 403) { console.error(error); consentBlocked(); return; }
       needHelp(error);
       resend.hidden = false;  // staff can resend the kept clip; it is not a new attempt
       return;
     }
-    if (flow.done || skipping) return;  // skipped while the clip was being sent
+    if (disposed || flow.done || skipping || op !== operation) return;
     attempt += 1;
     kept = null;
     record.disabled = false;
@@ -271,22 +321,28 @@ async function renderResidentCheck(main, params, patientId) {
 
   record.addEventListener('click', async () => {
     if (recorder && recorder.state === 'recording') { stop(); return; }
-    if (flow.done || skipping || capturePending) return;
+    if (disposed || flow.done || skipping || capturePending) return;
+    const op = ++operation;
+    kept = null; resend.hidden = true;
     if (canSpeak) window.speechSynthesis.cancel();  // never record the spoken prompt
     const mimeType = pickMimeType();
     if (mimeType === null || !navigator.mediaDevices) { needHelp(new Error('no MediaRecorder')); return; }
     try {
       capturePending = true;
       record.disabled = true;
+      if (!params.mock) {
+        if (!await validateSetup(op)) return;
+      }
+      if (disposed || flow.done || skipping || op !== operation) return;
       stream = await navigator.mediaDevices.getUserMedia({audio: true});
     } catch (error) {
       needHelp(error);  // permission denied or no microphone
       return;
     } finally {
       capturePending = false;
-      record.disabled = false;
+      record.disabled = disposed || flow.done || skipping || op !== operation;
     }
-    if (flow.done || skipping) { stream.getTracks().forEach((t) => t.stop()); return; }
+    if (disposed || flow.done || skipping || op !== operation) { stream.getTracks().forEach((t) => t.stop()); return; }
     const chunks = [];
     discard = false;
     recorder = new MediaRecorder(stream, mimeType ? {mimeType} : undefined);
@@ -298,7 +354,7 @@ async function renderResidentCheck(main, params, patientId) {
       listening.hidden = true;
       record.textContent = flow.unusable ? 'Try once more' : 'Start';
       record.setAttribute('aria-pressed', 'false');
-      if (discard || flow.done || skipping) return;
+      if (discard || disposed || flow.done || skipping || op !== operation) return;
       kept = new Blob(chunks, {type: recorder.mimeType || mimeType || 'audio/webm'});
       submit(kept);
     };
@@ -323,6 +379,7 @@ async function renderResidentCheck(main, params, patientId) {
   resend.addEventListener('click', () => { if (kept) submit(kept); });
 
   skip.addEventListener('click', () => {
+    operation++;
     skipping = true;  // invalidates an in-flight permission request before it resolves
     kept = null;
     record.hidden = true;
@@ -359,16 +416,7 @@ async function renderResidentCheck(main, params, patientId) {
   heading.focus();
 
   if (!params.mock) {
-    record.disabled = true;  // until the server confirms consent
-    try {
-      const due = await api('/v1/checks/due');
-      const consent = (due.residents || []).find((r) => r.patient_id === patientId);
-      if (flow.done || skipping) return;
-      if (consent && consent.consent_state === 'granted') record.disabled = false;
-      else consentBlocked();
-    } catch (error) {
-      console.error(error);
-      consentBlocked();  // unknown is not granted; the server would refuse the clip anyway
-    }
+    if (profile.voice_consent_state === 'granted') record.disabled = false;
+    else consentBlocked();
   }
 }
