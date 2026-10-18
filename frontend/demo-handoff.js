@@ -25,10 +25,11 @@
       {class: 'demo-introduction'});
     main.replaceChildren(disclosure, title, introduction, info, status, content);
     async function request(path = '', method = 'GET', body) {
+      // A dropped network rejects fetch; show the same retry message as a failed response.
       const response = await fetch('/demo/handoff' + (room ? '/' + room : '') + path, {
         method, headers: {Authorization: 'Bearer ' + key,
           ...(body === undefined ? {} : {'Content-Type': 'application/json'})},
-        ...(body === undefined ? {} : {body: JSON.stringify(body)})});
+        ...(body === undefined ? {} : {body: JSON.stringify(body)})}).catch(() => ({ok: false, status: 0}));
       if (!response.ok) {
         const error = new Error(response.status === 404
         ? 'This demo link expired or is invalid. Ask the nurse for a new link.'
