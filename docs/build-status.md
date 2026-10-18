@@ -146,9 +146,29 @@ loader writes the cohort to `uid("tenant-0")`. A default local `/unit` therefore
 workspace patients with no voice checks; it shows the cohort only when `PM_DEMO_TOKEN` is set
 to the loader's `artifacts/baseline-demo/session.json` nurse token (BL-21 reset work).
 
-BL-28/29 draft pages: `/out` arms and records baseline/session checks; `/out/session/{id}` shows
-actual delivery and acknowledgements. A separate preconfigured self-custody KAZE bootstrap has
-no nurse fallback. Session-only location is explicit opt-in; pending microphone/location work
-is cancelled on end/expiry. Node fake-clock/DOM tests and runtime bootstrap contracts are added.
-Public phone/SMS loop, real audio, loud-venue SNR adjustment and rehearsals remain acceptance
-or feature gaps; standard escalation timing and held ADR018 questions are unchanged.
+## Resident / PSW workflow (BL-31)
+
+Migration 007 adds append-only scoped resident/SDM consent and check skips. Unknown, declined,
+withdrawn or expired consent blocks capture with audited 403 consent_required before decode/ASR
+and is checked again under the patient admission lock. PSWs use score-free due/skip/check receipts;
+ordinary PSW transactions cannot retrieve scoring data, records or evidence. Resident capture fixes
+pending-permission refusal, uses stable per-mode devices and retains the one-retry/warm-close flow.
+See decision 017. Real-browser/nontechnical tester acceptance, additional language protocols and
+source-submitter attribution for ?Your observation helped? remain open. This is synthetic only.
+
+KAZE session model, expiry/retention hardening and synthetic engineering tests from decision 018
+are integrated. Migration 007 follows 006; explicit synthetic session fixtures record consent.
+Scheduler, delivery and real-device acceptance remain separate work.
+
+BL-32 Vox mock adapter integration: care-team authorization, standing `vox_encounter` consent
+before decode and locked publication (403 consent_required), plus exactly one raw true request
+consent part (422 consent_not_given). Resident-only VAD speech must reach8seconds after the
+analysis cap; staff-containing temporary audio is always removed regardless of KEEP_AUDIO.
+Checks remain prompt-scoped; first-change marker uses the displayed prompt. Real speech/Vox
+UI remain unvalidated, and overview prompt switching stays on hold (decision016).
+
+BL-28/29 draft pages add separate self-custody KAZE bootstrap, arm form, baseline/session
+recordings, countdown/reminders and session delivery/acknowledgement timeline. Actual phone
+acceptance remains open; log-only events are not SMS delivery. Pending capture and polling
+callbacks cannot reopen a session after end. BL-26 dependency preserves session policy separate
+from PCC budget/no-escalate flags; held ADR018 questions remain undecided.

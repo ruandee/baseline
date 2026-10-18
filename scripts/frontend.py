@@ -88,7 +88,7 @@ PAGE_CSP = (
 
 def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None, psw=None,
                   psw_token=None):
-    """`psw`/`psw_token` give /check resident mode a PSW token that never receives scores."""
+    """Separate PSW credentials keep resident capture responses free of clinical scores."""
     if extra_hosts and not demo_token:
         raise ValueError("Hosted mode (PM_FRONTEND_HOSTS) requires PM_DEMO_TOKEN")
     if extra_hosts:
@@ -97,6 +97,8 @@ def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None, psw=No
     for token in (demo_token, psw_token):
         if token:
             decode_token(token, cfg)  # fail at startup, not as 401s on every page
+    if psw_token and (psw is None or decode_token(psw_token, cfg) != psw):
+        raise ValueError("PSW demo token must match the dedicated PSW identity")
     allowed = LOOPBACK | {h.lower() for h in extra_hosts}
 
     @app.middleware("http")
@@ -168,6 +170,7 @@ def main():
     hosts = tuple(h.strip() for h in os.environ.get("PM_FRONTEND_HOSTS", "").split(",")
                   if h.strip())
     if hosts:
+        # Refuse before any fixture write, not after loading the corpus.
         require_deployment_secret(cfg)
     reader, patients = prepare_demo(cfg)
     app = workspace_app(cfg, reader, patients, hosts, os.environ.get("PM_DEMO_TOKEN") or None,
