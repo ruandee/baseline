@@ -49,8 +49,8 @@ the separate capture section. Speech processing/commit and optional drafting pre
 so a two-second polling interval is not an end-to-end latency guarantee.
 
 No endpoint, schema, threshold, escalation budget or provider contract changes. The hosted
-operator must configure the dedicated capture identity for no escalation and retain existing
-volumes. The rollout added that identity to the private no-escalate list, preserved prior entries
+operator retains existing volumes. The initial rollout added the dedicated capture identity to
+the private no-escalate list, preserved prior entries
 and disabled audio retention, and retained stored check fingerprints. Verify the same speaker/phone's five baseline takes,
 one usable genuine live result and nurse readback. Physical iPhone/Android codec/microphone,
 hosted processing time and actual personal enrollment cannot be established by synthetic tests.

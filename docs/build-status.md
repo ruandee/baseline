@@ -1,6 +1,22 @@
 # Implementation status and remaining gates
 
-Latest runtime: `839f042` (2026-10-18), adding vertical field layout and spacing to the BL-19
+Latest runtime: `f9adf9d` (2026-10-18). Existing scenario records are renamed Alina, Danny and
+Yuhan, preserving their UUIDs, assignments, captured measurements and assessments. Given names
+are explicitly updated without changing language preferences. The Yuhan context panel remains
+bound to the same authorized record; current template headings use the current display name.
+Hosted readiness and unchanged-recording/assessment fingerprints passed; CI was not awaited.
+
+The user requested rolling back the latest care-aide demo check after an eligible Escalate was
+shown as Watch. Inspection found the correct baseline/device and a qualifying repeated change,
+but the initial private no-escalate setting converted its verdict to Watch. Only that latest
+check/assessment/profile sidecar was recoverably archived, retaining five usable baseline takes,
+the prior Watch check, permission and counting profile. The live volunteer was then removed
+from the private no-escalate list at the user's request, preserving other configured identities.
+The running API verified this configuration and the unchanged rule can return Escalate for
+qualifying repeated change. No score or threshold was changed. The current row intentionally
+shows the earlier Watch; a new physical check is still required to observe the next verdict.
+
+Earlier runtime: `839f042` (2026-10-18), adding vertical field layout and spacing to the BL-19
 Mrs. L context form. Labels sit above full-width controls, the confirmation has its own row,
 and the save action sits below it. The deployed expanded form was visually checked in Chrome;
 hosted readiness passed. CI was not awaited as requested. This is a CSS-only follow-up to
