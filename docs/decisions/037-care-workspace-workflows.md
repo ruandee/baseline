@@ -3,6 +3,14 @@
 Date: 2026-10-18 UTC. Status: implementation prepared for integrated review; not deployed.
 Scope: BL-16 frontend cohesion, with existing BL-17/18/19 behavior preserved.
 
+Visual review update, 2026-10-18: the user rejected the first preview's visual direction.
+Functional checks below remain engineering evidence, not visual acceptance. The revised brief
+requires actual award-winning healthcare references, flat surfaces without bevels, stronger
+typography and restrained information hierarchy. Resident-facing screens should be warmer,
+with a few original minimal drawings and empathetic, explicit choices. The isolated concepts
+in `docs/design/` are for feedback before extending the direction to the full application.
+They make no API calls, record no media and do not change the deployed site or its safeguards.
+
 ## Problem and decision
 
 The unit view, notes workspace and recorder had different navigation, terminology and visual
