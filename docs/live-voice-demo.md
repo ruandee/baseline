@@ -1,4 +1,42 @@
-# Three-day live voice demo
+# Phone-to-nurse live voice demo
+
+The selected presentation is now the two-resident flow in
+[decision035](decisions/035-phone-to-nurse-demo-handoff.md). After deploying this release, open
+`https://baseline.deeruan.com/unit?demo=handoff` or tap **Live demo** in the navigation.
+
+## Selected phone-to-nurse sequence
+
+1. Keep the nurse tab open. Copy its two separate resident links privately to the runner and
+   Dee. Do not share the nurse URL. The watch list checks for submissions every two seconds.
+2. Runner opens her link, allows microphone access, records the numbers/days prompt (up to30s),
+   listens to playback and taps **Submit check-in**. Audio stays on her phone; only a receipt
+   containing duration and a UUID request ID reaches the server. Nurse sees Resident A as Watch.
+3. Nurse opens **Add context / possible explanation**, chooses **Recent exertion / just finished
+   running**, and applies it. Resident A becomes Explained. Exertion is supplied, not detected.
+4. Dee opens the other link, records a slow/pause-filled take and submits. Resident B shows Watch.
+5. Dee records and submits another take using the same link. Resident B shows Escalate. Open
+   **Review baseline and finding**, then **Run4ATnow** to review the proposed action and handoff.
+   This control sends no external alert and performs no assessment.
+6. **Start a new rehearsal** deletes the room and creates new phone links. Old links stop working.
+
+The small Demo scenario disclosure identifies the supplied fictional baselines and authored
+findings. Audio is live, but is not analyzed. There are no clinical history writes or enrollment
+requirements. Both takes may occur minutes apart; the authored confirmation is within24hours,
+not a change to the real clock. Ordinary resident scoring/permission paths remain separate.
+
+Rooms have separate nurse/capture capabilities, last two hours, and disappear on server restart.
+The nurse URL fragment restores the room on reload without localStorage. Keep all room URLs and
+recordings outside Git. This demo requires a single API process; multi-worker/instance deployment
+needs a shared room store first. Start a new room if a link expires.
+
+Rehearse permission, audible playback, nurse arrival, exertion context, both Dee submissions,
+escalation guidance and reset on the exact phones/public HTTPS URL. Headless synthetic microphone
+checks do not establish physical phone/codec or presenter acceptance.
+
+## Superseded one-tab presentation
+
+The prior flow below remains reachable only with `demo=legacy-days`. Old `demo=days` links now
+open the replacement nurse setup above.
 
 The selected presentation records audio locally, then shows three visibly scripted outcomes for
 a fictional resident. It requires no API enrollment, credentials or personal baseline. Start with
@@ -10,10 +48,10 @@ or clinical-detection claim. See [decision 034](decisions/034-three-day-local-vo
 After this release is deployed, open:
 
 ```text
-https://baseline.deeruan.com/check?mode=live&demo=days
+https://baseline.deeruan.com/check?mode=live&demo=legacy-days
 ```
 
-The equivalent path on a local frontend is `/check?mode=live&demo=days`. This is separate from
+The equivalent path on a local frontend is `/check?mode=live&demo=legacy-days`. This is separate from
 the actual watch list at `/unit`; adding the query to an older deployment does not install it.
 
 1. Day 1: tap **Record live**, read the numbers/days prompt, and tap Stop (auto-stop at 30 s).

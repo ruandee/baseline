@@ -174,3 +174,12 @@ body[data-motion-page] .bl-nav .brand-mark{display:block}
 .bl-demo-disclosure{font-weight:600;color:#694407}
 .bl-demo-source{margin-top:16px}
 @media(max-width:640px){.bl-demo-timeline{grid-template-columns:1fr}.bl-demo-controls{flex-direction:column}}
+.bl-handoff-info { margin: .75rem 0 1.5rem; color: var(--muted, #56636a); font-size: .9rem; }
+.bl-handoff-links label { display: block; margin: 1rem 0; }
+.bl-handoff-links input { display: block; width: 100%; box-sizing: border-box; margin: .5rem 0; }
+.bl-handoff-content > button, .bl-handoff-content article { margin-top: 1rem; }
+.bl-handoff-content audio { max-width: 100%; margin: 1rem 0; }
+.bl-handoff-content summary { cursor: pointer; padding: .6rem 0; }
+.bl-handoff-action { margin-top: 1rem; border-top: 1px solid #d5dfe4; }
+.bl-handoff-content button { min-height: 44px; margin-right: .5rem; }
+.bl-handoff-content .bl-card { overflow-wrap: anywhere; }
