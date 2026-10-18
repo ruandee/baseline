@@ -4,6 +4,7 @@ from uuid import UUID
 
 from patient_memory.baseline.assess import COUNTING_PROMPT, escalations_used, valid_tags
 from patient_memory.baseline.engine import FEATURES
+from patient_memory.baseline.observations import documented_observations
 from patient_memory.baseline.signals import features_for, stored_modalities
 from patient_memory.baseline.verdict import (
     ACTION_LABELS,
@@ -40,7 +41,7 @@ def _latest_assessment(conn, patient_id: UUID, modality: str | None = None, at=N
     # derive it from voice_checks. Session signals never enter the resident read model.
     return conn.execute(
         "SELECT * FROM (SELECT a.*, COALESCE((a.params->>'signal_ts')::timestamptz,v.ts)"
-        " AS check_ts FROM assessments a LEFT JOIN voice_checks v "
+        " AS check_ts, v.synthetic AS check_synthetic FROM assessments a LEFT JOIN voice_checks v "
         "ON v.tenant_id=a.tenant_id AND v.patient_id=a.patient_id AND v.id=a.check_id "
         "WHERE a.patient_id=%s AND COALESCE((a.params->>'invalidated')::boolean,false)=false "
         "AND a.params->>'session_id' IS NULL AND v.session_id IS NULL "
@@ -55,6 +56,9 @@ def _assessment_payload(row, tags, change_row_features) -> dict:
     params = row["params"]
     return {
         "id": str(row["id"]), "ts": row["check_ts"].isoformat(), "verdict": row["verdict"],
+        "check": {"id": str(row["check_id"]), "ts": row["check_ts"].isoformat(),
+                  "synthetic": row["check_synthetic"]}
+                 if params.get("modality", "speech") == "speech" else None,
         "over_budget": bool(params.get("over_budget")),
         "no_escalate_profile": bool(params.get("no_escalate")),
         "suggested_action": {"id": row["suggested_action"],
@@ -127,6 +131,7 @@ def overview(conn, cfg: Settings, patient: dict, days: int, now: datetime | None
         "baseline": baseline, "first_change_ts": first.isoformat() if first else None,
         "latest_assessment": assessment,
         "context_tags": tags,
+        "documented_observations": documented_observations(conn, pid, now, days),
     }
 
 

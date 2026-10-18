@@ -1,5 +1,9 @@
 # Implementation status and remaining gates
 
+BL-17 follow-up: live checks display eligible prior baseline checks from the engine contract
+and report measured engine/verdict elapsed milliseconds. This does not change scoring policy;
+real phone/audio and hosted latency acceptance remain open.
+
 This is the current runtime handoff after the explicitly approved policy/scenario adoption
 (PRs #60 and #61), built on the backend MVP and reviewed Baseline core. Implementation and
 synthetic engineering checks do not establish clinical validation or real-data pilot readiness.
@@ -167,12 +171,19 @@ analysis cap; staff-containing temporary audio is always removed regardless of K
 Checks remain prompt-scoped; first-change marker uses the displayed prompt. Real speech/Vox
 UI remain unvalidated, and overview prompt switching stays on hold (decision016).
 
-## BL-30 registry integration (engineering review)
+BL-19 resident integration (review branch): live authorized overview, four speech charts,
+clickable source evidence, server-labelled action handoff button, and structured engine
+parameters. Recorded temperature includes source/time (Mrs. K 37.1 Celsius); no absence or
+normal-range inference. The available stored SBAR mounts BL-33 exact preliminary export and
+local human-edited, unverified preview. API-captured cohort/DOM and lifecycle tests are added;
+DB-backed CI and real phone/host acceptance remain gates until their actual results.
 
-Declared modality features preserve the accepted speech engine. Persisted assessments report
-per-modality status and evidence, explicit missing/stale states and a corroborated flag; two
-current flagged modalities send change to the existing verdict table. Legacy flat speech rows,
-charts and SBAR inputs remain compatible. Non-speech drafts are withheld until an adapter has a
-supported-sentence contract. Only speech is registered in runtime; probe tests are synthetic.
-Migration010 follows session-budget009. See decision025; final exact-head DB-backed CI remains
-required. Gaze/wearable capture and clinical calibration are not implemented by this registry.
+BL-19 follow-up makes every check citation interactive with matching assessment/check identity
+and refreshed authorization. All reason, observation and SBAR citation buttons are exercised,
+including withheld readback after assessment change/revocation. Headless Chrome renders desktop
+and phone-width synthetic fixtures; this does not claim physical-phone or live-audio acceptance.
+
+BL-30 registry review adds scoped per-modality assessments, explicit unavailable/stale states,
+corroboration, flat speech compatibility and source-safe first-change markers. Speech charts and
+check citations retain their original contract; non-speech drafts stay unavailable. Only speech
+is registered at runtime. Migration010 follows009; decision025 and exact-head CI track acceptance.

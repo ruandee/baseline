@@ -85,3 +85,34 @@ body.baseline{padding-top:56px}
 .bl-skip-reasons{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:16px}
 .bl-skip-reasons button{font-size:18px;min-height:56px;padding:8px 18px;border-radius:999px;border:2px solid var(--line);background:var(--white);color:var(--ink);cursor:pointer}
 @media (max-width:640px){.bl-resident-actions{flex-direction:column;align-items:stretch}.bl-check-card[data-mode=resident] .bl-record,.bl-skip,.bl-back{width:100%;min-width:0}}
+
+/* /resident (BL-19) */
+.bl-card,.bl-section{margin:16px 0;padding:16px;background:var(--white);border:1px solid var(--line);border-radius:8px}
+.bl-card .bl-chip{font-size:18px;padding:6px 14px}
+.bl-action{display:block;width:fit-content;margin:12px 0 0;font-size:18px;font-weight:700;padding:10px 18px;border-radius:8px;background:var(--green);color:#fff}
+.bl-chart-empty{margin:24px 0}
+.bl-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.bl-fig{margin:0;padding:10px;background:var(--white);border:1px solid var(--line);border-radius:8px}
+.bl-fig figcaption{font-weight:600;font-size:14px}
+.bl-chart{width:100%;height:auto;display:block}
+.bl-band{fill:var(--chart-band);opacity:.6}
+.bl-line{stroke:var(--chart-line);stroke-width:2}
+.bl-dot{fill:var(--chart-dot)}
+.bl-marker{stroke:var(--v-escalate);stroke-width:1.5;stroke-dasharray:4 3}
+.bl-reason{padding:10px 0;border-bottom:1px solid var(--line)}
+.bl-kind{font-size:11px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:4px;border:1px solid currentColor}
+.bl-kind[data-kind=amplifier]{color:var(--v-escalate)}
+.bl-kind[data-kind=explainer]{color:var(--v-explained)}
+.bl-quote{margin:6px 0}
+.bl-quote mark{background:var(--v-watch-bg);padding:0 2px}
+.bl-link{background:none;border:0;padding:0;color:var(--green);text-decoration:underline;cursor:pointer;font-size:14px}
+.bl-source-quote{margin:8px 0 0;padding:8px 12px;border-left:3px solid var(--green)}
+.bl-badge{font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px;background:var(--v-watch-bg);color:var(--v-watch)}
+.bl-cite{font:inherit;font-size:11px;padding:1px 6px;border:0;border-radius:999px;background:var(--v-normal-bg);color:var(--v-normal)}
+button.bl-cite{cursor:pointer;text-decoration:underline}
+.bl-section summary{cursor:pointer;font-weight:700;font-size:18px}
+/* BL-33: editable local drafts and exact server payload previews. */
+.bl-note-export .bl-note-editor{display:block;width:100%;min-height:240px;margin:8px 0;font:inherit;line-height:1.6;resize:vertical}
+.bl-note-export pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:480px;overflow:auto}
+
+.bl-parameters{white-space:pre-wrap;overflow-wrap:anywhere}.bl-action-detail{margin:12px 0;padding:12px;border-left:3px solid var(--green)}
