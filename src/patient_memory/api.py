@@ -13,7 +13,7 @@ import psycopg
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import Depends, FastAPI, File, Form, Header, Query, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import AwareDatetime
 
@@ -21,6 +21,7 @@ from patient_memory.auth import decode_token
 from patient_memory.baseline import ack, sessions
 from patient_memory.baseline.assess import FREE_CONVERSATION
 from patient_memory.baseline.context import add_context
+from patient_memory.baseline.note import draft_note
 from patient_memory.baseline.notes import extract_pending_notes
 from patient_memory.baseline.overview import overview as build_overview
 from patient_memory.baseline.overview import watchlist as build_watchlist
@@ -50,6 +51,7 @@ from patient_memory.domain import (
     PatientInput,
     Question,
     Reason,
+    ResidentOverview,
     SessionArm,
     SessionEnd,
     SessionList,
@@ -147,7 +149,7 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
                     "Whisper failed to load; voice checks retry on first use")
         yield
 
-    app = FastAPI(title="Patient Memory — synthetic prototype", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="Patient Memory â€” synthetic prototype", version="0.1.0", lifespan=lifespan)
     app.state.cfg = cfg
     app.state.objects = objects or ObjectStore(cfg)
     app.state.generator = generator or generator_for(cfg)
@@ -550,13 +552,28 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
                 raise Problem(404, "not_found")
             return build_watchlist(conn, cfg)
 
-    @app.get("/v1/patients/{patient_id}/overview")
+    @app.get("/v1/patients/{patient_id}/overview", response_model=ResidentOverview)
     def patient_overview(patient_id: UUID, days: Annotated[int, Query(ge=1, le=90)] = 30,
                          actor=actor_dep):
         with transaction(cfg, actor) as conn:
             care_gate(conn, patient_id)
             patient = patient_access(conn, patient_id)
             return build_overview(conn, cfg, patient, days)
+
+    @app.get("/v1/patients/{patient_id}/assessments/{assessment_id}/note",
+             response_class=Response,
+             responses={200: {"description": "Preliminary FHIR R4 DocumentReference (preview "
+                              "only; not sent to any clinical system)",
+                              "content": {"application/fhir+json": {}}},
+                        404: {"description": "Unknown, or not visible to this account"},
+                        409: {"description": "note_unavailable: no current SBAR draft"}})
+    def assessment_note(patient_id: UUID, assessment_id: UUID, request: Request,
+                        actor=actor_dep):
+        """Export the stored SBAR as a draft note needing sign-off; never EHR writeback."""
+        with transaction(cfg, actor) as conn:
+            note = draft_note(conn, patient_id, assessment_id)
+            audit(conn, actor, patient_id, "note_export", request.state.request_id)
+        return JSONResponse(note, media_type="application/fhir+json")
 
     @app.post("/v1/patients/{patient_id}/questions", response_model=Answer)
     def question(patient_id: UUID, body: Question, request: Request, actor=actor_dep):

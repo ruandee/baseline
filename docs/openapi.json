@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Patient Memory \u2014 synthetic prototype",
+    "title": "Patient Memory \u00e2\u20ac\u201d synthetic prototype",
     "version": "0.1.0"
   },
   "paths": {
@@ -1338,9 +1338,69 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ResidentOverview"
+                }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/patients/{patient_id}/assessments/{assessment_id}/note": {
+      "get": {
+        "summary": "Assessment Note",
+        "description": "Export the stored SBAR as a draft note needing sign-off; never EHR writeback.",
+        "operationId": "assessment_note_v1_patients__patient_id__assessments__assessment_id__note_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "assessment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Assessment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preliminary FHIR R4 DocumentReference (preview only; not sent to any clinical system)",
+            "content": {
+              "application/fhir+json": {}
+            }
+          },
+          "404": {
+            "description": "Unknown, or not visible to this account"
+          },
+          "409": {
+            "description": "note_unavailable: no current SBAR draft"
           },
           "422": {
             "description": "Validation Error",
@@ -2609,6 +2669,72 @@
         ],
         "title": "Coverage"
       },
+      "DocumentedObservation": {
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Evidence Id"
+          },
+          "source_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Source Id"
+          },
+          "concept": {
+            "type": "string",
+            "const": "temperature_c",
+            "title": "Concept"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "unit": {
+            "type": "string",
+            "const": "C",
+            "title": "Unit"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "quote": {
+            "type": "string",
+            "title": "Quote"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Recorded At"
+          },
+          "effective_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Effective At"
+          },
+          "source_kind": {
+            "type": "string",
+            "const": "observation",
+            "title": "Source Kind"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "source_id",
+          "concept",
+          "value",
+          "unit",
+          "label",
+          "quote",
+          "recorded_at",
+          "effective_at",
+          "source_kind"
+        ],
+        "title": "DocumentedObservation"
+      },
       "DueList": {
         "properties": {
           "day_start": {
@@ -3079,6 +3205,98 @@
           "value"
         ],
         "title": "Record"
+      },
+      "ResidentOverview": {
+        "properties": {
+          "patient_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Patient Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "synthetic": {
+            "type": "boolean",
+            "title": "Synthetic"
+          },
+          "watch_window": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Watch Window"
+          },
+          "features": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Features"
+          },
+          "series": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Series"
+          },
+          "baseline": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Baseline"
+          },
+          "first_change_ts": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Change Ts"
+          },
+          "latest_assessment": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Assessment"
+          },
+          "context_tags": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Context Tags"
+          },
+          "documented_observations": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentedObservation"
+            },
+            "type": "array",
+            "title": "Documented Observations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "patient_id",
+          "display_name",
+          "synthetic",
+          "watch_window",
+          "features",
+          "series",
+          "baseline",
+          "first_change_ts",
+          "latest_assessment",
+          "context_tags",
+          "documented_observations"
+        ],
+        "title": "ResidentOverview"
       },
       "SessionArm": {
         "properties": {
