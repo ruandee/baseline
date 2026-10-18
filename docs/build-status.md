@@ -337,3 +337,20 @@ synthetic-only browser proof covered all three labelled days and resource cleanu
 release CI passed at f7f02c0 and the labelled presentation route is deployed and returns200.
 Real-device recording/rehearsal acceptance remains open; an HTTP response alone does not prove
 that flow.
+
+## BL-06 current-release golden verification
+
+On 2026-10-18 UTC, the unchanged production speech pipeline and committed golden suite at
+main `250cd51fbb56f1a7d9206439b2cc80be2f55d09f` were rerun against the four existing,
+authorized local recordings. All three tests passed with no skips: all four recordings were
+usable, deliberate slow speech decreased speech rate, and deliberate pauses increased pause
+ratio and count. The stairs comparison was reported as exploratory under accepted ADR030.
+The original three-pass/one-fail stairs-direction result remains preserved in ADR030; no
+threshold, recording or test was changed for this rerun.
+
+Command: `uv run --frozen pytest -o addopts='' -m slow tests/unit/test_golden_clips.py -v -rA`.
+The cached Whisper base model ran with `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1` and
+telemetry disabled. FFmpeg was available. The four copied inputs matched their originals
+byte-for-byte; raw audio and the local log remain ignored and outside Git/CI. This establishes
+the revised local BL-06 acoustic gates only. It does not establish personal API enrollment,
+phone/LTE capture, hosted latency, natural exertion detection or clinical validation.
