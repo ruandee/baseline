@@ -26,7 +26,8 @@ test('judge timeline shows actual server delivery and acknowledgement timing; en
     'GET /v1/patients/p1/sessions/s1': () => session}});
   await until(() => /Session timeline/.test(h.main.textContent));
   assert.match(h.main.textContent, /no SMS was sent/);
-  assert.match(h.main.textContent, /acknowledged after 1 min/);
+  assert.doesNotMatch(h.main.textContent, /after the first text|Text to Contact/);
+  assert.match(h.main.textContent, /acknowledged 1 min after first contact escalation attempt/);
   assert.equal(h.main.querySelector('.kaze-record').disabled, true);
   h.main.querySelector('.kaze-record').click();
   assert.equal(h.calls.some((c) => /checks$/.test(c.key)), false);

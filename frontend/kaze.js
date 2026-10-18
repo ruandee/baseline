@@ -150,7 +150,7 @@ async function renderKazeSession(host, base, sid, judge) {
       }
       for (const ack of KazeCore.timeToAck(session)) {
         events.append(el('p', `Episode ${ack.episode}: ${ack.seconds === null ? 'not acknowledged' :
-          `acknowledged after ${KazeCore.duration(ack.seconds)}`}`));
+          `acknowledged ${KazeCore.duration(ack.seconds)} after first contact escalation attempt`}`));
       }
       record.disabled = ended();
       tick();

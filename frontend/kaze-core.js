@@ -138,7 +138,7 @@ const KazeCore = (() => {
       const acked = episodeTexts(s, s.episode).find((e) => e.ack_at);
       const who = acked ? contactName(s, acked.contact_index) : 'A contact';
       return {screen: 'status', tone: 'ok', headline: `${who} is on it`,
-              detail: `${who} tapped the link in the text. Check in to let everyone know you are OK.`};
+              detail: `${who} opened the acknowledgement link. Check in to let everyone know you are OK.`};
     }
     if (s.status === 'escalating') {
       const texts = episodeTexts(s, s.episode);
@@ -169,7 +169,8 @@ const KazeCore = (() => {
       .replace(/-?\d{1,3}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?/g, '[location]');
   }
 
-  // Time from the first text of each episode to the first acknowledgement of that episode.
+  // Time from the first SMS escalation attempt, including logged or failed attempts.
+  // Provider acceptance is not delivery; this clock must never imply a text was received.
   function timeToAck(session) {
     const episodes = [...new Set((session.escalations || []).map((e) => e.episode))].sort((a, b) => a - b);
     return episodes.map((episode) => {
@@ -226,14 +227,14 @@ const KazeCore = (() => {
       const who = contactName(s, e.contact_index);
       const t = new Date(e.sent_at).getTime();
       if (!(e.episode in firstText) || t < firstText[e.episode]) firstText[e.episode] = t;
-      events.push({ts: e.sent_at, kind: 'text', label: `Text to ${who} (level ${e.level})`,
+      events.push({ts: e.sent_at, kind: 'text', label: `Contact escalation for ${who} (level ${e.level})`,
                    detail: `${trigger}. ${DELIVERY_TEXT[e.delivery] || e.delivery}.`,
                    message: redactMessage(e.message)});
     });
     (s.escalations || []).filter((e) => e.ack_at).forEach((e) => {
       const who = contactName(s, e.contact_index);
       const since = e.episode in firstText
-        ? `${duration((new Date(e.ack_at).getTime() - firstText[e.episode]) / 1000)} after the first text`
+        ? `${duration((new Date(e.ack_at).getTime() - firstText[e.episode]) / 1000)} after the first contact escalation attempt`
         : '';
       events.push({ts: e.ack_at, kind: 'ack', label: `${who} acknowledged`,
                    detail: since + (e.episode === s.episode ? '' : (since ? '; ' : '') + 'earlier episode')});
