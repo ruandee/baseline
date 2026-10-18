@@ -20,7 +20,7 @@ function setup(opts = {}) {
     start() { this.state = 'recording'; }
     stop() { this.state = 'inactive'; this.ondataavailable({data: new Blob(['synthetic'])}); this.onstop(); }
   }
-  const controller = capture({getSession: opts.getSession || (async () => { reads++; return session; }),
+  const controller = capture({requirePermission: opts.requirePermission || (async () => {}), getSession: opts.getSession || (async () => { reads++; return session; }),
     getMedia: opts.getMedia || (async () => media), Recorder,
     locate: opts.locate || (async () => { locations++; return {coords: {latitude: 1, longitude: 2, accuracy: 3}}; }),
     upload: async (blob, fields) => { uploads.push(fields); return {usable: true}; },
@@ -41,7 +41,7 @@ test('baseline capture sends session and baseline fields, without requesting loc
   assert.equal(h.uploads[0].session_id, 'session-one');
   assert.equal(h.uploads[0].is_baseline, 'true');
   assert.equal(h.locations(), 0); assert.equal('lat' in h.uploads[0], false);
-  assert.ok(h.stopped() > 0); assert.equal(h.reads(), 2);
+  assert.ok(h.stopped() > 0); assert.equal(h.reads(), 3);
 });
 
 test('active check-in includes location only after explicit opt-in', async () => {
@@ -116,6 +116,32 @@ test('denied location continues without coordinates; denied microphone cannot up
   assert.equal(h.uploads.length, 1); assert.equal('lat' in h.uploads[0], false);
   const denied = setup({getMedia: async () => { throw new Error('denied'); }});
   await denied.controller.start(true); assert.equal(denied.uploads.length, 0);
+});
+
+test('permission is checked before microphone and again before upload after delayed location', async () => {
+  let granted = false, microphones = 0;
+  const denied = setup({requirePermission: async () => { if (!granted) throw Error('not granted'); },
+    getMedia: async () => { microphones++; return {getTracks: () => []}; }});
+  await denied.controller.start(false); assert.equal(microphones, 0);
+  granted = true;
+  const pending = defer();
+  const h = setup({requirePermission: async () => { if (!granted) throw Error('withdrawn'); },
+    locate: () => pending.promise});
+  await h.controller.start(true); h.controller.stop(); await flush();
+  granted = false; pending.resolve(null); await flush();
+  assert.equal(h.uploads.length, 0);
+});
+
+test('obsolete post-permission session refresh cannot release a replacement capture stream', async () => {
+  const pending = defer(); let reads = 0;
+  const session = {id: 's1', status: 'arming', ends_at: new Date(100000).toISOString()};
+  const h = setup({getSession: () => ++reads === 2 ? pending.promise : Promise.resolve(session)});
+  const old = h.controller.start(false); await flush();
+  assert.equal(reads, 2); h.controller.cancel();
+  await h.controller.start(false); assert.ok(h.recording());
+  const stopped = h.stopped(); pending.resolve(session); await old;
+  assert.equal(h.stopped(), stopped); assert.ok(h.recording());
+  h.controller.cancel();
 });
 
 test('countdown uses server due time and does not compress five-minute escalation', () => {

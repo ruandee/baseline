@@ -231,3 +231,11 @@ and SDM reference when applicable. Missing/withdrawn permission keeps Record dis
 view receives no setup form or SDM details.
 Phone screenshots use synthetic loopback responses with no microphone access; real-device,
 golden-recording and clinical acceptance gates remain open.
+
+
+BL-28 explicit voice permission (accepted decision032, migration015): the existing assigned
+safety custodian can grant/decline/withdraw only resident voice_check permission. `/out` keeps
+standing permission separate from session acknowledgement; default setup remains unknown and
+capture cancels/rechecks around pending microphone and location callbacks. Ordinary resident
+importer/PSW, SDM and other scopes gain no new permission. Other held KAZE policies are unchanged.
+Exact-head CI and physical-phone/provider acceptance remain separate gates.

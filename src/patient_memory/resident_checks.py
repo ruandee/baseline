@@ -66,7 +66,7 @@ def has_role(conn, patient_id: UUID, role: str) -> bool:
 
 
 def append_consent(conn, identity, patient_id: UUID, body: ConsentInput, request_id: UUID) -> dict:
-    """Nurses record resident/SDM decisions; importers may write explicit fixture consent."""
+    """Nurses record care decisions; a safety custodian may record only their voice decision."""
     check_gate(conn, patient_id)
     lock_patient(conn, patient_id)
     check_gate(conn, patient_id)
@@ -74,6 +74,9 @@ def append_consent(conn, identity, patient_id: UUID, body: ConsentInput, request
         allowed = has_role(conn, patient_id, "importer")
     else:
         allowed = has_role(conn, patient_id, "nurse")
+        if not allowed and body.decided_by == "resident" and body.scope == "voice_check":
+            allowed = conn.execute("SELECT pm_safety_voice_custodian(%s) AS ok",
+                                   (patient_id,)).fetchone()["ok"] is True
     if not allowed:
         raise Problem(403, "forbidden", "This role cannot record that consent decision")
     try:

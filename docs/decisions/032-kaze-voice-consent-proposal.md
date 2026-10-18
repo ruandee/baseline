@@ -1,8 +1,9 @@
-# 032: Proposed explicit KAZE voice-permission workflow
+# 032: Explicit KAZE voice-permission workflow
 
-Status: proposed; user decision required. No authorization change is implemented by this document.
+Status: accepted, option A. The user explicitly selected option A on 17 October 2026
+(America/Toronto). Migration015 implements the scoped authorization below.
 
-## Current blocker
+## Prior blocker
 
 The KAZE person has an importer assignment for self-custody (decision018), not a nurse
 assignment. Default bootstrap records no standing voice permission. The `/out` checkbox
@@ -17,7 +18,7 @@ The local Claude handoff explicitly says ADR018 questions1–6 are on hold. Thei
 is absent from the committed ADR018, so this proposal does not assume the new authorization
 decision is already approved.
 
-## Option A: narrowly scoped self-custody permission
+## Accepted option A: narrowly scoped self-custody permission
 
 Use the same safety-tenant, active assigned-importer custody boundary that already authorizes
 arming/ending that person's sessions. Do not infer ownership by comparing principal and patient
@@ -41,7 +42,7 @@ resident-tenant importer, PSW, SDM and other scopes denied; no nurse/service cre
 unknown/withdrawn permission prevents microphone access and server decoding; withdrawal during
 processing prevents publication; arm/end does not change permission; no real SMS in tests.
 
-## Option B: retain nurse-only recording
+## Considered alternative B: retain nurse-only recording
 
 Keep current authorization unchanged. Provide a separately authenticated, assigned human care
 operator workflow to record the participant's actual decision before capture. Do not expose the
@@ -53,3 +54,26 @@ and provisioning that operator workflow; the current person-only `/out` bootstra
 Neither option validates audio, phone compatibility, SMS delivery or clinical use. Held KAZE
 ladder/product-policy questions and Vox prompt switching remain untouched. Real contacts,
 recordings and two-phone acceptance still require their own evidence.
+
+
+## Implementation and verification
+
+Migration 015 adds a separate permissive INSERT policy to the existing forced-RLS consent
+table. The helper is SECURITY INVOKER and requires the same safety-mode tenant and active
+assigned-importer custody as arm/end. Existing nurse/fixture policies and all applied migrations
+are unchanged. Runtime authorization repeats under the patient lock before appending the
+explicit resident decision. Default bootstrap/reset still does not grant permission.
+
+The standalone `/out` fieldset shows effective standing permission and separate explicit
+choices with an initially unticked confirmation. It does not depend on the care-home counting
+profile or require a worker/nurse credential. Starting a decision save immediately invalidates
+active/pending capture, even while the request is unresolved. A later grant does not restart an
+old microphone callback. Capture rechecks permission before microphone access, after permission
+resolves, and before upload (including a delayed location response). Page exit and session end
+cancel capture. No real SMS or microphone recording is performed by the automated tests.
+
+Deterministic tests cover unknown/default states, explicit decisions, direct runtime-role RLS,
+wrong tenant/patient/actor, custody revocation, PSW/SDM/other-scope denial, no UUID-ownership
+inference, independent session arm/end, permission withdrawal during processing, pending
+microphone/location callbacks and stale callback isolation. Exact-head CI remains required;
+physical phones, real contacts and provider delivery retain their separate acceptance gates.
