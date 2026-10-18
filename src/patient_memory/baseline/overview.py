@@ -101,8 +101,9 @@ def overview(conn, cfg: Settings, patient: dict, days: int, now: datetime | None
     first = conn.execute(
         "SELECT min(v.ts) AS ts FROM assessments a JOIN voice_checks v "
         "ON v.tenant_id=a.tenant_id AND v.patient_id=a.patient_id AND v.id=a.check_id "
-        "WHERE a.patient_id=%s AND a.change_status='change' AND v.ts>=%s - make_interval(days=>%s)",
-        (pid, now, days)).fetchone()["ts"]
+        "WHERE a.patient_id=%s AND a.change_status='change' AND v.prompt_version=%s "
+        "AND v.ts>=%s - make_interval(days=>%s)",
+        (pid, prompt, now, days)).fetchone()["ts"]
     return {
         "patient_id": str(pid), "display_name": patient["external_id"], "synthetic": True,
         "watch_window": watch_window(tags, now), "features": FEATURE_META, "series": series,

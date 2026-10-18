@@ -369,13 +369,14 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
     def vox_encounter(resident_id: Annotated[UUID, Form()], request: Request, actor=actor_dep,
                       audio: Annotated[UploadFile | None, File()] = None,
                       segments: Annotated[str | None, Form()] = None,
-                      consent: Annotated[str | None, Form()] = None,
+                      consent: Annotated[list[str] | None, Form()] = None,
                       encounter_ts: Annotated[str | None, Form()] = None) -> VoxEncounterResult:
         """Mock adapter contract defined by this project (decision 016); no Vox API exists to us.
 
-        Authorization comes first (404 before anything else). Consent must be the literal
-        `true`; otherwise the refusal is audited, nothing else is stored and the answer is 422
-        `consent_required`. Only resident segments are analyzed, as `free-conversation-v1`.
+        Authorization comes first (404 before anything else). Consent must be exactly one part
+        whose raw value is `true`; otherwise the refusal is audited, nothing else is stored and
+        the answer is 422 `consent_not_given` (distinct from stored-consent 403
+        `consent_required`, BL-31). Only resident segments are analyzed, as free conversation.
         """
         with transaction(cfg, actor) as conn:
             care_gate(conn, resident_id)
@@ -384,7 +385,7 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
                 audit(conn, actor, resident_id, "vox_encounter", request.state.request_id,
                       "consent_refused")
         if refused:
-            raise Problem(422, "consent_required")
+            raise Problem(422, "consent_not_given")
         parsed = vox.parse_segments(segments)
         device_ts = vox.parse_encounter_ts(encounter_ts)
         if audio is None:
@@ -401,8 +402,8 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             except DecoderUnavailable as exc:
                 raise Problem(503, "dependency_unavailable") from exc
         finally:
-            if not cfg.keep_audio:
-                shutil.rmtree(work, ignore_errors=True)
+            # Always, whatever PM_KEEP_AUDIO says: raw encounter audio contains staff speech.
+            shutil.rmtree(work, ignore_errors=True)
         with transaction(cfg, actor) as conn:
             check = store_check(conn, actor, resident_id, request.state.request_id,
                                 encounter.analysis, "resident", vox.DEVICE_ID, device_ts, False,

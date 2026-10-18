@@ -22,8 +22,9 @@ Order of checks, each one stopping the request:
 1. Bearer identity, then the care-team gate on `resident_id` (`nurse`/`importer` assigned to that
    patient in the caller's tenant). Anyone else, any other tenant's or unassigned patient: 404,
    with no audit row, no consent evaluation and no audio work.
-2. Consent: only the literal `true` (case-insensitive) counts. Missing, empty, `false` or anything
-   else returns 422 `consent_required` and commits one audit row
+2. Per-request consent: exactly one `consent` part whose raw value is `true` (no trimming, no
+   case folding). Missing, empty, `false`, `True`, ` true`, a repeated `consent` part (even
+   `true` twice) or anything else returns 422 `consent_not_given` and commits one audit row
    (`action=vox_encounter`, `result=consent_refused`). No check, assessment or audio is stored, and
    the audio is never decoded. This is checked before the other fields are validated, so a
    refusal is audited even when the rest of the request is malformed.
@@ -53,7 +54,8 @@ The response is `VoxEncounterResult`: `usable`, `reasons`, `resident_speech_s`, 
    120 s are refused (`invalid_audio`); ffmpeg stops decoding just past the limit, so a long file
    is never decoded in full (`POST /checks` now uses the same bounded decode at 30 s). At most
    60 s of resident speech is analyzed (`truncated: true` beyond that) to bound Whisper time.
-5. **At least 8 s of resident speech** (after overlap removal), else `usable: false`,
+5. **At least 8 s of VAD-voiced resident speech** (after overlap removal and the analysis cap,
+   excluding silence inside diarized turns), else `usable: false`,
    `reasons: ["too_little_resident_speech"]`. Like other unusable clips the row is stored for
    audit and never scored, and Whisper does not run.
 6. **Prompt separation.** Checks are stored with `mode = "resident"`,
@@ -66,7 +68,23 @@ The response is `VoxEncounterResult`: `usable`, `reasons`, `resident_speech_s`, 
    unchanged. The stored `params.z_threshold` shows the value actually used.
 8. **Read models stay on one prompt.** The resident overview charts the checks of the prompt its
    latest assessment used (`baseline.prompt_version` is new), so a Vox point is never drawn on a
-   counting-prompt band. The watch-list sparkline shows the counting prompt only.
+   counting-prompt band. The watch-list sparkline shows the counting prompt only. **ON HOLD:**
+   Dee has not yet decided on this read-model behavior. It ships as built, but it is not accepted
+   and may change.
+9. **Encounter audio is always deleted.** The work directory (raw upload and decoded wav) is
+   removed after analysis whatever `PM_KEEP_AUDIO` says, because a raw encounter contains staff
+   speech. `PM_KEEP_AUDIO` still applies to `POST /checks` only.
+
+## Interaction with BL-31 / decision 017
+
+There are two consent gates with distinct errors. The per-request `consent` part above (422
+`consent_not_given`) records that this one encounter was captured with consent. Stored resident
+consent from BL-31 (#64, decision 017) is a separate standing decision; when it is denied or
+missing, `POST /checks` returns 403 `consent_required`. Once #64 lands, this route must also
+require stored granted consent (scope `vox_encounter`) through the shared helper. It must check
+right after the care gate, before the per-request consent check and any audio work, and again
+inside `store_check`. It must return the same 403 `consent_required` as `POST /checks`. Until then
+only the per-request gate applies. That is acceptable only because the data is synthetic.
 
 ## Not done
 

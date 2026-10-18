@@ -70,14 +70,15 @@ def test_extract_concatenates_in_order_and_caps_the_length():
     assert len(capped) == 6 * SAMPLE_RATE and truncated
 
 
-@pytest.mark.parametrize("raw", [None, "", "false", "False", "0", "1", "yes", "no", "truthy"])
-def test_only_an_explicit_true_is_consent(raw):
-    assert vox.consent_given(raw) is False
+@pytest.mark.parametrize("parts", [None, [], [""], ["false"], ["True"], ["TRUE"], [" true"],
+                                   ["true "], ["1"], ["yes"], ["true", "true"],
+                                   ["true", "false"], ["false", "true"]])
+def test_only_a_single_raw_true_is_consent(parts):
+    assert vox.consent_given(parts) is False
 
 
-@pytest.mark.parametrize("raw", ["true", "True", " TRUE "])
-def test_true_is_consent(raw):
-    assert vox.consent_given(raw) is True
+def test_true_is_consent():
+    assert vox.consent_given(["true"]) is True
 
 
 @pytest.mark.parametrize("raw", [None, "", "not json", "{}", "[]",
@@ -138,7 +139,8 @@ def test_fixture_encounter_analyzes_resident_speech_only(tmp_path):
     result = vox.analyze_encounter(upload, tmp_path, segments, transcribe)
 
     assert result.analysis.usable, result.analysis.quality
-    assert result.resident_speech_s == pytest.approx(18.6, abs=0.01)
+    assert 8 <= result.resident_speech_s < result.analyzed_s
+    assert result.resident_speech_s == pytest.approx(result.analysis.quality["speech_s"])
     assert heard == [pytest.approx(result.analyzed_s, abs=0.01)]
     assert result.counts == {"resident": 3, "staff": 3, "other": 1}
     # Staff (230 Hz) and the other speaker (190 Hz) would pull this well away from 140 Hz.
@@ -155,6 +157,17 @@ def test_too_little_resident_speech_is_unusable_and_never_transcribed(tmp_path):
     assert not result.analysis.usable
     assert result.analysis.quality["reasons"] == ["too_little_resident_speech"]
     assert result.analysis.features["speech_rate_wpm"] is None
+
+
+@needs_ffmpeg
+def test_long_resident_turn_with_less_than_eight_seconds_of_voice_never_transcribes(tmp_path):
+    audio = clip([("v", 4), ("s", 16)])
+    result = vox.analyze_encounter(write(tmp_path, audio), tmp_path,
+                                   [seg("resident", 0, 20)], never)
+    assert not result.analysis.usable
+    assert result.analyzed_s == 20
+    assert result.resident_speech_s < 8
+    assert result.analysis.quality["reasons"] == ["too_little_resident_speech"]
 
 
 @needs_ffmpeg

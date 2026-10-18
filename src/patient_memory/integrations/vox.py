@@ -21,7 +21,7 @@ from pydantic import AwareDatetime, TypeAdapter, ValidationError
 
 from patient_memory.domain import VoxSegment
 from patient_memory.errors import Problem
-from patient_memory.speech import asr
+from patient_memory.speech import asr, vad
 from patient_memory.speech.pipeline import Analysis, Timer, analyze_pcm, decode_upload
 from patient_memory.speech.vad import SAMPLE_RATE
 
@@ -45,9 +45,13 @@ _TIMESTAMP = TypeAdapter(AwareDatetime)
 Span = tuple[float, float]
 
 
-def consent_given(raw: str | None) -> bool:
-    """Only an explicit `true` is consent; missing, empty or anything else is a refusal."""
-    return raw is not None and raw.strip().lower() == "true"
+def consent_given(parts: list[str] | None) -> bool:
+    """Exactly one `consent` part whose raw value is `true`; anything else is a refusal.
+
+    No trimming or case folding, and a repeated part is refused even if one copy says `true`,
+    so an ambiguous request never counts as consent.
+    """
+    return parts == ["true"]
 
 
 def parse_segments(raw: str | None) -> list[VoxSegment]:
@@ -131,19 +135,22 @@ def analyze_encounter(upload: Path, work: Path, segments: list[VoxSegment],
     timer = Timer()
     audio = decode_upload(upload, work, timer, MAX_ENCOUNTER_S)
     spans = resident_spans(segments, len(audio) / SAMPLE_RATE)
-    resident_s = sum(e - s for s, e in spans)
+    resident, truncated = timer("extract", extract, audio, spans)
+    # Diarized turn duration includes pauses; require actual voiced samples before ASR.
+    runs = timer("resident_vad", lambda: vad.voiced_runs(vad.frame_flags(resident)))
+    resident_s = sum(r.end - r.start for r in runs)
     speakers = Counter(s.speaker for s in segments)
     counts = {k: speakers.get(k, 0) for k in ("resident", "staff", "other")}
     if resident_s < MIN_RESIDENT_S:
         analysis = Analysis(
             usable=False,
-            quality={"duration_s": round(resident_s, 2), "speech_s": round(resident_s, 2),
+            quality={"duration_s": round(len(resident) / SAMPLE_RATE, 2),
+                     "speech_s": round(resident_s, 2),
                      "snr_db": None, "clipped": False,
                      "reasons": ["too_little_resident_speech"]},
             features={"speech_rate_wpm": None, "pause_ratio": None, "mean_pause_s": None,
                       "f0_median_hz": None},
             words=[], pauses=[], timings_ms=timer.timings)
-        return EncounterAnalysis(analysis, resident_s, resident_s, False, counts)
-    resident, truncated = timer("extract", extract, audio, spans)
+        return EncounterAnalysis(analysis, resident_s, len(resident) / SAMPLE_RATE, truncated, counts)
     analysis = analyze_pcm(resident, transcribe, timer, on_script=False)
     return EncounterAnalysis(analysis, resident_s, len(resident) / SAMPLE_RATE, truncated, counts)

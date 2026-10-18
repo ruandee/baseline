@@ -26,8 +26,6 @@ pytestmark = pytest.mark.skipif(shutil.which("ffmpeg") is None and not os.enviro
 ROUTE = "/v1/integrations/vox/encounters"
 FIXTURE = json.loads((Path(__file__).resolve().parents[2] / "fixtures/synthetic/"
                       "vox_encounter_mrs_k.json").read_text(encoding="utf-8"))
-STAFF_WORDS = {w.strip(",.?!'").lower() for s in FIXTURE["segments"] if s["speaker"] != "resident"
-               for w in s["text"].split()}
 
 
 def wav(segments):
@@ -100,8 +98,8 @@ def test_fixture_encounter_produces_a_resident_only_free_conversation_check(sand
     assert body["prompt_version"] == "free-conversation-v1"
     assert body["usable"] is True and body["reasons"] == []
     assert body["segments"] == {"resident": 3, "staff": 3, "other": 1}
-    assert body["resident_speech_s"] == pytest.approx(FIXTURE["expected"]["resident_speech_s"],
-                                                      abs=0.01)
+    assert 8 <= body["resident_speech_s"] < body["analyzed_s"]
+    assert body["resident_speech_s"] == body["check"]["quality"]["speech_s"]
     # Whisper saw one clip, exactly as long as the resident speech: no staff or other audio.
     assert spy.heard == [pytest.approx(body["analyzed_s"], abs=0.01)]
     assert body["check"]["features"]["f0_median_hz"] == pytest.approx(140, rel=0.05)
@@ -113,8 +111,10 @@ def test_fixture_encounter_produces_a_resident_only_free_conversation_check(sand
     assert row[:2] == ("resident", "vox-mock") and row[3] == "free-conversation-v1"
     assert row[2] == datetime.fromisoformat(FIXTURE["encounter_ts"]) and row[4] is True
     assert row[6] is False
-    stored_words = set(row[5].split())
-    assert stored_words and not stored_words & STAFF_WORDS  # segment text is never stored
+    # The stored transcript is exactly our ASR output on the resident-only clip; no submitted
+    # segment text (staff or resident) is copied into storage.
+    assert row[5] == " ".join(w["w"] for w in body["check"]["words"])
+    assert not any(s["text"] in row[5] for s in FIXTURE["segments"])
     (params,) = admin_rows(sandbox, "SELECT params FROM assessments WHERE patient_id=%s",
                            sandbox[1])
     assert params[0]["prompt_version"] == "free-conversation-v1"
@@ -122,12 +122,13 @@ def test_fixture_encounter_produces_a_resident_only_free_conversation_check(sand
     assert audits(sandbox) == [("create_check", "ok"), ("vox_encounter", "ok")]
 
 
-@pytest.mark.parametrize("consent", [None, "false", "", "yes"])
-def test_missing_or_false_consent_is_422_audited_and_stores_nothing(sandbox, fixture_audio,
-                                                                    no_audio_work, consent):
+@pytest.mark.parametrize("consent", [None, "false", "", "yes", "True", " true",
+                                     ["true", "true"], ["true", "false"]])
+def test_missing_false_loose_or_repeated_consent_is_422_audited_and_stores_nothing(
+        sandbox, fixture_audio, no_audio_work, consent):
     response = post(client_for(sandbox), sandbox[1], fixture_audio, consent=consent)
     assert response.status_code == 422
-    assert response.json()["error"]["code"] == "consent_required"
+    assert response.json()["error"]["code"] == "consent_not_given"
     assert checks(sandbox) == []
     assert admin_rows(sandbox, "SELECT count(*) FROM assessments WHERE patient_id=%s",
                       sandbox[1]) == [(0,)]
@@ -139,7 +140,7 @@ def test_consent_is_refused_even_when_the_rest_of_the_request_is_malformed(sandb
                                                      "consent": "false"},
                                         files={"segments": (None, "not json")})
     assert response.status_code == 422
-    assert response.json()["error"]["code"] == "consent_required"
+    assert response.json()["error"]["code"] == "consent_not_given"
     assert audits(sandbox) == [("vox_encounter", "consent_refused")]
 
 
@@ -218,6 +219,23 @@ def test_an_encounter_is_scored_against_free_conversation_history_only(sandbox, 
     assert change["per_feature"]["speech_rate_wpm"]["median"] == pytest.approx(71.0)
 
 
+def test_overview_first_change_marker_does_not_cross_prompt_histories(sandbox, fixture_audio):
+    client = client_for(sandbox)
+    first = post(client, sandbox[1], fixture_audio).json()["check"]
+    with psycopg.connect(sandbox[0].admin_database_url) as admin:
+        admin.execute("UPDATE assessments SET change_status='change' WHERE check_id=%s",
+                      (first["check_id"],))
+    assert post(client, sandbox[1], fixture_audio).status_code == 200
+    route = f"/v1/patients/{sandbox[1]}/overview"
+    assert client.get(route).json()["first_change_ts"] is not None
+    with psycopg.connect(sandbox[0].admin_database_url) as admin:
+        admin.execute("UPDATE voice_checks SET prompt_version='count20-days-v1' WHERE id=%s",
+                      (first["check_id"],))
+    page = client.get(route).json()
+    assert page["baseline"]["prompt_version"] == "free-conversation-v1"
+    assert page["first_change_ts"] is None
+
+
 def test_multipart_exemption_is_this_route_and_the_check_route_only(sandbox, fixture_audio):
     client = client_for(sandbox)
     assert client.post(ROUTE, json={"resident_id": str(sandbox[1])}).status_code == 415
@@ -254,6 +272,17 @@ def test_undecodable_audio_is_422_and_temp_audio_is_deleted(sandbox, tmp_path, m
     response = post(client_for(sandbox), sandbox[1], b"not audio at all")
     assert response.status_code == 422 and response.json()["error"]["code"] == "invalid_audio"
     assert post(client_for(sandbox), sandbox[1], fixture_audio).status_code == 200
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_encounter_audio_is_deleted_even_with_keep_audio(sandbox, tmp_path, monkeypatch,
+                                                         fixture_audio):
+    """Raw encounter audio contains staff speech, so PM_KEEP_AUDIO never keeps it."""
+    import tempfile
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    keeper = (sandbox[0].model_copy(update={"keep_audio": True}), *sandbox[1:])
+    assert post(client_for(keeper), sandbox[1], fixture_audio).status_code == 200
+    assert post(client_for(keeper), sandbox[1], b"not audio at all").status_code == 422
     assert list(tmp_path.iterdir()) == []
 
 
