@@ -177,9 +177,12 @@ def test_refresh_failure_preserves_source_success_and_audits_separate_error(sand
         job = conn.execute("SELECT status,stage,error_code FROM jobs WHERE id=%s",
                            (imported["job_id"],)).fetchone()
         assert job == {"status": "completed", "stage": "published", "error_code": None}
-        audit = conn.execute("SELECT action,result FROM audit WHERE patient_id=%s AND action='vitals_refresh'",
-                             (sandbox[1],)).fetchall()
-        assert audit == [{"action": "vitals_refresh", "result": "error"}]
+    # Runtime intentionally cannot read audit. Inspect only this synthetic scope as admin.
+    with psycopg.connect(sandbox[0].admin_database_url) as conn:
+        audit = conn.execute("SELECT action,result FROM audit WHERE tenant_id=%s AND patient_id=%s "
+                             "AND action='vitals_refresh'",
+                             (sandbox[2]["importer"].tenant_id, sandbox[1])).fetchall()
+        assert audit == [("vitals_refresh", "error")]
     assert "sensitive-synthetic-marker" not in caplog.text
     assert overview(sandbox)["latest_assessment"] is None
     assert refresh(sandbox)["reused"] is False
