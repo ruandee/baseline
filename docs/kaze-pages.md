@@ -28,8 +28,9 @@ remains authoritative. It never attaches location to a non-session check. Raw se
 removed by the upload handler regardless of debug retention.
 
 `/out/session/{id}` shows the session's checks, trigger reasons, actual delivery outcomes,
-acknowledgements and time from first text to acknowledgement per episode. Coordinates and raw
-acknowledgement links are redacted. A logged event is labelled **no SMS sent**; it is never
+acknowledgements and time from first contact escalation attempt to acknowledgement per episode.
+This clock includes logged or failed attempts and does not imply a text was sent or delivered.
+Coordinates and raw acknowledgement links are redacted. A logged event is labelled **no SMS sent**; it is never
 presented as successful delivery. The person page also provides the timeline and an end control.
 
 Countdowns use server next_due_at. Due and later nudge signals use an on-page vibration and
