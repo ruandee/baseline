@@ -117,11 +117,13 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
   6 slow tests were deselected. Its actual DB test requires all 12 canonical labels/actions,
   idempotency, exact evidence, RLS/revocation and contamination rejection. Final integrated CI
   is tracked on PRs #60/#53/#61; no local Docker/DB run is claimed.
-- Real golden recordings, slow Whisper/VAD acceptance and runner baseline/backup/race clips
-  remain outstanding. Recordings are on hold. FFmpeg is installed locally; no real audio has
-  been validated by the feature loader.
-- Public HTTPS/DNS/token configuration, LTE Safari/Chrome capture and warm host p95 below 5 s
-  remain acceptance work. UI evidence/SBAR readback passes API-captured DOM and lifecycle tests;
+- Accepted ADR030 records the local real Whisper run against the revised live-voice protocol,
+  retaining the original stairs-direction failure. Actual hosted personal baseline enrollment,
+  physical-device capture and rehearsals remain outstanding; the feature loader does not validate
+  personal recordings. The former recording hold is superseded for that approved protocol.
+- Public HTTPS/bootstrap/watchlist respond at baseline.deeruan.com; the current release still
+  needs rollout. LTE Safari/Chrome capture and warm host p95 below5s remain acceptance work.
+  UI evidence/SBAR readback passes API-captured DOM and lifecycle tests;
   physical-phone readback has not been verified.
 - The 12-patient roster, Mrs. K's sourced 37.1 C observation, resident charts and preliminary
   export are merged (#55). Current-time reset #79 is merged; hosted timing remains unverified.

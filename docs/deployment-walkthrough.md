@@ -169,9 +169,10 @@ tested. These instructions do not close the golden-audio or real-device gates.
 
 Hosted KAZE worker/bootstrap integration is merged. Startup and reset refresh a separate
 safety-tenant person identity and start
-`kaze-worker`. It creates no contacts, sessions or consent by default. Follow the release's
-`deployment-path.md` for explicit fictional fixture consent before capture; never treat that
-setup as consent for a real person. Real SMS remains a separate provider/phone acceptance gate.
+`kaze-worker`. It creates no contacts, sessions or consent by default. The assigned KAZE person
+records their own explicit voice permission in `/out`; arming and ending a session do not change
+that standing decision. Fictional fixture consent in `deployment-path.md` is for synthetic
+testing only. Real SMS remains a separate provider/phone acceptance gate.
 
 ## 7. Refresh credentials and diagnose startup
 
@@ -194,7 +195,40 @@ If HTTPS fails, check public DNS, VM/cloud firewall rules, and whether another s
 If checks return 401 after previously working, refresh credentials. If a load reports existing
 recordings or a verdict mismatch, preserve its report and resolve the cause; do not bypass the gate.
 
-## 8. Stop public access after the demo
+## 8. Update an existing Compose host
+
+For an existing deployment such as `baseline.deeruan.com`, confirm the operator used this
+repository's Compose setup before running this section. Run it on the server in the existing
+repository directory, after the reviewed release's combined CI passes. Replace `RELEASE_SHA`
+with that exact commit. Keep the existing `.env.demo`, signing secret and data volumes.
+
+```bash
+git status --short
+git fetch origin
+```
+
+If status reports local changes, preserve and reconcile them before switching releases.
+Then run:
+
+```bash
+git switch --detach RELEASE_SHA
+docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml build
+docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml stop api worker kaze-worker
+docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml up -d --wait db object-store
+docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml run --rm -T migrate
+bash deploy/start-demo.sh refresh
+docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml ps
+docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml exec -T api python -m scripts.hosted_demo check
+```
+
+Stop if any command fails and resolve that failure before continuing. This sequence migrates and
+recreates services with refreshed credentials; it does not run the cohort loader or reset checks.
+Reload `/unit` and confirm twelve residents. Before live voice enrollment, explicitly configure
+the speaker's English counting profile and record their actual permission as described in
+[live-voice-demo.md](live-voice-demo.md). Then test phone capture over cellular data, measure warm
+latency, and verify the two-phone KAZE text/acknowledgement loop with an approved recipient.
+
+## 9. Stop public access after the demo
 
 ```bash
 docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml stop caddy api worker
