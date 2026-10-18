@@ -21,8 +21,24 @@ unset KAZE_CREDENTIALS
 ARGS=()
 [ -z "${1:-}" ] || ARGS=(--demo-at "$1")
 # load supplies the admin setup role and ignored artifacts volume; no running worker races it.
-"${C[@]}" run --rm -T load python -m scripts.demo_reset "${ARGS[@]}"
-"${C[@]}" up -d --wait --wait-timeout 600 --force-recreate api worker kaze-worker caddy
+start_services() {
+  "${C[@]}" up -d --wait --wait-timeout 600 --force-recreate api worker kaze-worker caddy
+}
+# Recovery is limited to the reset command: migration and private credential preparation
+# must have completed successfully before an API can safely use the resulting schema/config.
+if "${C[@]}" run --rm -T load python -m scripts.demo_reset "${ARGS[@]}"; then
+  start_services
+else
+  reset_status=$?
+  echo 'Reset failed; attempting service recovery. Data was not certified as reset.' >&2
+  if start_services; then
+    echo 'Services restarted; reset still failed. Inspect the reset error/report before retrying.' >&2
+  else
+    recovery_status=$?
+    printf 'Service recovery failed (status %s); API/worker availability is unconfirmed. Inspect locally.\n' "$recovery_status" >&2
+  fi
+  exit "$reset_status"
+fi
 python3 - <<'PY'
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5

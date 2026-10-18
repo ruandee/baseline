@@ -45,7 +45,7 @@ or clinical-detection claim. See [decision 034](decisions/034-three-day-local-vo
 
 ## Present Watch, Explained and Escalate
 
-After this release is deployed, open:
+Open the deployed presentation:
 
 ```text
 https://baseline.deeruan.com/check?mode=live&demo=legacy-days
@@ -74,13 +74,13 @@ Rehearse twice on the exact HTTPS demo URL/device; grant microphone permission b
 Keep one labelled prerecorded clip and a backup video available. Local recordings should be
 30 seconds or less (known-duration WAV/MP4 is simplest), smaller than 20 MB, and kept outside Git.
 The existing four WAVs were exercised locally in Chrome; deployment and physical-phone rehearsal
-remain separate checks. The site still needs the new commit deployed before this link works.
+remain separate checks. The labelled local mode is deployed at baseline.deeruan.com on release f7f02c0; physical-device recording and rehearsal remain unverified.
 
 ## Optional genuine baseline comparison (separate flow)
 
-Latest execution handoff: API enrollment is on hold in this agent; a teammate will handle setup.
-Confirm the actual speaker before enrollment and use that person's own baseline and device.
-The Dee examples below are not permission to mix two people's recordings.
+The presenter is Dee, with a later caller planned. API enrollment is not yet complete. Use
+only the actual speaker's own baseline and device; the later caller needs a separate identity
+and baseline. The Dee examples below are not permission to mix two people's recordings.
 
 ## Prepare
 
