@@ -133,7 +133,7 @@ class Reason(Contract):
 
 class AssignmentInput(Contract):
     principal_id: UUID
-    role: Literal["importer", "nurse", "patient"]
+    role: Literal["importer", "nurse", "patient", "psw"]
     active: bool = True
 
 
@@ -239,3 +239,177 @@ class CheckResult(Contract):
     change: dict | None = None
     assessment: dict | None = None
     timings_ms: dict[str, int]
+    session: "SessionSummary | None" = None
+
+
+class CheckReceipt(Contract):
+    """What a PSW gets back from POST /checks: no features, change, verdict or SBAR."""
+
+    check_id: UUID
+    ts: AwareDatetime
+    usable: bool
+
+
+ConsentScope = Literal["voice_check", "vox_encounter"]
+ConsentState = Literal["granted", "declined", "withdrawn", "expired", "unknown"]
+
+
+class ConsentInput(Contract):
+    """Appends a consent row; the latest row wins and applies to the next check."""
+
+    scope: ConsentScope = "voice_check"
+    status: Literal["granted", "declined", "withdrawn"]
+    decided_by: Literal["resident", "substitute_decision_maker", "synthetic_fixture"]
+    sdm_reference: str | None = Field(None, min_length=1, max_length=200)
+    expires_at: AwareDatetime | None = None
+    note: str | None = Field(None, max_length=500)
+
+    @model_validator(mode="after")
+    def consistent(self):
+        if self.decided_by == "substitute_decision_maker" and not self.sdm_reference:
+            raise ValueError("sdm_reference is required for a substitute decision-maker")
+        if self.expires_at and (self.status != "granted" or self.expires_at <= now()):
+            raise ValueError("expires_at applies to a future expiry of granted consent only")
+        return self
+
+
+class ConsentView(Contract):
+    scope: ConsentScope
+    state: ConsentState
+    decided_by: str | None
+    recorded_at: AwareDatetime | None
+    expires_at: AwareDatetime | None
+
+
+class SkipInput(Contract):
+    reason: Literal["declined", "asleep", "unwell", "not_available", "other"]
+    device_ts: AwareDatetime | None = None
+
+
+class SkipReceipt(Contract):
+    skip_id: UUID
+    recorded_at: AwareDatetime
+
+
+class DueResident(Contract):
+    """Deliberately score-free: no verdict, fused z, feature, sparkline or SBAR fields."""
+
+    patient_id: UUID
+    display_name: str
+    status: Literal["due", "done", "skipped", "consent_needed"]
+    consent_state: ConsentState
+    last_check_ts: AwareDatetime | None
+    skipped_today: bool
+    # Unknown (null), never false: sources do not record who submitted a note yet.
+    observation_helped: None = None
+
+
+class DueList(Contract):
+    day_start: AwareDatetime
+    residents: list[DueResident]
+
+
+SessionStatus = Literal["arming", "active", "escalating", "acknowledged", "ended"]
+SessionContextTag = Literal["exertion", "loud_venue"]
+
+
+class SessionContactInput(Contract):
+    name: str = Field(min_length=1, max_length=40)
+    phone_e164: str = Field(pattern=r"^\+[1-9][0-9]{7,14}$")
+
+
+class SessionArm(Contract):
+    """Arm a KAZE safety session (decision 018). `ends_at` is checked against the server clock."""
+
+    display_name: str = Field(min_length=1, max_length=40)
+    ends_at: AwareDatetime
+    interval_min: int = Field(default=45, ge=1, le=180)
+    contacts: list[SessionContactInput] = Field(min_length=1, max_length=2)
+    context_tags: list[SessionContextTag] = Field(default_factory=list, max_length=2)
+    escalation_enabled: bool = True
+
+    @model_validator(mode="after")
+    def distinct(self):
+        if len(set(self.context_tags)) != len(self.context_tags):
+            raise ValueError("Duplicate context tag")
+        if len({c.phone_e164 for c in self.contacts}) != len(self.contacts):
+            raise ValueError("Duplicate contact phone")
+        return self
+
+
+class SessionEnd(Contract):
+    pass
+
+
+class SessionSummary(Contract):
+    id: UUID
+    status: SessionStatus
+    baseline_required: int
+    baseline_usable: int
+    next_due_at: AwareDatetime | None
+
+
+class SessionContactOut(Contract):
+    contact_index: int
+    name: str
+    phone_masked: str
+
+
+class SessionCheckOut(Contract):
+    id: UUID
+    ts: AwareDatetime
+    usable: bool
+    is_baseline: bool
+    change_status: str | None
+    has_location: bool
+
+
+class EscalationOut(Contract):
+    id: UUID
+    episode: int
+    level: int
+    trigger: Literal["missed_checkin", "speech_change"]
+    channel: Literal["nudge", "sms"]
+    contact_index: int | None
+    sent_at: AwareDatetime
+    delivery: Literal["pending", "logged", "sent", "failed"]
+    message: str | None
+    ack_at: AwareDatetime | None
+
+
+class SessionBaseline(Contract):
+    required: int
+    usable: int
+
+
+class SessionOut(Contract):
+    id: UUID
+    patient_id: UUID
+    display_name: str
+    status: SessionStatus
+    created_at: AwareDatetime
+    activated_at: AwareDatetime | None
+    ends_at: AwareDatetime
+    interval_min: int
+    context_tags: list[SessionContextTag]
+    escalation_enabled: bool
+    next_due_at: AwareDatetime | None
+    last_checkin_at: AwareDatetime | None
+    ladder_level: int
+    episode: int
+    ladder_trigger: Literal["missed_checkin", "speech_change"] | None
+    acknowledged_at: AwareDatetime | None
+    ended_at: AwareDatetime | None
+    end_reason: Literal["user", "expired"] | None
+    delete_after: AwareDatetime | None
+    baseline: SessionBaseline
+    contacts: list[SessionContactOut]
+    checks: list[SessionCheckOut] = []
+    escalations: list[EscalationOut] = []
+
+
+class SessionList(Contract):
+    sessions: list[SessionOut]
+
+
+CheckResult.model_rebuild()
