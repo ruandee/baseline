@@ -38,9 +38,11 @@ We connected recording, comparison, and review in one working prototype, demonst
 
 Test the experience with consenting volunteers and care professionals, especially on real phones. Baseline is a decision-support prototype; it has not been clinically validated.
 
-## Built with
+## How we built it
 
-Python, FastAPI, PostgreSQL, TimescaleDB, FFmpeg, Whisper, HTML, CSS, JavaScript, Docker, Caddy, and Google Cloud.
+We built a browser app for recording voice checks and reviewing results. Behind the scenes, a Python backend processes the recordings and brings the results together with care notes. A database keeps each resident's history, and the app runs on Google Cloud.
+
+Built with Python, FastAPI, PostgreSQL, TimescaleDB, FFmpeg, Whisper, HTML, CSS, JavaScript, Docker, and Caddy.
 
 ---
 
