@@ -51,7 +51,7 @@ page, editing data, restarting the API, switching to the video. Any fix means th
 
 - Say "detects change against her own normal", never "detects delirium" or "diagnoses".
 - Say "suggests a standard assessment the nurse decides on", never "recommends treatment".
-- Say "fictional residents" and point to the synthetic badge.
+- Say "fictional residents" and point to the "Demo scenario" disclosure.
 - Say "Vox integration is a mock contract we defined"; there is no real PointClickCare connection.
 - Say KAZE is "the same engine, designed for outside the care home"; only say it works if the
   two-phone loop was rehearsed successfully.
