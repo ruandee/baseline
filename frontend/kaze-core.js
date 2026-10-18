@@ -4,7 +4,6 @@
 // Wording rules: neutral, never diagnostic, and never a coordinate on screen.
 const KazeCore = (() => {
   const E164 = /^\+[1-9][0-9]{7,14}$/;
-  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const CONTEXT_TAGS = ['exertion', 'loud_venue'];
   const OPEN = ['arming', 'active', 'escalating', 'acknowledged'];
   const MAX_SPAN_MS = 24 * 3600 * 1000;
@@ -24,15 +23,6 @@ const KazeCore = (() => {
     sent: 'Sent',
     failed: 'Could not be sent'};
   const CONTEXT_TEXT = {exertion: 'exertion', loud_venue: 'loud venue'};
-
-  // "#patient=<uuid>&token=<jwt>" from the link printed by scripts/kaze_demo.py.
-  function parseCredentials(hash) {
-    const params = new URLSearchParams(String(hash || '').replace(/^#/, ''));
-    const patient = (params.get('patient') || '').trim();
-    const token = (params.get('token') || '').trim();
-    if (!UUID.test(patient) || !/^[\w-]+\.[\w-]+\.[\w-]+$/.test(token)) return null;
-    return {patient, token};
-  }
 
   function normalizePhone(raw) {
     return String(raw || '').replace(/[\s().-]/g, '');
@@ -153,9 +143,9 @@ const KazeCore = (() => {
     if (s.status === 'escalating') {
       const texts = episodeTexts(s, s.episode);
       const names = [...new Set(texts.map((e) => contactName(s, e.contact_index)))];
-      return {screen: 'status', tone: 'alert', headline: 'Your contacts are being alerted',
-              detail: (names.length ? `Alerted: ${names.join(', ')}. ` : '') +
-                      'Check in now to show you are OK.'};
+      return {screen: 'status', tone: 'alert', headline: texts.some((e) => e.delivery === 'sent') ? 'Contact text sent' : 'Contact escalation recorded',
+              detail: (names.length ? `Contacts: ${names.join(', ')}. ` : '') +
+                      'Check in now. A logged demo event is not a delivered SMS.'};
     }
     if (s.ladder_level >= 1) {
       return {screen: 'status', tone: 'watch', headline: 'Time to check in',
@@ -176,7 +166,7 @@ const KazeCore = (() => {
     return String(text)
       .replace(/\bhttps?:\/\/\S+/gi, '[link]')
       .replace(/\bgeo:\S+/gi, '[location]')
-      .replace(/-?\d{1,3}\.\d{2,}\s*,\s*-?\d{1,3}\.\d{2,}/g, '[location]');
+      .replace(/-?\d{1,3}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?/g, '[location]');
   }
 
   // Time from the first text of each episode to the first acknowledgement of that episode.
@@ -259,7 +249,7 @@ const KazeCore = (() => {
       .map(({i, t, ...e}) => e);
   }
 
-  return {parseCredentials, normalizePhone, endFromClock, validateArm, openSession, clock,
+  return {normalizePhone, endFromClock, validateArm, openSession, clock,
           duration, countdown, personView, redactMessage, timeToAck, timeline, timeOfDay,
           CHANGE_TEXT, TRIGGER_TEXT, DELIVERY_TEXT};
 })();

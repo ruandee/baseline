@@ -108,7 +108,7 @@ def test_hosted_mode_requires_a_valid_demo_token(sandbox):
 def test_baseline_pages_share_one_shell_with_mic_csp(sandbox):
     client = workspace_client(sandbox)
     for route in SHELL_ROUTES:
-        page = client.get(route.format(patient_id='abc') + '?mode=resident')
+        page = client.get(route.format(patient_id='abc', session_id='abc') + '?mode=resident')
         assert page.status_code == 200 and 'baseline.js' in page.text
         assert page.headers['content-security-policy'] == PAGE_CSP
     assert "script-src 'self'" in PAGE_CSP and "media-src 'self' blob:" in PAGE_CSP

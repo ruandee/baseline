@@ -232,3 +232,17 @@ columns. BL-27's saved `prepare_sms` / commit / `send` contract must be integrat
 delivery: never call a network sender from this locked adapter. Its postcommit delivery/crash
 semantics and public acknowledgement route remain BL-27 work, with no real delivery verified here.
 The six held product questions remain undecided.
+
+### BL-28/29 page integration (proposed implementation)
+
+The `/out` and `/out/session/{id}` pages use the existing session payload and standard ladder
+clock. A separately configured `PM_DEMO_KAZE_TOKEN` + `PM_DEMO_KAZE_PATIENT_ID` is selected by
+`X-PM-Role:kaze` on the same-origin demo session endpoint, verified as a self-custody importer
+in a safety tenant. No nurse fallback, URL tokens or browser credential persistence. The setup
+CLI writes only an ignored local token artifact. Ordinary resident/PSW bootstrap is unchanged.
+
+Session-only recording rechecks state across permission waits and invalidates pending callbacks
+on end/expiry. Location is an explicit opt-in; denied permission omits it. Judge readback shows
+actual delivery and time-to-ack, redacting coordinates/links and labelling log-only events.
+See [page setup and remaining acceptance](../kaze-pages.md). This does not resolve any held
+ADR018 question, implement loud-venue SNR relaxation or claim a 45-second missed-check SMS loop.
