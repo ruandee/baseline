@@ -26,3 +26,10 @@ After success the UI reloads the actual overview and exposes the normal source e
 failure or stale assessment retains the earlier display and reports uncertainty; no success or
 Explained result is invented. General `/v1` source/context authorization and contracts remain
 unchanged. This is a bounded hosted demonstration, not general nurse-write capability.
+
+The user subsequently renames the three existing hosted scenario records to Alina, Danny and
+Yuhan (formerly Mrs. K, Mr. T and Mrs. L). Preserve all UUIDs, assignments, captures, assessment
+values and immutable source text. The explanation capability remains bound to the same patient
+UUID and uses the current display name. Template Situation headings display that current name;
+historical source quotations and stored draft payloads retain their original text. Profile given
+names are explicitly updated to the user-supplied names without changing language preferences.

@@ -226,7 +226,11 @@
       if (!lines.length) return;
       section.append(h.el('h3', label));
       lines.forEach((s) => {
-        const p = h.el('p', s.text);
+        const text = sbar.source === 'template' && key === 'S'
+          ? s.text.replace(/^.+?'s speech differs from their usual/,
+            () => `${data.display_name}'s speech differs from their usual`)
+          : s.text;
+        const p = h.el('p', text);
         s.evidence_ids.forEach((id) => {
           if (id.startsWith('check:')) {  // the check itself, not a source document
             const check = h.el('button', 'check', {type: 'button', class: 'bl-cite bl-check-cite',
@@ -319,7 +323,7 @@
     const assessment = data.latest_assessment;
     const panel = h.el('details', '', {class: 'workspace-panel', 'data-explain': 'panel'});
     panel.append(h.el('summary', 'Add context / possible explanation'),
-      h.el('p', 'Mrs. L demo: record an observation that applies to this check. The source is saved and the stored check is reassessed. An explanation does not rule out other concerns.'),
+      h.el('p', `${data.display_name} demo: record an observation that applies to this check. The source is saved and the stored check is reassessed. An explanation does not rule out other concerns.`),
       h.el('p', `Check recorded ${h.formatTime(assessment.ts)}`));
     const tag = h.el('select', '', {'aria-label': 'Possible explanation'});
     [['', 'Choose an observation'], ['dentures', 'New or loose dentures'],
