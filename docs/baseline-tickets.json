@@ -67,7 +67,7 @@
     "depends_on": [
       "BL-05"
     ],
-    "done_when": "All four clips are usable; slow lowers speech rate; pausey raises pause ratio/count. Stairs features are reported as exploratory without a required direction (approved decision 027; original pitch failure retained).",
+    "done_when": "All four clips are usable; slow lowers speech rate; pausey raises pause ratio/count. Stairs features are reported as exploratory without a required direction (approved decision 028; original pitch failure retained).",
     "spec_section": "Test plan and demo-day checklist",
     "owner_lane": "speech"
   },
@@ -183,12 +183,12 @@
     "title": "Runner baseline and context",
     "area": "data",
     "tier": "mvp",
-    "description": "Dee replaces the remote runner caller. Enroll five distinct rested recordings through the checks API with mode=runner and is_baseline=true, then use mode=live on the same capture patient/device. Keep the no-escalate profile. No invented marathon context; stairs exploratory (decision 027).",
+    "description": "Dee replaces the remote runner caller. Enroll five distinct rested recordings through the checks API with mode=runner and is_baseline=true, then use mode=live on the same capture patient/device. Keep the no-escalate profile. No invented marathon context; stairs exploratory (decision 028).",
     "depends_on": [
       "BL-07",
       "BL-17"
     ],
-    "done_when": "Five distinct usable baseline checks stored through the API; one usable live check shows the same person's baseline comparison and authorized readback. Stairs has no required direction (decision 027).",
+    "done_when": "Five distinct usable baseline checks stored through the API; one usable live check shows the same person's baseline comparison and authorized readback. Stairs has no required direction (decision 028).",
     "spec_section": "Demo data, config and deployment",
     "owner_lane": "speech"
   },
@@ -208,7 +208,7 @@
     "title": "/check page",
     "area": "frontend",
     "tier": "mvp",
-    "description": "Prompt card, record button with 30 s auto-stop and manual Stop (decision 027), MediaRecorder (webm or mp4 on iOS), upload with retries, speech decomposition result view (waveform, word timeline, shaded pauses, 4 numbers vs baseline, verdict), modes resident/runner/live.",
+    "description": "Prompt card, record button with 30 s auto-stop and manual Stop (decision 028), MediaRecorder (webm or mp4 on iOS), upload with retries, speech decomposition result view (waveform, word timeline, shaded pauses, 4 numbers vs baseline, verdict), modes resident/runner/live.",
     "depends_on": [
       "BL-07",
       "BL-16"

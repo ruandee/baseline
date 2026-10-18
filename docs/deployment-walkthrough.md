@@ -144,21 +144,31 @@ Open these URLs in your own browser:
 - `https://baseline.yourdomain.com/check` — score-free PSW capture and due list.
 - `https://baseline.yourdomain.com/check?mode=live` — technical live capture.
 
-Confirm the roster has twelve residents. Open a resident's evidence and draft, and check that
+Confirm the roster includes twelve scripted residents. Open a resident's evidence and draft, and check that
 citations open the corresponding synthetic quote/check. A healthy server alone does not prove
 that these flows work. Share the URL only with the demo team: the synthetic nurse demo is
 intentionally accessible to anyone who has the URL.
 
 The default loader's `all-history` presentation ends with recovered states. It does not create
-the intended current-date Mrs. K/Mr. T/Mrs. L stage snapshot. Use the reviewed reset workflow
-once that integration lands; a plain loader reload is not a reset and refuses unrelated checks.
+the intended current-date Mrs. K/Mr. T/Mrs. L stage snapshot. On the configured host, run:
+
+```bash
+bash deploy/reset-demo.sh
+```
+
+This restores the current-day scripted scenarios, refreshes private nurse/PSW/KAZE tokens and
+prints the demo URLs. It also provisions separate live/runner people, whose recordings remain
+outside the scripted deletion allowlist. Their consent starts unknown; record the actual
+decision before capture. The twelve scripted residents therefore need not be the entire roster.
+A plain loader reload is not a reset and refuses unrelated checks. Time the command on the
+actual host: the under-one-minute acceptance gate remains unverified.
 
 When golden recordings are available, verify Safari MP4 and Chrome WebM using phones with
 Wi-Fi disabled. Record permission, upload, unusable/error behavior and warm latency must all be
 tested. These instructions do not close the golden-audio or real-device gates.
 
-The hosted KAZE worker/bootstrap integration is tracked separately (PR 76). On a release that
-includes it, startup also refreshes a separate safety-tenant person identity and starts
+Hosted KAZE worker/bootstrap integration is merged. Startup and reset refresh a separate
+safety-tenant person identity and start
 `kaze-worker`. It creates no contacts, sessions or consent by default. Follow the release's
 `deployment-path.md` for explicit fictional fixture consent before capture; never treat that
 setup as consent for a real person. Real SMS remains a separate provider/phone acceptance gate.

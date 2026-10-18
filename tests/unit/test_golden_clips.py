@@ -39,7 +39,7 @@ def checks(tmp_path_factory):
         scratch = work / stem
         scratch.mkdir()
         results[stem] = analyze(takes(stem)[0], scratch)
-    # Decision 027: natural exertion is exploratory, not a guaranteed pitch direction.
+    # Decision 028: natural exertion is exploratory, not a guaranteed pitch direction.
     # Keep its quality gate, and report measurements without tuning a detector to one take.
     print("Exploratory stairs comparison:",
           {stem: results[stem].features for stem in ("normal", "stairs")})

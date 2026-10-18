@@ -13,7 +13,7 @@ note the gap; do not paper over it with hand-edited database rows.
 | --- | --- |
 | Presenter (talk track) | |
 | Driver (laptop) | |
-| Live check speaker (phone) | Dee (own baseline; decision 027) |
+| Live check speaker (phone) | Dee (own baseline; decision 028) |
 | Runner contact / KAZE contact (if used) | |
 | Timekeeper | |
 
@@ -67,7 +67,7 @@ From `docs/06-baseline.md`, plus items found while preparing:
       the printed watch-list URL loads with fresh tokens. Follow `docs/deployment-walkthrough.md`
       for initial setup. Time the command; the under-one-minute gate remains unverified.
 - [ ] Do one live check from the demo phone in the judging room; note the noise level
-- [ ] Confirm Dee's five distinct usable API-enrolled baselines and one live-mode check on the same patient/device; no remote caller or exertion-trigger requirement (decision 027)
+- [ ] Confirm Dee's five distinct usable API-enrolled baselines and one live-mode check on the same patient/device; no remote caller or exertion-trigger requirement (decision 028)
 - [ ] Run one Gemini extraction; if it fails, confirm the template SBAR and offline tags still show
 - [ ] Open the backup demo video in a second tab (and have the offline copy ready)
 - [ ] Phone charged, laptop on power, HTTPS URL bookmarked on both

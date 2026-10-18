@@ -266,7 +266,7 @@ A fixed 10-second prompt goes through five pure functions (normalize, VAD, ASR, 
 
 ### Prompt protocol (`count20-days-v1`)
 
-On-screen card: **"Count from one to twenty, then say the days of the week, starting with Monday."** Core `/check` recording auto-stops at 30 s (decision 027); manual Stop remains available. Same words every time, so timing features compare like with like. Store `prompt_version` on every check.
+On-screen card: **"Count from one to twenty, then say the days of the week, starting with Monday."** Core `/check` recording auto-stops at 30 s (decision 028); manual Stop remains available. Same words every time, so timing features compare like with like. Store `prompt_version` on every check.
 
 ### Steps
 
@@ -355,7 +355,7 @@ supersedes the original any-single-CUSUM rule after explicit approval of PRs #60
    or at least `PM_MIN_FEATURES` features exceed `PM_PROVISIONAL_Z` on this check alone.
 5. `none` otherwise. One-feature CUSUM is diagnostic only; EWMA remains diagnostic.
 
-All thresholds come from `Settings` (`PM_Z_THRESHOLD=2.0`, `PM_PROVISIONAL_Z=3.0`, `PM_MIN_FEATURES=2`, `PM_EWMA_LAMBDA=0.3`, `PM_CUSUM_K=0.5`, `PM_CUSUM_H=4.0`) and are echoed in `params`. The repeat-check confirmation rule remains unchanged; the approved live volunteer demo does not promise an exertion-triggered change (decision 027).
+All thresholds come from `Settings` (`PM_Z_THRESHOLD=2.0`, `PM_PROVISIONAL_Z=3.0`, `PM_MIN_FEATURES=2`, `PM_EWMA_LAMBDA=0.3`, `PM_CUSUM_K=0.5`, `PM_CUSUM_H=4.0`) and are echoed in `params`. The repeat-check confirmation rule remains unchanged; the approved live volunteer demo does not promise an exertion-triggered change (decision 028).
 
 ## Context, verdict and SBAR
 
@@ -475,7 +475,7 @@ One loader builds the synthetic unit, one reset script restores it and mints fre
 | Mr. T | Day 25: note "New upper denture fitted this morning, says it feels loose." Days 26 and 27: speech rate −15%, pause ratio and mean pause +35% (explicitly approved scenario amendment, decision 008) | `explained` (dentures) |
 | Mrs. L | Day 29: one check with speech rate −30% and pause ratio +50%; no notes | `watch`, `recheck_1h` (provisional) |
 | 9 others | Stable | `within_normal` |
-| Live volunteer (Dee) | Five distinct rested API enrollments with `is_baseline=true`; same dedicated capture patient/device for `mode=live` readback. Listed in `PM_NO_ESCALATE_PATIENTS`. No invented marathon context; stairs exploratory only (decision 027) | Actual usable check and baseline comparison; normal is valid. Synthetic Mr. T demonstrates explained change separately |
+| Live volunteer (Dee) | Five distinct rested API enrollments with `is_baseline=true`; same dedicated capture patient/device for `mode=live` readback. Listed in `PM_NO_ESCALATE_PATIENTS`. No invented marathon context; stairs exploratory only (decision 028) | Actual usable check and baseline comparison; normal is valid. Synthetic Mr. T demonstrates explained change separately |
 | Live demo | No baseline; `mode=live` | `enrolling`; decomposition view only |
 
 ### Reset (`scripts/demo_reset.py`)
@@ -659,7 +659,7 @@ A usable, normal check or an ack stops the ladder. SMS via Twilio (`PM_TWILIO_SI
 | BL-03 | Migration 003 and Timescale image | Backend | Switch db image; add `voice_checks` hypertable, `context_tags`, `assessments` with RLS and grants per the SQL above | BL-02 | Migration runs from empty DB; RLS test as `pm_runtime` passes on all 3 tables; existing tests still pass | Not started |
 | BL-04 | Audio, VAD, ASR, features | Speech | `speech/audio.py`, `vad.py`, `asr.py` (singleton), `features.py` as pure functions | — | Unit test on synthetic audio: pause count and ratio within 5% of constructed values | Not started |
 | BL-05 | Prosody and quality gate | Speech | `speech/prosody.py`, `quality.py` with the six reason codes | BL-04 | Short, noisy, clipped and off-script fixtures each return the right reason | Not started |
-| BL-06 | Golden clips | Speech | Four usable clips kept out of Git; slow-marked tests; stairs exploratory (decision 027) | BL-05 | Slow rate down; pausey ratio/count up; stairs measurements reported without a direction gate | See build-status |
+| BL-06 | Golden clips | Speech | Four usable clips kept out of Git; slow-marked tests; stairs exploratory (decision 028) | BL-05 | Slow rate down; pausey ratio/count up; stairs measurements reported without a direction gate | See build-status |
 | BL-07 | `POST /checks` endpoint | Backend | Multipart upload, pipeline call, insert into `voice_checks`, `timings_ms`, temp file cleanup | BL-03, BL-05 | Contract tests for webm, mp4, wav, unusable clip, wrong patient (404); p95 under 5 s on the host | Not started |
 | BL-08 | Change engine | Backend | `baseline/engine.py` per the spec; rolling and enrolled modes; provisional status | BL-07 | Unit tests: stable → none; drift → change on 2nd check; 3 fresh baseline clips work; 1 strong clip → provisional | Not started |
 | BL-09 | Structured context and `POST /context` | Backend | Medication lookup, temperature rule, context records via existing ingestion | BL-03 | Oxybutynin order creates a `high_risk_med_new` tag with a valid span | Not started |
@@ -668,7 +668,7 @@ A usable, normal check or an ack stops the ladder. SMS via Twilio (`PM_TWILIO_SI
 | BL-12 | SBAR draft | Backend | `baseline/sbar.py` with the 5-rule validator and template fallback | BL-10, BL-11 | Wrong number or unknown ID falls back to template; valid draft stored with `source: gemini` | Not started |
 | BL-13 | Watch list and overview endpoints | Backend | `GET /watchlist`, `GET /patients/{id}/overview` with `time_bucket` series; regenerate OpenAPI | BL-11 | Each page's data in one call; OpenAPI updated | Not started |
 | BL-14 | Synthetic cohort loader | Data | `scripts/load_baseline_demo.py` + storylines JSON per the table; `--offline` flag | BL-03 (data), BL-11 (verdict check) | One command loads 12 residents; Mrs. K escalate, Mr. T explained, Mrs. L watch | Not started |
-| BL-15 | Live volunteer baseline | Data | Dee enrolls five distinct rested takes through the existing API; same patient/device in live mode; no-escalate profile; no remote call dependency (decision 027) | BL-07, BL-17 | Five usable baseline checks stored and one usable live comparison/readback; no stairs-trigger requirement | See build-status |
+| BL-15 | Live volunteer baseline | Data | Dee enrolls five distinct rested takes through the existing API; same patient/device in live mode; no-escalate profile; no remote call dependency (decision 028) | BL-07, BL-17 | Five usable baseline checks stored and one usable live comparison/readback; no stairs-trigger requirement | See build-status |
 | BL-16 | Frontend scaffold | Frontend | Baseline shell in `frontend/` (decision 005): routes, hosted-mode token path, layout, colour tokens | — | Shell reaches the API health endpoint with the demo token | Not started |
 | BL-17 | `/check` page | Frontend | Recording, upload with retries, speech decomposition result view, three modes | BL-07, BL-16 | Works on an iPhone and an Android phone over HTTPS on LTE | Not started |
 | BL-18 | `/unit` page | Frontend | Watch list table, escalation counter, sparklines, 10 s polling | BL-13, BL-16 | Sorted list matches API; polling stops when tab hidden | Not started |
@@ -690,7 +690,7 @@ Tests follow the repo's existing layers; CI runs everything except `slow` (Whisp
 | Layer | File | Pass condition |
 | --- | --- | --- |
 | Unit | `tests/unit/test_features.py` | Synthetic audio with known silences: pause count and pause ratio within 5% |
-| Unit (slow) | `tests/unit/test_golden_clips.py` | All four clips usable; slow: speech rate down; pausey: pause ratio/count up; stairs: exploratory measurement report, no direction requirement (decision 027) |
+| Unit (slow) | `tests/unit/test_golden_clips.py` | All four clips usable; slow: speech rate down; pausey: pause ratio/count up; stairs: exploratory measurement report, no direction requirement (decision 028) |
 | Unit | `tests/unit/test_quality.py` | Each of the 6 reason codes triggers on its fixture |
 | Unit | `tests/unit/test_engine.py` | Stable series: none. Drift: change on the 2nd check. Enrolled mode with 3 fresh clips. Single strong clip: provisional. MAD floor prevents division blow-ups |
 | Unit | `tests/unit/test_verdict.py` | Every status × context combination maps to exactly one verdict; amplifier wins; no-escalate list respected |

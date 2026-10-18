@@ -2,7 +2,7 @@
 
 The live speaker is Dee, on the same device used for the baseline. No teammate telephone call,
 marathon claim, stairs-trigger promise or breathlessness detector is part of this flow.
-See [decision 027](decisions/027-live-voice-demo-protocol.md) for the approved protocol revision.
+See [decision 028](decisions/028-live-voice-demo-protocol.md) for the approved protocol revision.
 
 ## Prepare
 

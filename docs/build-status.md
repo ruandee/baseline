@@ -50,7 +50,7 @@ No real-data integration is authorized by these implemented milestones.
 
 Only care-team roles can write voice checks; unauthorized patients/roles return 404 before audio
 work. Multipart is allowed only on the check route, with a 2 MB whole-body limit; other routes
-remain JSON-only. Upload duration and core `/check` capture are bounded at 30 s (decision 027). Temporary audio is
+remain JSON-only. Upload duration and core `/check` capture are bounded at 30 s (decision 028). Temporary audio is
 deleted unless PM_KEEP_AUDIO=true. Unusable clips are stored for audit and receive neither
 change nor assessment. Usable clips run the actual engine/verdict service and return both.
 Whisper startup warming, browser-format contracts and extraction tests are implemented; installing
@@ -118,18 +118,18 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
   idempotency, exact evidence, RLS/revocation and contamination rejection. Final integrated CI
   is tracked on PRs #60/#53/#61; no local Docker/DB run is claimed.
 - Dee authorized local golden-recording evaluation: the original suite passed quality, slow-rate
-  and deliberate-pause tests but failed the stairs pitch expectation. Decision 027 explicitly
+  and deliberate-pause tests but failed the stairs pitch expectation. Decision 028 explicitly
   makes stairs exploratory, preserving that failure. Five distinct API-enrolled rested checks
   and a live readback/rehearsal remain outstanding; the feature loader does not validate real audio.
 - Public HTTPS/DNS/token configuration, LTE Safari/Chrome capture and warm host p95 below 5 s
   remain acceptance work. UI evidence/SBAR readback passes API-captured DOM and lifecycle tests;
   physical-phone readback has not been verified.
 - The 12-patient roster, Mrs. K's sourced 37.1 C observation, resident charts and preliminary
-  export are merged (#55). Current-time reset remains in #79 pending final combined CI/review.
+  export are merged (#55). Current-time reset #79 is merged; hosted timing remains unverified.
 - KAZE sessions, scheduler, SMS/acknowledgement and pages are merged (#66/#69/#72/#71/#80);
-  hosted worker/bootstrap remains in #76. Real two-phone SMS/ack acceptance remains open.
+  hosted worker/bootstrap #76 is merged. Real two-phone SMS/ack acceptance remains open.
   Vox mock and consent/PSW flows are merged; real/nontechnical user acceptance remains open.
-  Registry #78, motion and vitals remain development work. Submission, backup video and two
+  Registry #78 is merged; motion and vitals remain in integration. Submission, backup video and two
   rehearsals are tracked separately; implemented code alone does not close those gates.
 
 Follow README/operations and the exact CI order before claiming a new integrated milestone done.
@@ -168,7 +168,7 @@ KAZE session model, expiry/retention hardening and synthetic engineering tests f
 are integrated. Migration 007 follows 006; explicit synthetic session fixtures record consent.
 Scheduler and durable delivery/public acknowledgement are merged; real-device acceptance remains
 open. The default sender logs simulated delivery and sends no SMS. Hosted KAZE credentials,
-bootstrap and dedicated worker remain in #76 pending integration acceptance.
+bootstrap and dedicated worker are merged in #76; public-host acceptance remains open.
 
 BL-32 Vox mock adapter integration: care-team authorization, standing `vox_encounter` consent
 before decode and locked publication (403 consent_required), plus exactly one raw true request
@@ -205,17 +205,24 @@ explicit contact-free bootstrap and private safety-person credentials. Consent r
 unless explicitly granted for fixtures; existing withdrawals remain preserved. Public-phone and
 real-SMS acceptance remain open.
 
-BL-30 registry review adds scoped modalities, explicit missing/stale states, corroboration and
+BL-30 registry (merged #78) adds scoped modalities, explicit missing/stale states, corroboration and
 legacy speech compatibility. New captures reproject eligible immutable modalities at current
 revision without restoring invalidated decisions; first-change markers reject stale/session
 snapshots. Only speech is registered in this base. Decision025/migration010 track the contract;
 final exact-head CI remains authoritative after hosting/status integration.
 
-BL-21 reset (pending combined CI): fixture-only current-time reset verifies all twelve
+BL-21 reset (merged #79): fixture-only current-time reset verifies all twelve
 canonical outcomes, preserves unrelated recordings/consent, refreshes private nurse/PSW/KAZE
 credentials and configures runner suppression. Hosted reset under one minute remains unverified.
 
-BL-06/15/17 live demo revision (decision 027): Dee replaces the remote caller; core browser
+BL-34 motion integration (pending main CI): local-only camera/pose processing uses pinned
+self-hosted assets and uploads bounded client-derived measurements with unknown-by-default
+motion consent. Final migration011 guards require explicit scoring authorization, including
+unset-context denial. Exact source provenance, RLS, purge and projection tests passed on the
+feature head; real Chrome model startup/failure used no camera or remote requests. Physical
+phone/camera and three measurements in under15seconds remain unverified (Refs #36).
+
+BL-06/15/17 live demo revision (decision 028): Dee replaces the remote caller; core browser
 capture permits 30 seconds with manual Stop and the unchanged 30-second server/2 MB body caps.
 The API-only enrollment helper requires five distinct rested takes, current care-team access and
 recorded consent; it preserves receipts and never automatically retries a POST. It does not
@@ -226,6 +233,6 @@ physical browser/host/rehearsal acceptance are not claimed by implementation or 
 
 Local revision validation: lint and 578 unit tests passed (five optional slow tests deselected),
 plus the revised three-test real Whisper golden suite passed on Dee's original four recordings.
-The original stairs pitch failure remains in decision 027. Local Compose cannot connect to the
+The original stairs pitch failure remains in decision 028. Local Compose cannot connect to the
 Docker engine while Windows activation/restart is pending; full service acceptance uses CI and
 does not establish that a particular live deployment or phone has passed rehearsal.

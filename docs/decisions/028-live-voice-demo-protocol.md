@@ -1,4 +1,4 @@
-# 027: Live volunteer demo, 30-second capture and exploratory stairs
+# 028: Live volunteer demo, 30-second capture and exploratory stairs
 
 Status: accepted by Dee in the implementation conversation, 2026-10-18.
 Affected work: BL-06, BL-15 and BL-17. This is a demo protocol revision, not clinical validation.

@@ -124,7 +124,7 @@ and cited evidence. The model never decides a verdict, has no tools, and cannot 
 - **Live volunteer check-in.** Dee replaces the remote runner caller. An actual browser check is
   compared with Dee's own rested baseline; its real result may be normal. Synthetic residents
   demonstrate the change/context/verdict story separately. No exertion or breathlessness detection
-  is claimed (decision 027). [Claim the live segment only after successful enrollment/rehearsal.]
+  is claimed (decision 028). [Claim the live segment only after successful enrollment/rehearsal.]
 - **Privacy.** Audio is deleted after processing unless a developer flag is set; the four
   measurements, the transcript and word timings are stored with the check. A real deployment would need consent and Canadian hosting.
 
