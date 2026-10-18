@@ -77,6 +77,47 @@ def test_hosted_settings_reject_default_signing_secret(monkeypatch):
             deployment_settings()
 
 
+@pytest.mark.parametrize("path", ["/", "/unit", "/check", "/resident/synthetic-id",
+                                  "/out", "/out/session/synthetic-session"])
+def test_hosted_public_shell_accepts_external_document_navigation(monkeypatch, path):
+    cfg, token = configure(monkeypatch)
+    client = TestClient(app_for(cfg), base_url="https://demo.example.com",
+                        client=("192.0.2.10", 1234))
+    headers = {"Sec-Fetch-Site": "cross-site", "Sec-Fetch-Mode": "navigate",
+               "Sec-Fetch-Dest": "document", "Origin": "https://devpost.example"}
+    response = client.get(path, headers=headers)
+    assert response.status_code == 200
+    assert token not in response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert "frame-ancestors 'none'" in response.headers["content-security-policy"]
+    assert client.get(path, headers=headers | {"Host": "evil.example.com"}).status_code == 403
+
+
+@pytest.mark.parametrize("path", ["/demo/session", "/v1/watchlist", "/v1/health/live",
+                                  "/assets/baseline.js", "/unknown"])
+def test_external_document_exception_never_opens_api_or_assets(monkeypatch, path):
+    cfg, _ = configure(monkeypatch)
+    client = TestClient(app_for(cfg), base_url="https://demo.example.com")
+    headers = {"Sec-Fetch-Site": "cross-site", "Sec-Fetch-Mode": "navigate",
+               "Sec-Fetch-Dest": "document", "X-PM-Demo": "1"}
+    assert client.get(path, headers=headers).status_code == 403
+
+
+def test_external_shell_requires_document_get_and_preserves_local_mode(monkeypatch):
+    from scripts.frontend import workspace_app
+
+    cfg, _ = configure(monkeypatch)
+    client = TestClient(app_for(cfg), base_url="https://demo.example.com")
+    headers = {"Sec-Fetch-Site": "cross-site", "Sec-Fetch-Mode": "navigate",
+               "Sec-Fetch-Dest": "document"}
+    for override in ({"Sec-Fetch-Mode": "cors"}, {"Sec-Fetch-Dest": "iframe"}):
+        assert client.get("/unit", headers=headers | override).status_code == 403
+    assert client.post("/unit", headers=headers).status_code == 403
+    local = TestClient(workspace_app(cfg, Identity(uid("0/nurse"), uid("tenant-0")), ROSTER),
+                       base_url="http://localhost", client=("192.0.2.10", 1234))
+    assert local.get("/unit", headers=headers).status_code == 403
+
+
 def test_serve_and_worker_refuse_admin_database_url():
     cfg = Settings(jwt_secret="deployment-only-test-secret-32-characters")
     assert cfg.admin_database_url
