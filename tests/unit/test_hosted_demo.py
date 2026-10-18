@@ -70,6 +70,27 @@ def test_hosted_session_enforces_host_and_https_origin(monkeypatch):
     assert client.get("/demo/session").status_code == 403
 
 
+def test_hosted_record_cutoff_is_current_and_local_fixture_cutoff_stays_fixed(monkeypatch):
+    from datetime import datetime
+
+    from scripts.frontend import workspace_app
+
+    cfg, _ = configure(monkeypatch)
+    at = datetime.fromisoformat("2026-10-18T03:00:00+00:00")
+    monkeypatch.setattr("scripts.frontend.now", lambda: at)
+    hosted = TestClient(app_for(cfg), base_url="https://demo.example.com")
+    response = hosted.get("/demo/session", headers={"X-PM-Demo": "1"})
+    assert response.status_code == 200
+    assert response.json()["as_of"] == at.isoformat()
+    assert response.json()["snapshot_mode"] == "current"
+    local = TestClient(workspace_app(cfg, Identity(uid("0/nurse"), uid("tenant-0")), ROSTER),
+                       base_url="http://localhost", client=("127.0.0.1", 1234))
+    response = local.get("/demo/session", headers={"X-PM-Demo": "1"})
+    assert response.status_code == 200
+    assert response.json()["as_of"] == "2026-01-03T00:00:00Z"
+    assert response.json()["snapshot_mode"] == "fixed"
+
+
 def test_hosted_settings_reject_default_signing_secret(monkeypatch):
     for secret in (Settings.model_fields["jwt_secret"].default, "short"):
         monkeypatch.setenv("PM_JWT_SECRET", secret)
