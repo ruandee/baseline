@@ -71,3 +71,9 @@ initialized in 606 ms; a model 404 left Start disabled with a clear failure. Bot
 only same-origin GET requests and no camera requests. This is model preparation evidence,
 not physical-phone capture or end-to-end latency acceptance. Playback stalls are covered by
 the camera deadline, and cancellation settles pending playback/inference without submission.
+
+
+The closed SQL publisher requires both checker authorization and an explicitly true scoring
+context. Its definer guard uses `IS NOT TRUE`: an unset custom setting can produce SQL NULL
+and must reject, rather than falling through a three-valued `IF NOT` condition. Contract tests
+exercise this boundary for care-team and PSW identities outside the trusted scoring context.
