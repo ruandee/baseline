@@ -18,6 +18,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import AwareDatetime
 
 from patient_memory.auth import decode_token
+from patient_memory.baseline import sessions
 from patient_memory.baseline.context import add_context
 from patient_memory.baseline.notes import extract_pending_notes
 from patient_memory.baseline.overview import overview as build_overview
@@ -36,6 +37,10 @@ from patient_memory.domain import (
     PatientInput,
     Question,
     Reason,
+    SessionArm,
+    SessionEnd,
+    SessionList,
+    SessionOut,
     SourceInput,
     Summary,
     VisibilityInput,
@@ -335,9 +340,21 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
                      device_id: Annotated[str, Form(min_length=1, max_length=128)],
                      request: Request, actor=actor_dep,
                      device_ts: Annotated[AwareDatetime | None, Form()] = None,
-                     is_baseline: Annotated[bool, Form()] = False) -> CheckResult:
+                     is_baseline: Annotated[bool, Form()] = False,
+                     session_id: Annotated[UUID | None, Form()] = None,
+                     lat: Annotated[float | None, Form(ge=-90, le=90)] = None,
+                     lon: Annotated[float | None, Form(ge=-180, le=180)] = None,
+                     accuracy_m: Annotated[float | None, Form(ge=0, le=100_000)] = None,
+                     ) -> CheckResult:
+        location = None
+        if lat is not None or lon is not None or accuracy_m is not None:
+            if lat is None or lon is None or session_id is None:
+                raise Problem(422, "invalid_request")
+            location = (lat, lon, accuracy_m)
         with transaction(cfg, actor) as conn:
             care_gate(conn, patient_id)
+            if session_id is not None:  # reject before any audio work
+                sessions.check_gate(conn, patient_id, session_id, mode, is_baseline)
         work = Path(tempfile.mkdtemp(prefix="check-"))
         try:
             upload = work / "upload"
@@ -350,14 +367,40 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             except DecoderUnavailable as exc:
                 raise Problem(503, "dependency_unavailable") from exc
         finally:
-            if not cfg.keep_audio:
+            # Session audio has no retention index: never leave raw files behind for KAZE.
+            if session_id is not None or not cfg.keep_audio:
                 shutil.rmtree(work, ignore_errors=True)
         with transaction(cfg, actor) as conn:
             result = store_check(conn, actor, patient_id, request.state.request_id, analysis,
-                                 mode, device_id, device_ts, is_baseline, cfg)
-        if result.assessment:
+                                 mode, device_id, device_ts, is_baseline, cfg,
+                                 session_id=session_id, location=location)
+        # KAZE session check-ins never go to a model provider (decision 018).
+        if result.assessment and session_id is None:
             enrich_assessment_sbar(cfg, actor, patient_id, result.assessment["id"])
         return result
+
+    @app.post("/v1/patients/{patient_id}/sessions", status_code=201, response_model=SessionOut)
+    def arm_session(patient_id: UUID, body: SessionArm, request: Request,
+                    idempotency_key: str | None = Header(default=None), actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            return sessions.arm(conn, actor, patient_id, body, idempotency_key,
+                                request.state.request_id)
+
+    @app.get("/v1/patients/{patient_id}/sessions", response_model=SessionList)
+    def list_sessions(patient_id: UUID, actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            return {"sessions": sessions.sessions(conn, patient_id)}
+
+    @app.get("/v1/patients/{patient_id}/sessions/{session_id}", response_model=SessionOut)
+    def session_status(patient_id: UUID, session_id: UUID, actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            return sessions.status(conn, patient_id, session_id)
+
+    @app.post("/v1/patients/{patient_id}/sessions/{session_id}/end", response_model=SessionOut)
+    def end_session(patient_id: UUID, session_id: UUID, body: SessionEnd, request: Request,
+                    actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            return sessions.end(conn, actor, patient_id, session_id, request.state.request_id)
 
     @app.get("/v1/watchlist")
     def watchlist(actor=actor_dep):

@@ -145,3 +145,10 @@ Known gap: `scripts.frontend` mints its token for the eval-corpus workspace tena
 loader writes the cohort to `uid("tenant-0")`. A default local `/unit` therefore lists the
 workspace patients with no voice checks; it shows the cohort only when `PM_DEMO_TOKEN` is set
 to the loader's `artifacts/baseline-demo/session.json` nurse token (BL-21 reset work).
+
+## BL-25 session model integration
+
+Review fixes cover session expiry before capture and after locking, immutable ended-state retention,
+24-hour deletion including idempotent arm snapshots, constrained runtime grants, and unconditional
+session-audio cleanup. Session-model tests pass locally; final combined service CI remains required.
+Scheduler/SMS/pages and the held ADR 018 policy questions remain separate work.

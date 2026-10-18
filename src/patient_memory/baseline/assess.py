@@ -60,12 +60,15 @@ def escalations_used(conn, now: datetime, cfg: Settings) -> int:
     ).fetchone()["n"]
 
 
-def _history(conn, patient_id: UUID, before: datetime, prompt_version: str) -> list[Check]:
+def _history(conn, patient_id: UUID, before: datetime, prompt_version: str,
+             session_id: UUID | None = None) -> list[Check]:
+    # A KAZE session is compared only with its own arm-time baseline; checks outside a session
+    # never use session clips (decision 018).
     rows = conn.execute(
         "SELECT id,ts,device_id,prompt_version,is_baseline,usable,speech_rate_wpm,pause_ratio,"
         "mean_pause_s,f0_median_hz FROM voice_checks WHERE patient_id=%s AND usable AND ts<%s "
-        "AND prompt_version=%s ORDER BY ts DESC",
-        (patient_id, before, prompt_version)).fetchall()
+        "AND prompt_version=%s AND session_id IS NOT DISTINCT FROM %s ORDER BY ts DESC",
+        (patient_id, before, prompt_version, session_id)).fetchall()
     return [Check(str(r["id"]), r["ts"], r["device_id"], r["prompt_version"], r["is_baseline"],
                   r["usable"], {n: r[n] for n in FEATURES}) for r in rows]
 
@@ -80,12 +83,13 @@ def change_payload(assessment, mode: str) -> dict:
 
 def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_id: UUID,
                  ts: datetime, device_id: str, prompt_version: str, is_baseline: bool,
-                 features: dict, display_name: str) -> tuple[dict, dict]:
+                 features: dict, display_name: str,
+                 session_id: UUID | None = None) -> tuple[dict, dict]:
     """Returns the (change, assessment) payloads of POST /checks and stores the assessment row."""
     patient_access(conn, patient_id)
     lock_assessment(conn, tenant_id, patient_id)
     patient_access(conn, patient_id)
-    history = _history(conn, patient_id, ts, prompt_version)
+    history = _history(conn, patient_id, ts, prompt_version, session_id)
     mode = "enrolled" if sum(c.is_baseline for c in history) >= MIN_BASELINE else "rolling"
     check = Check(str(check_id), ts, device_id, prompt_version, is_baseline, True, dict(features))
     result = evaluate(check, history, mode, cfg)
