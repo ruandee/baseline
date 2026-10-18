@@ -59,6 +59,18 @@ test('retry retains the same receipt ID, sends metadata only and clears audio on
   exit(page);
 });
 
+test('a dropped network shows the friendly retry message, not the browser error', async () => {
+  const page = loadPage(url);
+  await record(page);
+  page.window.fetch = async () => { throw new TypeError('Failed to fetch'); };
+  q(page, '.bl-handoff-submit').click();
+  await until(() => page.main.textContent.includes('Connection failed'));
+  assert(!page.main.textContent.includes('Failed to fetch'));
+  assert(q(page, 'audio'));
+  assert(!q(page, '.bl-handoff-submit').disabled);
+  exit(page);
+});
+
 test('nurse receives runner and must explicitly apply context to explain it', async () => {
   let revision = 1;
   const data = () => ({revision, exertion: revision === 2, capture_keys: {runner: 'r', resident: 'd'},
