@@ -247,10 +247,14 @@ def test_feedback_expires_with_another_contributing_modality_fact_without_revisi
     assert feedback(sandbox) is True
     fact = latest["modalities"]["vitals"]["evidence_ids"][0]
     with psycopg.connect(sandbox[0].admin_database_url) as admin:
+        revision = admin.execute("SELECT revision FROM patients WHERE id=%s",
+                                 (sandbox[1],)).fetchone()[0]
         admin.execute("UPDATE facts SET valid_to=valid_from+interval '1 microsecond' WHERE id=%s",
                       (fact,))
         assert admin.execute("SELECT valid_to<clock_timestamp() FROM facts WHERE id=%s",
                              (fact,)).fetchone()[0]
+        assert admin.execute("SELECT revision FROM patients WHERE id=%s",
+                             (sandbox[1],)).fetchone()[0] == revision
     assert overview(sandbox)["latest_assessment"]["sbar"] is None
     assert client_for(sandbox).get(
         f"/v1/patients/{sandbox[1]}/assessments/{latest['id']}/note").status_code == 409
@@ -264,4 +268,38 @@ def test_negated_or_other_person_fact_cannot_earn_own_note_credit(sandbox, colum
     with psycopg.connect(sandbox[0].admin_database_url) as admin:
         admin.execute(f"UPDATE facts SET {column}=%s WHERE source_id=%s",
                       (value, imported["source_version_id"]))
+    assert feedback(sandbox) is None
+
+
+@pytest.mark.parametrize("damage", ["mixed_prompt", "null_allowed_voice"])
+def test_feedback_revalidates_typed_voice_membership_and_prompt_without_null_fallthrough(sandbox, damage):
+    import_note(sandbox, authored(sandbox))
+    seed_checks(sandbox, 6)
+    speech = store(sandbox, SLOW)
+    import_note(sandbox, rr_payload(datetime.now(UTC)))
+    latest = overview(sandbox)["latest_assessment"]
+    assert latest["sbar"] and feedback(sandbox) is True
+    with psycopg.connect(sandbox[0].admin_database_url) as admin:
+        sbar, params = admin.execute("SELECT sbar,params FROM assessments WHERE id=%s",
+                                     (latest["id"],)).fetchone()
+        baseline = params["modality_results"]["speech"]["params"]["baseline_evidence_ids"]
+        assert baseline
+        if damage == "mixed_prompt":
+            admin.execute("UPDATE voice_checks SET prompt_version='free-conversation-v1' WHERE id=%s",
+                          (baseline[0].removeprefix("check:"),))
+        else:
+            unrelated = uuid4()
+            admin.execute("INSERT INTO voice_checks(tenant_id,patient_id,id,ts,device_id,mode,"
+                          "is_baseline,usable,quality,speech_rate_wpm,pause_ratio,mean_pause_s,"
+                          "f0_median_hz,prompt_version,synthetic) SELECT tenant_id,patient_id,%s,ts,"
+                          "device_id,mode,false,usable,quality,speech_rate_wpm,pause_ratio,mean_pause_s,"
+                          "f0_median_hz,prompt_version,true FROM voice_checks WHERE id=%s",
+                          (unrelated, speech.check_id))
+            sbar["sentences"][0]["evidence_ids"].append("check:" + str(unrelated))
+            baseline.append(None)
+            admin.execute("UPDATE assessments SET sbar=%s::jsonb,params=%s::jsonb WHERE id=%s",
+                          (json.dumps(sbar), json.dumps(params), latest["id"]))
+    if damage == "mixed_prompt":
+        assert client_for(sandbox).get(
+            f"/v1/patients/{sandbox[1]}/assessments/{latest['id']}/note").status_code == 409
     assert feedback(sandbox) is None

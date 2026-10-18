@@ -93,7 +93,7 @@ GRANT EXECUTE ON FUNCTION pm_latest_resident_assessment_id(uuid,timestamptz,text
 CREATE FUNCTION pm_observation_helped(p_patient uuid) RETURNS boolean
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $$
 DECLARE current_at timestamptz:=statement_timestamp(); selected uuid; signal_at timestamptz;
- a public.assessments;
+ a public.assessments; voice_prompt text;
 BEGIN
  IF public.pm_role(p_patient,'psw') IS NOT TRUE THEN RETURN NULL; END IF;
  selected:=public.pm_latest_resident_assessment_id(p_patient,current_at);
@@ -115,6 +115,10 @@ BEGIN
    OR (m.value->>'ts')::timestamptz>current_at
    OR (m.value->>'ts')::timestamptz<current_at-interval '24 hours')
  ) THEN RETURN NULL; END IF;
+ SELECT v.prompt_version INTO voice_prompt FROM public.voice_checks v
+  WHERE v.tenant_id=public.pm_tenant() AND v.patient_id=p_patient
+  AND v.id::text=COALESCE(a.params->'modality_results'->'speech'->>'check_id',
+   CASE WHEN COALESCE(a.params->>'modality','speech')='speech' THEN a.check_id::text END);
  IF EXISTS(
   WITH modalities AS (
    SELECT key AS name,value FROM jsonb_each(COALESCE(a.params->'modality_results','{}'::jsonb))
@@ -132,11 +136,11 @@ BEGIN
    UNION SELECT jsonb_array_elements_text(value->'params'->'baseline_evidence_ids') FROM modalities
   )
   SELECT FROM cited c WHERE c.id IS NOT NULL AND (
-   (c.id LIKE 'check:%' AND (c.id NOT IN (SELECT id FROM allowed_voice) OR NOT EXISTS(
+   (c.id LIKE 'check:%' AND (NOT EXISTS(SELECT FROM allowed_voice av WHERE av.id=c.id) OR NOT EXISTS(
     SELECT FROM public.voice_checks v
     WHERE v.tenant_id=public.pm_tenant() AND v.patient_id=p_patient
     AND v.id::text=substring(c.id FROM 7) AND v.usable AND v.session_id IS NULL
-    AND v.ts<=current_at)))
+    AND v.ts<=current_at AND v.prompt_version IS NOT DISTINCT FROM voice_prompt)))
    OR (c.id NOT LIKE 'check:%' AND NOT EXISTS(
     SELECT FROM public.facts f JOIN public.sources s ON s.tenant_id=f.tenant_id
     AND s.patient_id=f.patient_id AND s.id=f.source_id

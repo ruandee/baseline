@@ -13,6 +13,22 @@ class CaptureStub {
 }
 const button = (h, text) => h.main.querySelectorAll('button').find((b) => b.textContent.includes(text));
 
+test('motion permission controls have visible associated labels and a fieldset legend', async () => {
+  const h = loadPage('/check?type=motion&patient=p1');
+  h.window.MotionCapture = CaptureStub;
+  await until(() => button(h, 'Prepare local'));
+  const permission = h.main.querySelector('fieldset');
+  assert.equal(permission.querySelector('legend').textContent, 'Movement-check permission');
+  for (const control of h.main.querySelectorAll('select').concat(
+    h.main.querySelectorAll('input').filter((n) => n.getAttribute('type') === 'text'))) {
+    assert.equal(control.parentNode.tagName, 'LABEL');
+    assert.ok(control.parentNode.textContent.trim().length);
+  }
+  assert.equal(h.main.querySelector('video').getAttribute('aria-label'), 'Local camera preview');
+  assert.equal(h.main.querySelector('[role=status]').textContent, 'Camera is off.');
+  assert.equal(permission.hidden, false);
+});
+
 test('motion page requires taps and server consent, then posts derived numbers without media', async () => {
   const h = loadPage('/check?type=motion&patient=p1', {routes: {
     'GET /v1/patients/p1/motion-checks/readiness': () => ({ready: true}),
