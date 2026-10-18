@@ -29,7 +29,7 @@ function checkParams() {
   const mode = CHECK_MODES.includes(q.get('mode')) ? q.get('mode')
     : q.get('type') === 'motion' ? 'live' : 'resident';
   return {mode, patient: q.get('patient'), mock: q.get('mock') === '1',
-          fixture: q.get('fixture') || 'change', lang: q.get('lang') || 'en',
+          fixture: q.get('fixture') || 'change', lang: q.get('lang'),
           device: q.get('device')};
 }
 

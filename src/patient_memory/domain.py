@@ -393,12 +393,34 @@ class SkipReceipt(Contract):
     recorded_at: AwareDatetime
 
 
+class CheckProfileInput(Contract):
+    preferred_locale: str | None = Field(default=None, pattern=r"^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$", max_length=35)
+    first_name: str | None = Field(default=None, min_length=1, max_length=80)
+
+    @model_validator(mode="after")
+    def clean_name(self):
+        if self.first_name is not None:
+            if not self.first_name.strip() or self.first_name != self.first_name.strip():
+                raise ValueError("Supply an explicit trimmed first name")
+        return self
+
+
+class CheckProfile(Contract):
+    first_name: str | None
+    preferred_locale: str | None
+    version: UUID | None
+    state: Literal["ready", "unconfigured", "unsupported"]
+    protocol_locale: Literal["en"] | None
+    prompt_version: Literal["count20-days-v1"] | None
+
+
 class DueResident(Contract):
     """Deliberately score-free: no verdict, fused z, feature, sparkline or SBAR fields."""
 
     patient_id: UUID
     display_name: str
-    status: Literal["due", "done", "skipped", "consent_needed"]
+    status: Literal["due", "done", "skipped", "consent_needed", "language_unavailable"]
+    check_profile: CheckProfile
     consent_state: ConsentState
     last_check_ts: AwareDatetime | None
     skipped_today: bool

@@ -213,3 +213,17 @@ final exact-head CI remains authoritative after hosting/status integration.
 BL-21 reset (merged #79): fixture-only current-time reset verifies all twelve
 canonical outcomes, preserves unrelated recordings/consent, refreshes private nurse/PSW/KAZE
 credentials and configures runner suppression. Hosted reset under one minute remains unverified.
+
+BL-31 resident counting profiles (decision031/migration014, following013): assigned care staff
+explicitly configure a nullable given name and preferred locale using `GET/PUT
+/v1/patients/{id}/check-profile`. Only exact `en` maps to the existing English
+`count20-days-v1` protocol. Missing/unsupported profiles block counting before decode and
+appear as a score-free language-setup state on the PSW due list/direct check page; no English
+fallback or roster-name guessing occurs. Admission rejects profile-version changes during
+processing and appends a protocol snapshot without rewriting historical checks or fixture hashes.
+Known fixture loaders explicitly seed English with no inferred given name, preserving existing
+choices. Volunteer capture people remain unconfigured until the care team deliberately sends,
+for example, `{"preferred_locale":"en","first_name":"Mary Ann"}` to that endpoint; this
+does not grant consent. KAZE session and Vox free-conversation contracts remain unchanged.
+Phone screenshots use synthetic loopback responses with no microphone access; real-device,
+golden-recording and clinical acceptance gates remain open.

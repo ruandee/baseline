@@ -828,6 +828,104 @@
         }
       }
     },
+    "/v1/patients/{patient_id}/check-profile": {
+      "get": {
+        "summary": "Get Check Profile",
+        "operationId": "get_check_profile_v1_patients__patient_id__check_profile_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckProfile"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Put Check Profile",
+        "operationId": "put_check_profile_v1_patients__patient_id__check_profile_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckProfileInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckProfile"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/patients/{patient_id}/checks": {
       "post": {
         "summary": "Create Check",
@@ -2045,6 +2143,30 @@
             "title": "Is Baseline",
             "default": false
           },
+          "profile_version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Version"
+          },
+          "protocol_locale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 35
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol Locale"
+          },
           "session_id": {
             "anyOf": [
               {
@@ -2243,6 +2365,121 @@
           "end"
         ],
         "title": "CheckPause"
+      },
+      "CheckProfile": {
+        "properties": {
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "preferred_locale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Locale"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "unconfigured",
+              "unsupported"
+            ],
+            "title": "State"
+          },
+          "protocol_locale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "en"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol Locale"
+          },
+          "prompt_version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "count20-days-v1"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "first_name",
+          "preferred_locale",
+          "version",
+          "state",
+          "protocol_locale",
+          "prompt_version"
+        ],
+        "title": "CheckProfile"
+      },
+      "CheckProfileInput": {
+        "properties": {
+          "preferred_locale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 35,
+                "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Locale"
+          },
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CheckProfileInput"
       },
       "CheckQuality": {
         "properties": {
@@ -2939,9 +3176,13 @@
               "due",
               "done",
               "skipped",
-              "consent_needed"
+              "consent_needed",
+              "language_unavailable"
             ],
             "title": "Status"
+          },
+          "check_profile": {
+            "$ref": "#/components/schemas/CheckProfile"
           },
           "consent_state": {
             "type": "string",
@@ -2989,6 +3230,7 @@
           "patient_id",
           "display_name",
           "status",
+          "check_profile",
           "consent_state",
           "last_check_ts",
           "skipped_today"

@@ -34,6 +34,7 @@ test('skip while permission is pending stops the eventual stream without recordi
   };
   q(page, '.bl-record').click();
   q(page, '.bl-record').click();
+  await until(() => asked === 1);
   assert.equal(asked, 1, 'only one outstanding permission request');
   q(page, '.bl-skip').click();
   q(page, '[data-reason=declined]').click();
@@ -115,7 +116,7 @@ test('one retry after an unusable clip, then a second unusable clip is accepted,
   await record(page);
   await until(() => !q(page, '.bl-back').hidden);
   assert.equal(cardState(page), 'accepted');
-  assert.match(message(page), /Thank you, Jamie\./);
+  assert.match(message(page), /^Thank you\./); // Mock protocol supplies no explicit given name.
   assert.equal(q(page, '.bl-record').hidden, true, 'no third attempt is offered');
   assertNoLeak(page.main);
 });
@@ -234,12 +235,53 @@ test('spoken prompt uses speechSynthesis in the resident language and is optiona
   assert.equal(q(quiet, '.bl-hear').hidden, true, 'no speech engine: the button is hidden, the text stays');
 });
 
-test('only languages with a prompt version are offered; unknown ?lang falls back to English', async () => {
+test('unsupported requested language blocks without falling back to English', async () => {
   const page = loadPage('/check?mode=resident&patient=p1&lang=fr');
-  await until(() => q(page, '.bl-prompt'));
-  assert.equal(q(page, '.bl-prompt').getAttribute('lang'), 'en');
-  const options = page.main.querySelectorAll('option').map((o) => o.getAttribute('value'));
-  assert.deepEqual(options, ['en']);
+  await until(() => cardState(page) === 'language_unavailable');
+  assert.match(page.main.textContent, /language is not supported/);
+  assert.equal(q(page, '.bl-record'), null);
+  assert.equal(q(page, '.bl-hear'), null);
+  assert.equal(page.spoken.length, 0);
+});
+
+test('explicit full first name is used without splitting or using the roster display name', async () => {
+  const page = loadPage('/check?mode=resident&patient=p1', {patients: [{id: 'p1', name: 'Mrs. K'}], routes: {
+    'GET /v1/patients/p1/check-profile': () => ({state: 'ready', protocol_locale: 'en',
+      prompt_version: 'count20-days-v1', first_name: 'Mary Ann', version: 'v1'}),
+    'POST /v1/patients/p1/checks': () => ESCALATE}});
+  await ready(page);
+  await record(page);
+  await until(() => cardState(page) === 'thanks');
+  assert.match(message(page), /Thank you, Mary Ann\./);
+  const body = posts(page, '/v1/patients/p1/checks')[0].opts.body;
+  assert.equal(body.get('profile_version'), 'v1');
+  assert.equal(body.get('protocol_locale'), 'en');
+});
+
+test('unsupported or absent resident profile offers no recording or spoken English', async () => {
+  for (const state of ['unsupported', 'unconfigured']) {
+    const page = loadPage('/check?mode=resident&patient=p1', {routes: {
+      'GET /v1/patients/p1/check-profile': () => ({state, first_name: null,
+        protocol_locale: null, prompt_version: null, version: 'v1'})}});
+    await until(() => cardState(page) === 'language_unavailable');
+    assert.equal(q(page, '.bl-record'), null);
+    assert.equal(q(page, '.bl-hear'), null);
+    assert.equal(page.spoken.length, 0);
+    assert.equal(posts(page, '/v1/patients/p1/checks').length, 0);
+  }
+});
+
+test('profile changed before tap is blocked before asking for the microphone', async () => {
+  let reads = 0, camera = 0;
+  const page = loadPage('/check?mode=resident&patient=p1', {routes: {
+    'GET /v1/patients/p1/check-profile': () => ({state: 'ready', protocol_locale: 'en',
+      prompt_version: 'count20-days-v1', first_name: 'Mary Ann', version: ++reads === 1 ? 'v1' : 'v2'})}});
+  await ready(page);
+  page.window.navigator.mediaDevices.getUserMedia = () => { camera++; throw Error('must not request'); };
+  q(page, '.bl-record').click();
+  await until(() => cardState(page) === 'help');
+  assert.equal(camera, 0);
+  assert.match(message(page), /setup changed/);
 });
 
 test('keyboard: every control is a native button or link, Escape stops listening', async () => {

@@ -192,7 +192,7 @@ def test_due_list_is_score_free_and_tracks_checks_skips_and_consent(sandbox, ana
     assert set(body) == {"day_start", "residents"}
     [row] = body["residents"]
     assert set(row) == {"patient_id", "display_name", "status", "consent_state",
-                        "last_check_ts", "skipped_today", "observation_helped"}
+                        "last_check_ts", "skipped_today", "observation_helped", "check_profile"}
     assert not SCORE_FIELDS & set(row)
     assert row["status"] == "due" and row["consent_state"] == "granted"
     assert row["observation_helped"] is None, "unknown, never a claimed negative"

@@ -6,6 +6,7 @@ from psycopg.types.json import Jsonb
 
 from patient_memory.baseline import sessions, vitals  # noqa: F401 - register observation adapter
 from patient_memory.baseline.assess import COUNTING_PROMPT, assess_check, lock_assessment
+from patient_memory.check_profiles import require_protocol
 from patient_memory.config import Settings
 from patient_memory.consent import check_gate, require_consent
 from patient_memory.domain import CheckResult
@@ -25,7 +26,7 @@ def store_check(conn, identity, patient_id: UUID, request_id: UUID, analysis: An
                 mode, device_id, device_ts, is_baseline, cfg: Settings,
                 consent_scope: str = "voice_check", session_id: UUID | None = None,
                 location: tuple[float, float, float | None] | None = None,
-                prompt_version: str = COUNTING_PROMPT) -> CheckResult:
+                prompt_version: str = COUNTING_PROMPT, profile_snapshot: dict | None = None) -> CheckResult:
     """Insert the check (unusable ones too, for audit) and audit the write.
 
     Raises ConsentRequired (403) when consent is not granted at insert time; callers audit the
@@ -41,9 +42,19 @@ def store_check(conn, identity, patient_id: UUID, request_id: UUID, analysis: An
     lock_assessment(conn, identity.tenant_id, patient_id)
     check_gate(conn, patient_id)
     require_consent(conn, patient_id, consent_scope)  # withdrawn during decode: nothing stored
+    profile = None
+    if session_id is None and prompt_version == COUNTING_PROMPT:
+        profile = require_protocol(conn, patient_id,
+            expected_version=profile_snapshot["version"] if profile_snapshot else None)
     with scoring_context(conn, patient_id):
         result = _store_check(conn, identity, patient_id, request_id, analysis, mode, device_id,
                               device_ts, is_baseline, cfg, session_id, location, prompt_version)
+        if profile:
+            conn.execute(
+                "INSERT INTO voice_check_profiles(tenant_id,patient_id,check_id,check_ts,"
+                "profile_version,locale,prompt_version,first_name) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
+                (identity.tenant_id, patient_id, result.check_id, result.ts, profile["version"],
+                 profile["protocol_locale"], profile["prompt_version"], profile["first_name"]))
     check_gate(conn, patient_id)  # role revocation must not leak a result
     require_consent(conn, patient_id, consent_scope)
     return result
