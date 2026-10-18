@@ -193,9 +193,10 @@ def test_motion_helpers_are_not_generic_source_write_or_raw_public_read_capabili
     grant(sandbox)
     result = capture(sandbox).json()
     cfg, pid, actors, _ = sandbox
-    with pytest.raises(psycopg.errors.InsufficientPrivilege):
-        with transaction(cfg, actors["psw"]) as conn:
-            conn.execute("SELECT pm_motion_source_payload(%s,%s)", (pid, result["check_id"]))
+    for role in ("psw", "nurse"):
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            with transaction(cfg, actors[role]) as conn:
+                conn.execute("SELECT pm_motion_source_payload(%s,%s)", (pid, result["check_id"]))
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         with transaction(cfg, actors["nurse"]) as conn:
             conn.execute("DELETE FROM motion_checks WHERE patient_id=%s", (pid,))

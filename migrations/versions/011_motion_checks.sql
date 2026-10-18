@@ -55,7 +55,8 @@ CREATE FUNCTION pm_motion_source_payload(p_patient uuid,p_check uuid) RETURNS js
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $$
 DECLARE m public.motion_checks; c public.resident_consents;
 BEGIN
- IF NOT public.pm_check_scoring(p_patient) OR NOT public.pm_checker(p_patient) THEN
+ IF public.pm_check_scoring(p_patient) IS NOT TRUE
+    OR public.pm_checker(p_patient) IS NOT TRUE THEN
   RAISE EXCEPTION 'motion capture scope required' USING ERRCODE='42501';
  END IF;
  SELECT * INTO c FROM public.resident_consents WHERE tenant_id=public.pm_tenant()
