@@ -209,3 +209,13 @@ location. Timeline redacts links/coordinates and labels actual delivery outcomes
 latency measures escalation attempts, not delivered texts. See ../kaze-pages.md. BL-27's public
 acknowledgement navigation retains origin/host and clinical-route guards (decision 023). Held
 policy questions and loud-venue SNR adjustment remain separate.
+
+### BL-25 loud-venue capture follow-up
+
+An authorized session's immutable loud_venue context lowers only the SNR quality threshold by
+3 dB (10 dB to 7 dB). Duration, speech/word counts, clipping, prompt matching and undefined-SNR
+refusal remain unchanged. Context is read after session authorization and expiry checks before
+audio processing; submitted form flags cannot opt ordinary recordings into the relaxation.
+Admission still rechecks session authorization and expiry before storing a check. The open
+session recording view says "Step outside to answer, somewhere quiet before recording."
+No response schema changes and no held product-policy question is resolved by this follow-up.

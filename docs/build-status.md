@@ -172,3 +172,7 @@ countdown/reminders and delivery/acknowledgement timeline. Logged and failed esc
 are not presented as sent SMS. Phone capture and two-phone receipt/ack acceptance remain open.
 BL-27 integration preserves public acknowledgement navigation through the same-origin frontend,
 while clinical/bootstrap and cross-site POST guards remain unchanged; no real SMS is claimed.
+
+BL-25 loud-venue follow-up scopes the specified 3 dB SNR tolerance to authorized stored session
+context and adds the open-session quiet-place hint. All other quality gates remain unchanged;
+synthetic checks do not establish real venue or golden-recording acceptance.
