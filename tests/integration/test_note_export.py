@@ -87,14 +87,14 @@ def test_configured_draft_exports_with_its_source(sandbox, monkeypatch):
 def test_authorization_is_checked_before_retrieval(sandbox):
     result, _ = escalated(sandbox)
     aid = result.assessment["id"]
-    for role in ("patient", "admin"):
+    for role in ("patient", "admin", "psw"):
         assert client_for(sandbox, role).get(note_path(sandbox, aid)).status_code == 404
     nurse = client_for(sandbox)
     assert nurse.get(f"/v1/patients/{uuid4()}/assessments/{aid}/note").status_code == 404
     assert nurse.get(note_path(sandbox, uuid4())).status_code == 404
 
 
-@pytest.mark.parametrize("operation", ["retract", "visibility"])
+@pytest.mark.parametrize("operation", ["retract", "visibility", "purge"])
 def test_source_change_returns_unavailable_never_the_old_note(sandbox, operation):
     result, source_id = escalated(sandbox)
     aid = result.assessment["id"]

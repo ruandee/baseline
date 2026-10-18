@@ -62,6 +62,7 @@ class Element_ extends Node_ {
     }
     return this.getAttribute('value') || '';
   }
+  set value(v) { this.setAttribute('value', v); }
   addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); }
   removeEventListener(type, fn) { this.listeners[type] = (this.listeners[type] || []).filter((f) => f !== fn); }
   dispatchEvent(event) {
