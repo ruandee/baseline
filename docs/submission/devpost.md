@@ -1,155 +1,147 @@
-# Devpost entry: draft text and prize-track notes
+# Baseline — Devpost draft
 
-Status: **draft for Dee and Alina to edit and submit** (BL-22 #24, BL-23 #25). Nothing here has
-been submitted. Before pasting, re-check every "pending" item against the tracker (#38) and
-`docs/build-status.md`; replace a "pending" line only when the feature is merged *and* shown
-working on the demo host. Do not paste the bracketed editor notes.
+Prepared for BL-22 / BL-23. **Draft only; not submitted.** The sections from “Project name”
+through “What's next” are the paste-ready entry. The final section is for the team only.
 
-## Before the entry goes in (human decisions)
+## Project name
 
-- [ ] Repository visibility changed to public by a repo admin (Devpost rule). Read the secret and
-      history review on the BL-23 preparation PR first.
-- [ ] Team members on Devpost match the people who built it (confirm names and handles).
-- [ ] Prize tracks selected only where the "claim we can make" column below is true on the day.
-- [ ] Demo video link (see `backup-video-shot-list.md`) uploaded and set to viewable by link.
-- [ ] Hosted demo URL included only if BL-20 is accepted; otherwise say "runs locally".
+Baseline
 
-## Name and tagline
+## Tagline
 
-**Baseline**: a 10-second conversation becomes a vital sign, compared with each resident's own normal.
-
-[Alt tagline: "It noticed, and it knew not to interrupt."]
+Help care teams notice when someone is different from their usual self—and see the context behind the change.
 
 ## Inspiration
 
-In older adults an infection often shows up first as confusion, not fever. That confusion
-(delirium) is easy to miss, especially in people with dementia. Care aides often notice that
-someone "seems off" days before anything reaches the chart, but "seems off" is not something a
-system can track. On a night shift one nurse may cover a whole unit, and agency staff do not know
-what anyone's normal looks like. PointClickCare's "Catch It Early" challenge asked for a way to
-catch a confused moment early and to explain *why* something was flagged. We built around that
-last part.
+“She seems a little different today.”
+
+For a care aide who knows a resident well, that observation can mean a lot. For a nurse
+covering a busy unit, or a staff member meeting that resident for the first time, it can be
+hard to know what changed or where to look next.
+
+We wanted to make that observation easier to share. Baseline starts with a simple question:
+**what is normal for this person?** A resident is compared with their own history, rather than
+expected to sound like everyone else.
 
 ## What it does
 
-1. A care aide asks the resident to count to 20 and say the days of the week. It takes about 10 seconds.
-2. Baseline measures how they spoke: speech rate, pause ratio, mean pause length and median pitch.
-3. It compares those four numbers with the **same resident's** history, not a population average.
-4. If there is a real change, it checks the resident's record for context: a new high-risk
-   medication, a documented temperature, a note like "quiet at lunch", or something harmless
-   such as new dentures.
-5. A fixed rule table picks one verdict: *escalate*, *watch*, *explained*, *within normal* or
-   *enrolling*. The nurse sees a short ranked watch list with the evidence behind each flag and
-   a suggested standard assessment (for example, a 4AT delirium screen) chosen from a fixed list.
-   An interruption budget ("1 of 3 escalations used this shift") keeps it from flooding anyone.
+A care aide opens a resident's check, asks them to count and say the days of the week, and
+records a short response. The resident gets a simple thank-you, without a score or a warning.
 
-The point of the demo is the *explained* case: Baseline notices a change and does not page anyone,
-because the record already explains it.
+Baseline measures things such as speaking speed and pauses, compares them with earlier
+checks, and brings relevant notes and recorded observations into the same view. A nurse gets
+a short, prioritized list and can open the records behind each explanation. A draft handoff
+helps them share what they found; the nurse remains responsible for reviewing it.
+
+Our fictional residents show three different situations:
+
+- **Mrs. K needs review:** her speech changed, and there is relevant context in her care record.
+- **Mrs. L needs another look:** a change is being watched rather than treated as a diagnosis.
+- **Mr. T has an explanation to consider:** his record mentions new dentures. That context is
+  shown alongside the change; it does not prove that nothing else is wrong.
+
+The goal is to help a busy person decide **who to look at, what changed, and which records to read**.
 
 ## How we built it
 
-- **Backend:** Python, FastAPI and Pydantic on top of our existing patient-memory backend:
-  immutable source records, exact-quote evidence spans, event time vs knowledge time, and
-  PostgreSQL row-level security enforced through a non-owner runtime role.
-- **Speech pipeline:** ffmpeg normalisation, WebRTC voice activity detection, faster-whisper
-  (`base`) for word timing, Praat (parselmouth) for pitch, and a quality gate that rejects
-  short, noisy, clipped or off-script clips with plain-language reasons.
-- **Change engine:** per-person robust baseline (median and scaled MAD), z-scores, EWMA and
-  CUSUM, with a *provisional* status so a single strong reading asks for a recheck instead of
-  escalating. The accepted `multifeature-cusum-v2` policy (decision 019) requires corroboration:
-  a change needs at least two of the same features deviating on two consecutive usable checks,
-  pitch is tracked as separate signed up/down streams, and a one-feature CUSUM alarm alone never
-  sets a status. Thresholds were not retuned, and no clinical sensitivity or specificity is claimed.
-- **Context and verdict:** structured rules (medication events, documented temperatures) plus
-  note tagging. The model may only return exact quotes from the note, which the server checks
-  character-for-character; anything it cannot verify is dropped, and a keyword fallback runs
-  when the model is unavailable. The verdict itself is a deterministic table.
-- **Data:** PostgreSQL 17 on the TimescaleDB image, pgvector for the existing retrieval path,
-  S3-style immutable source storage (LocalStack locally).
-- **Frontend:** buildless HTML/CSS/JS served same-origin by the API, with hand-drawn SVG charts.
-- **AI tools used to build it:** Claude Code, OpenAI Codex, and Gemini (runtime model for note
-  context). [Confirm the final list with the team.]
+The app runs in an ordinary browser on a phone or computer. There is no separate mobile app
+to install. Its main parts are:
 
-**The core design idea:** statistics decide whether something changed; simple, visible rules
-decide what to do about it; the language model is used only to find context in free-text notes
-and (where merged) to assemble a handoff draft that is validated against the computed numbers
-and cited evidence. The model never decides a verdict, has no tools, and cannot widen scope.
+- **HTML, CSS and JavaScript:** the recording screen, nurse list and resident detail pages.
+- **Python and FastAPI:** receive a check, run the processing steps and return the result.
+- **FFmpeg and Whisper:** prepare the audio and identify the spoken words and their timing.
+  Additional audio tools measure pauses and pitch.
+- **PostgreSQL with TimescaleDB:** keep the history and build the charts. Source records are
+  stored separately so an explanation can point back to what was actually recorded.
+- **Docker and Caddy on Google Cloud:** run the services together and provide an HTTPS website.
+
+The change calculation uses measurements and explicit rules. An optional Gemini connection
+can help find context in notes and draft a handoff. Its quotes and numbers are checked against
+the supplied evidence. It does not decide the verdict. The current hosted demo uses the
+no-model-call fallback, so a working page is not a claim that Gemini ran live.
 
 ## Challenges we ran into
 
-- Row-level security does not apply to TimescaleDB chunk tables, so a runtime role could read
-  another tenant's rows directly from a chunk. We kept `voice_checks` as a plain table (still
-  using `time_bucket`) rather than ship a cross-tenant leak, and recorded the evidence in
-  decision 004.
-- Voice activity detection ended every voiced run 120 ms late, which hid real pauses; we
-  measured it on constructed audio and corrected it.
-- Making "absence of documentation" never count as a negative finding: the interface shows a
-  sourced temperature and its time without inferring "no fever" or a normal-range finding.
-- Keeping copied evidence honest when a source note is corrected or retracted: stale
-  assessments are withheld rather than shown with outdated quotes.
+The difficult part was making the result useful and trustworthy, not just producing a number.
+A recording can be noisy. Someone may not have enough history yet. A note may have been
+corrected. A user may not be allowed to see a record.
+
+We built explicit “not enough information” and retry states, kept explanations connected to
+their sources, and separated the care aide's simple check flow from the nurse's detailed view.
+A missing note is never treated as proof that a symptom is absent.
 
 ## Accomplishments we're proud of
 
-- Every flag shows its evidence, and every quote resolves to the exact characters in a source record.
-- Model failures cannot change a verdict: extraction falls back to keyword rules.
-- Authorization is enforced in the database, and denial looks like "not found".
+We connected a short voice check, a person's history, a prioritized nurse view and supporting
+records in one prototype. The deployed fictional cohort includes all twelve residents, with
+different cases that show why a changed measurement should not always lead to the same response.
+
+We also kept the resident experience simple: clear recording controls, the option to skip,
+and no clinical scores on the resident-facing screen.
 
 ## What we learned
 
-[Team to write: one or two honest sentences each.]
+A useful alert needs a clear explanation and a clear next step. Showing more measurements
+is not automatically more helpful. The person using the tool needs to understand what they
+are seeing, where it came from, and what is still unknown.
 
 ## What's next
 
-- Validate the speech features on real recordings with consent and clinical partners.
-- Passive signal from ambient documentation (for example, PointClickCare Vox Advantage) instead
-  of a separate check. **For the hackathon the Vox side is a mock adapter we defined; we found no
-  public Vox API, and there is no real PointClickCare integration.**
-- More signals through the same engine (movement, charted vitals), marked *corroborated* when
-  two change together.
-- KAZE "Baseline Out" safety sessions: session, scheduler, optional SMS delivery/acknowledgement
-  and pages are merged; hosted worker/bootstrap integration and a real two-phone rehearsal
-  remain pending. Default delivery is simulated logging and sends no text.
-  [Claim a working live loop only after host acceptance and the two-phone rehearsal.]
-- A Health Canada classification review before any real deployment.
+Our next step is to test the experience with consenting volunteers and care professionals:
+can people complete the check comfortably, and can a nurse quickly understand the result?
+We still need physical-phone testing and measured processing times on the hosted system.
 
-## Honest limits (keep this section in the entry)
+We have also built prototype extensions for movement, recorded vital signs and personal
+safety check-ins through Project KAZE. These need their own validation. Our Vox encounter
+adapter is a mock; there is no live PointClickCare integration.
 
-- **Change detection, not diagnosis.** Baseline does not detect delirium. It notices that
-  someone's speech changed against their own normal and suggests a standard assessment that a
-  nurse decides whether to run. No treatment suggestions, no autonomous escalation calls.
-- **Not clinically validated.** The best published study linking speech features to delirium had
-  33 patients. We call the idea promising, not proven.
-- **Synthetic residents.** Every resident record in the repository and demo is fictional and
-  labelled synthetic. No real patient data is used.
-- **The runner proves the pipeline, not the medicine.** A teammate's real voice during exertion
-  shows that the system measures physical change against a personal baseline; it says nothing
-  about delirium. [Keep only if the runner segment runs; BL-15 is on hold.]
-- **Privacy.** Audio is deleted after processing unless a developer flag is set; the four
-  measurements, the transcript and word timings are stored with the check. A real deployment would need consent and Canadian hosting.
+**Baseline is a decision-support prototype, not a diagnostic tool.** The resident records in
+this demo are fictional. We have not established clinical accuracy or improved patient outcomes.
+Real-world use would require clinical evaluation and decisions about consent, hosting and data handling.
 
-## Built with
+---
 
-python, fastapi, pydantic, postgresql, timescaledb, pgvector, faster-whisper, webrtcvad,
-praat-parselmouth, ffmpeg, localstack, gemini-api, html, css, javascript
-[Add docker, caddy, vultr, godaddy only if BL-20 hosting is actually used.]
+## Team only — do not paste this section into the project story
 
-## Prize-track notes
+### Built with
 
-Only select a track where the "claim we can make" column is true when you submit.
+Python, FastAPI, Pydantic, PostgreSQL, TimescaleDB, FFmpeg, faster-whisper, WebRTC VAD,
+Praat/parselmouth, HTML, CSS, JavaScript, Docker, Caddy, Google Cloud Compute Engine.
 
-| Track | Fit | Claim we can make | Do not claim |
-| --- | --- | --- | --- |
-| PointClickCare: Catch It Early (primary) | Direct: early change, care-team interface, explains why | Per-resident speech change, record-aware verdict, cited evidence, interruption budget | Real PointClickCare or Vox integration; clinical accuracy |
-| Project KAZE | Only via the "Baseline Out" extension | Design and spec only, unless BL-25 to BL-29 merge and the two-phone loop works | That KAZE sessions, texts or acknowledgement work today |
-| Best Healthcare & Well-being | Good | Decision-support prototype on synthetic data | Diagnosis, validation, patient outcomes |
-| AI for Social Impact | Good | Staffing-pressure framing; dignity and consent design | Measured impact |
-| MLH Best Use of Gemini API | Moderate | Gemini (OpenAI-compatible endpoint, strict JSON schema) tags note context; server verifies every quote; keyword fallback. Manual `gemini-3.5-flash-lite` strict schema-connectivity smoke passed twice on 17 Oct (recorded in `docs/build-status.md`, validation ledger; not run in CI, and it covers those requests only, not note/SBAR quality); re-confirm before submission | That Gemini decides verdicts, or that it ran live on stage unless it did. SBAR sentence assembly (BL-12, merged) only if shown running against Gemini |
-| MLH Best Use of Tiger Data | Moderate, be precise | Runs on the TimescaleDB image; `time_bucket` builds the daily overview and sparkline series | That `voice_checks` is a hypertable: it is a plain table because chunk tables bypassed RLS (decision 004) |
-| MLH Vultr / GoDaddy | Only if used | Hosted on a Vultr VM with a GoDaddy domain | Anything, unless BL-20 is deployed that way |
-| Overall Top 3 | Yes | | |
+Add Gemini API to the final technology/prize fields only with the team's explanation of its
+actual configured use. The hosted release currently uses `PM_PROVIDER=stub`. LocalStack
+provides S3-compatible source storage in the demo; do not describe it as a production AWS deployment.
 
-## Links
+### Links and submission fields
 
-- Code: https://github.com/ruandee/patient-memory-backend (public only after the visibility change)
-- Demo video: [URL after upload]
-- Live demo: [URL only if BL-20 is accepted]
+- Code: https://github.com/ruandee/patient-memory-backend — currently private; a repo admin must
+  decide on publication after the history/secret review. Do not change visibility as part of this draft.
+- Demo: https://baseline.deeruan.com/unit — verified on release
+  `6e4d7d95f288abd860b124f121b8d28468cfa9ff`, with historical scenario snapshots.
+  Recheck immediately before submission; the original VM is scheduled to stop October 18 at
+  about 9:09 PM Toronto time. Newer merged features are not automatically deployed.
+- Video: add the actual uploaded video URL and verify access from a signed-out browser.
+- Team: confirm names, contributions and Devpost accounts with the actual participants.
+- AI development tools: Claude Code and OpenAI Codex; confirm the team's complete disclosure.
+
+### Prize claims to confirm
+
+- PointClickCare / healthcare / social impact: frame as an explainable prototype; do not claim
+  a vendor partnership, real patient deployment, clinical accuracy or measured health outcomes.
+- Gemini: prior connectivity smoke tests do not establish live note or handoff quality. Confirm
+  the actual demonstration and official track requirements before selecting the prize.
+- Tiger Data: describe the actual TimescaleDB/time-series use. Do not call `voice_checks` a
+  hypertable; the implementation uses an ordinary table to preserve its access controls.
+- KAZE: describe the extension as a prototype unless the real two-phone text-and-acknowledgement
+  loop has been demonstrated. Logged delivery is not a sent text.
+- Hosting is Google Cloud; the domain is managed through Namecheap. Do not claim Vultr or GoDaddy use.
+
+### Final editing checks
+
+- Keep the three fictional cases and a screenshot of the actual nurse screen.
+- Remove any sentence describing a feature that cannot be shown in the final demo.
+- Replace the fallback-provider sentence only after verifying the configured live model.
+- If including a runner or live speaker, confirm permission, personal baseline and an actual
+  working capture. No exertion or clinical-detection claim is supported by the scripted cohort.
+- Public submission, prize selection, repository visibility, video publication and real-person
+  recording remain separate human actions. This document does not complete #24 or #25.
