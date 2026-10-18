@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 
 import psycopg
 
+from patient_memory.baseline import safety
 from patient_memory.domain import SessionArm, SessionOut, SessionSummary
 from patient_memory.errors import Problem
 from patient_memory.ingestion import idempotent, lock_patient
@@ -198,10 +199,18 @@ def check_gate(conn, patient_id: UUID, session_id: UUID, mode: str, is_baseline:
     return row
 
 
-def after_check(conn, row, ts: datetime, usable: bool, is_baseline: bool) -> SessionSummary:
-    """Record a stored session check: activate on the last baseline clip, note usable check-ins.
-    Ladder resets on check-in are BL-26's (decision 018)."""
+def after_check(conn, row, ts: datetime, usable: bool, is_baseline: bool,
+                change_status: str | None = None, verdict: str | None = None) -> SessionSummary:
+    """Record a stored session check: activate on the last baseline clip, note usable check-ins
+    and apply BL-26's check-in reset (decision 022)."""
     pid, sid = row["patient_id"], row["id"]
+    reset = safety.checkin_update(row["status"], usable, is_baseline, change_status, verdict, ts,
+                                  row["interval_min"])
+    if reset:
+        conn.execute("UPDATE safety_sessions SET status=%s,ladder_level=%s,ladder_trigger=%s,"
+                     "next_due_at=%s WHERE patient_id=%s AND id=%s",
+                     (reset["status"], reset["ladder_level"], reset["ladder_trigger"],
+                      reset["next_due_at"], pid, sid))
     if usable and is_baseline:
         change = activation(row["status"], _usable_baselines(conn, pid, sid),
                             row["baseline_required"], ts, row["interval_min"])

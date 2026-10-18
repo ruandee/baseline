@@ -55,7 +55,7 @@ def escalations_used(conn, now: datetime, cfg: Settings) -> int:
     return conn.execute(
         "SELECT count(*) AS n FROM assessments a JOIN voice_checks v ON v.tenant_id=a.tenant_id "
         "AND v.patient_id=a.patient_id AND v.id=a.check_id WHERE a.verdict='escalate' "
-        "AND v.ts>=%s AND v.ts<%s AND COALESCE((a.params->>'over_budget')::boolean,false)=false "
+        "AND v.session_id IS NULL AND v.ts>=%s AND v.ts<%s AND COALESCE((a.params->>'over_budget')::boolean,false)=false "
         "AND COALESCE((a.params->>'no_escalate')::boolean,false)=false", (start, end)
     ).fetchone()["n"]
 
@@ -94,11 +94,23 @@ def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_i
     check = Check(str(check_id), ts, device_id, prompt_version, is_baseline, True, dict(features))
     result = evaluate(check, history, mode, cfg)
     tags = valid_tags(conn, patient_id, ts)
-    decision = decide(result.status, result.fused, [(t["kind"], t["tag"]) for t in tags])
-    no_escalate = str(patient_id) in {p.strip() for p in cfg.no_escalate_patients.split(",")}
-    decision, flags = apply_profile(
-        decision, escalations_used=escalations_used(conn, ts, cfg),
-        budget=cfg.escalation_budget, no_escalate=no_escalate)
+    kinds_and_tags = [(t["kind"], t["tag"]) for t in tags]
+    if session_id is None:
+        decision = decide(result.status, result.fused, kinds_and_tags)
+        no_escalate = str(patient_id) in {p.strip() for p in cfg.no_escalate_patients.split(",")}
+        decision, flags = apply_profile(
+            decision, escalations_used=escalations_used(conn, ts, cfg),
+            budget=cfg.escalation_budget, no_escalate=no_escalate)
+    else:
+        # KAZE (decision 022): the arm-time context tags are the session's only explainers, and
+        # the nursing shift budget / no-escalate list are alarm-fatigue rules for a care team,
+        # not for a person's own safety ladder, so neither suppresses a session check.
+        session_tags = conn.execute(
+            "SELECT context_tags FROM safety_sessions WHERE patient_id=%s AND id=%s",
+            (patient_id, session_id)).fetchone()["context_tags"]
+        decision = decide(result.status, result.fused,
+                          kinds_and_tags + [("explainer", t) for t in session_tags])
+        flags = {"over_budget": False, "no_escalate": False, "would_escalate": False}
     change = change_payload(result, mode)
     reasons = [t for t in tags if t["kind"] == "amplifier"] if decision.verdict in (
         "escalate", "watch") and any(t["kind"] == "amplifier" for t in tags) else (
