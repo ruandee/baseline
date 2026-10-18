@@ -139,6 +139,7 @@ body.care-app {
 .care-app [data-demo-role=phone] .bl-handoff-submit:not(:disabled) { background: var(--green); color: #fff; }
 .care-app [data-demo-role=phone] .bl-handoff-record:hover:not(:disabled) { background: #2a5a7c; border-color: #2a5a7c; color: #fff; }
 .care-app [data-demo-role=phone] .bl-handoff-submit:hover:not(:disabled) { background: #1b5443; color: #fff; }
+.care-app [data-demo-role=phone] .bl-handoff-content audio { display: block; width: 100%; margin: 16px 0; }
 .care-app .bl-demo-banner,.care-app .bl-demo-result:not(:empty),.care-app .bl-demo-timeline li { border-radius: 4px; box-shadow: none; }
 @media(max-width:760px) {
  .care-app .bl-handoff-content > section[aria-label] { grid-template-columns: minmax(0,1fr); gap: 14px; }
