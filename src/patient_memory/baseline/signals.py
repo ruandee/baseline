@@ -49,6 +49,8 @@ def signal_sources(conn, patient_id, check):
         "SELECT f.id,f.source_id FROM facts f JOIN sources s ON s.tenant_id=f.tenant_id "
         "AND s.patient_id=f.patient_id AND s.id=f.source_id WHERE f.patient_id=%s AND f.id=ANY(%s) "
         "AND s.published_at IS NOT NULL AND s.retracted_at IS NULL AND s.purged_at IS NULL "
+        "AND s.payload->>'kind'='observation' AND s.payload->>'author_role'='system' "
+        "AND f.polarity='present' AND f.experiencer='patient' "
         "AND COALESCE(f.valid_from,s.recorded_at)<=%s AND s.recorded_at<=%s "
         "AND (f.valid_to IS NULL OR f.valid_to>%s) "
         "AND NOT EXISTS(SELECT FROM sources newer WHERE newer.tenant_id=s.tenant_id "

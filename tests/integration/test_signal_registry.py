@@ -213,3 +213,13 @@ def test_effective_expiry_rechecks_other_modality_before_corroborating(sandbox, 
     result = store(sandbox, SLOW)
     assert not result.assessment["corroborated"]
     assert result.change["modalities"]["probe"]["status"] == "unavailable"
+
+
+def test_narrative_report_cannot_stand_in_for_signal_capture(sandbox, probe):
+    imported = import_note(sandbox, source_payload())
+    with transaction(sandbox[0], sandbox[2]["nurse"]) as conn:
+        fact = conn.execute("SELECT id FROM facts WHERE source_id=%s",
+                            (imported["source_version_id"],)).fetchone()["id"]
+    with pytest.raises(Problem) as raised:
+        admit(sandbox, capture(str(fact)))
+    assert raised.value.code == "signal_evidence_unavailable"

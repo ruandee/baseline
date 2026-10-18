@@ -27,10 +27,13 @@ This is an engineering corroboration rule, not a clinically calibrated probabili
 The internal assess_modality hook authorizes and locks before calling an adapter's scoped history
 loader. Adapters own immutable capture storage and feature extraction; there is no generic public
 signal upload endpoint or client-controlled registry. Non-speech adapters require care-team scope
-and nonempty UUID fact citations belonging to that patient. Missing/foreign, future, expired,
+and nonempty UUID fact citations belonging to that patient, attributed to the patient with
+present polarity in a system-authored observation. Narrative or patient-reported text cannot
+stand in for sensor capture. Missing/foreign, future, expired,
 retracted, purged, unpublished or superseded source evidence fails closed. The hook records
 signal event time, check identity, exact scores, citation/source identities and current source
-revision atomically. Existing patient-wide source lifecycle invalidation withholds old snapshots.
+revision atomically. Event-time comparisons use currently published evidence; this adapter adds
+no historical known_at contract. Existing patient-wide source lifecycle invalidation withholds old snapshots.
 Authorization is rechecked under the admission lock. PSW-only callers cannot use this non-speech
 hook or read its results; existing voice-only scoring and score-free receipts remain unchanged.
 
