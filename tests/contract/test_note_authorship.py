@@ -74,13 +74,15 @@ def test_explicit_psw_note_author_can_get_only_positive_own_citation_feedback(sa
 @pytest.mark.parametrize("note_kind", ["legacy", "other_author", "uncited"])
 def test_missing_other_or_uncited_authorship_never_infers_credit(sandbox, note_kind):
     if note_kind == "legacy":
-        note = source_payload("Poor intake.")
+        note = source_payload("Poor intake.",
+                              effective_from=(datetime.now(UTC)-timedelta(hours=1)).isoformat())
     elif note_kind == "other_author":
         note = authored(sandbox, "nurse")
     else:
         import_note(sandbox, authored(sandbox, external_document_id="synthetic-uncited",
                                      text="Enjoyed lunch today."))
-        note = source_payload("Poor intake.")
+        note = source_payload("Poor intake.",
+                              effective_from=(datetime.now(UTC)-timedelta(hours=1)).isoformat())
     escalated(sandbox, note)
     assert feedback(sandbox) is None
 
