@@ -3,8 +3,8 @@ window.renderNurseChecks = async function(main, {api, el, session}) {
   main.replaceChildren();
   const page = el('section', '', {class: 'nurse-workspace'});
   const heading = el('header', '', {class: 'workspace-heading'});
-  heading.append(el('p', 'VOICE CHECKS', {class: 'workspace-eyebrow'}),
-    el('h1', 'A short check. A clearer picture.'),
+  heading.append(el('p', 'NURSE WORKSPACE', {class: 'workspace-eyebrow'}),
+    el('h1', 'Voice checks'),
     el('p', 'Compare how someone speaks with their own previous checks, then review the result alongside their records.',
       {class: 'workspace-intro'}));
   const steps = el('ol', '', {class: 'nurse-steps', 'aria-label': 'Voice check steps'});
