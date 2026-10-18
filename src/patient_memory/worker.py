@@ -97,6 +97,11 @@ def main():
     args = parser.parse_args()
     cfg = Settings()
     identity = Identity(args.actor, args.tenant)
+    run_worker(cfg, identity, once=args.once)
+
+
+def run_worker(cfg: Settings, identity: Identity, *, once=False):
+    """Shared ingestion, safety scheduling and retention loop for CLI and hosted entrypoints."""
     logger = logging.getLogger("patient_memory.worker")
     sender = sender_from_settings(cfg)
     retired_at = scheduled_at = None
@@ -114,7 +119,7 @@ def main():
                 logger.exception("KAZE scheduler pass failed")
             scheduled_at = time.monotonic()
         worked = run_once(cfg, identity)
-        if args.once:
+        if once:
             return
         if not worked:
             time.sleep(1)
