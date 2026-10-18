@@ -200,3 +200,12 @@ DELETE grant is added.
 - Migration 006 chains directly off BL-10's 005 (`note_context_runs`), so alembic has one head.
 - Not done here: scheduler, SMS, ack route, pages, `loud_venue` quality tolerance, and integrated
   acceptance after the PointClickCare path reaches BL-13.
+
+### BL-28 page integration
+
+The synthetic /out pages use the standard session clock and a separately configured self-custody
+KAZE identity. Capture cancels pending callbacks at end or expiry; explicit opt-in controls
+location. Timeline redacts links/coordinates and labels actual delivery outcomes; acknowledgement
+latency measures escalation attempts, not delivered texts. See ../kaze-pages.md. BL-27's public
+acknowledgement navigation retains origin/host and clinical-route guards (decision 023). Held
+policy questions and loud-venue SNR adjustment remain separate.

@@ -2,9 +2,11 @@
 
 Creates the separate `kaze-demo` tenant with safety_mode on, two people going out (each an
 importer on their own patient row) and the `kaze-service` principal the scheduler and sender run
-as (nurse on every person). Prints short-lived tokens. Never run against a real database.
+as (nurse on every person). CLI writes short-lived tokens to an ignored local artifact.
+Never run against a real database.
 """
 import json
+from pathlib import Path
 
 import psycopg
 
@@ -44,5 +46,13 @@ def kaze_demo(cfg=None) -> dict:
     }
 
 
+def main():
+    output = Path("artifacts/kaze-demo/session.json")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(kaze_demo(), indent=2), encoding="utf-8")
+    output.chmod(0o600)
+    print(f"Synthetic KAZE identities written to ignored {output}; configure locally, never share it.")
+
+
 if __name__ == "__main__":
-    print(json.dumps(kaze_demo(), indent=2))
+    main()

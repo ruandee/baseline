@@ -166,3 +166,9 @@ consent part (422 consent_not_given). Resident-only VAD speech must reach8second
 analysis cap; staff-containing temporary audio is always removed regardless of KEEP_AUDIO.
 Checks remain prompt-scoped; first-change marker uses the displayed prompt. Real speech/Vox
 UI remain unvalidated, and overview prompt switching stays on hold (decision016).
+
+BL-28 pages provide separate self-custody KAZE bootstrap, arming, baseline/session recording,
+countdown/reminders and delivery/acknowledgement timeline. Logged and failed escalation attempts
+are not presented as sent SMS. Phone capture and two-phone receipt/ack acceptance remain open.
+BL-27 integration preserves public acknowledgement navigation through the same-origin frontend,
+while clinical/bootstrap and cross-site POST guards remain unchanged; no real SMS is claimed.
