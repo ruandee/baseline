@@ -223,3 +223,28 @@ def test_narrative_report_cannot_stand_in_for_signal_capture(sandbox, probe):
     with pytest.raises(Problem) as raised:
         admit(sandbox, capture(str(fact)))
     assert raised.value.code == "signal_evidence_unavailable"
+
+
+@pytest.mark.parametrize("state", ["invalidated", "revision", "session_tag", "session_check"])
+def test_first_change_marker_uses_only_current_resident_evidence(sandbox, state):
+    seed_checks(sandbox, 6)
+    store(sandbox, SLOW)
+    result = store(sandbox, SLOW)
+    assert page(sandbox)["first_change_ts"] is not None
+    with psycopg.connect(sandbox[0].admin_database_url) as conn:
+        aid = result.assessment["id"]
+        if state == "invalidated":
+            conn.execute("UPDATE assessments SET params=params || '{\"invalidated\":true}' WHERE id=%s", (aid,))
+        elif state == "revision":
+            conn.execute("UPDATE assessments SET params=params || '{\"source_revision\":-1}' WHERE id=%s", (aid,))
+        elif state == "session_tag":
+            conn.execute("UPDATE assessments SET params=jsonb_set(params,'{session_id}',to_jsonb(%s::text)) WHERE id=%s",
+                         (str(uuid4()), aid))
+        else:
+            # Also cover legacy session rows that predate params.session_id.
+            sid = uuid4()
+            conn.execute("INSERT INTO safety_sessions(tenant_id,patient_id,id,display_name,ends_at) "
+                         "VALUES(%s,%s,%s,'Synthetic',clock_timestamp()+interval '1 hour')",
+                         (sandbox[2]["nurse"].tenant_id, sandbox[1], sid))
+            conn.execute("UPDATE voice_checks SET session_id=%s WHERE id=%s", (sid, result.check_id))
+    assert page(sandbox)["first_change_ts"] is None

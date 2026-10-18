@@ -116,8 +116,11 @@ def overview(conn, cfg: Settings, patient: dict, days: int, now: datetime | None
         "SELECT min(v.ts) AS ts FROM assessments a JOIN voice_checks v "
         "ON v.tenant_id=a.tenant_id AND v.patient_id=a.patient_id AND v.id=a.check_id "
         "WHERE a.patient_id=%s AND a.change_status='change' AND v.prompt_version=%s "
-        "AND v.ts>=%s - make_interval(days=>%s)",
-        (pid, prompt, now, days)).fetchone()["ts"]
+        "AND COALESCE((a.params->>'invalidated')::boolean,false)=false "
+        "AND (a.params->>'source_revision')::bigint=%s "
+        "AND a.params->>'session_id' IS NULL AND v.session_id IS NULL "
+        "AND v.ts>=%s - make_interval(days=>%s) AND v.ts<=%s",
+        (pid, prompt, patient["revision"], now, days, now)).fetchone()["ts"]
     return {
         "patient_id": str(pid), "display_name": patient["external_id"], "synthetic": True,
         "watch_window": watch_window(tags, now), "features": FEATURE_META, "series": series,
