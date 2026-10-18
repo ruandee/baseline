@@ -63,6 +63,16 @@ analysis and unavailable-baseline states. The ordinary shared disclosure disting
 residents from live volunteer records; archived handoff keeps its authored-scenario disclosure.
 Personal mode controls use the shared secondary-button styling.
 
+Follow-up: the user explicitly requests their existing live volunteer record in the ordinary
+unit review list. Live volunteers now participate in unit priority and summary counts according
+to the actual API verdict, with a "Live volunteer" label; runner capture identities remain
+separate. Authorized session metadata still identifies capture type, never a display-name match.
+The operator may rename the same persisted patient record at the user's request, preserving its
+UUID, assignments, consent, baseline captures and history. This does not turn the volunteer into
+a scripted cohort resident. A requested Watch display uses the original measured rehearsal
+assessment restored from its private recovery archive, with its original IDs and timestamps;
+no verdict, score, baseline or timestamp is fabricated or rewritten.
+
 Release validation: 691 Linux unit tests passed (five optional tests deselected), 384
 service-backed tests passed, Ruff, stub evaluation and image smoke passed; all 180 JavaScript
 scenarios and 36 public HTTPS rollout checks passed. The physical enrollment gate remains open.

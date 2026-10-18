@@ -114,7 +114,7 @@ function unitRow(resident) {
   name.append(link);
   if (resident.synthetic) name.append(' ', el('span', 'synthetic', {class: 'bl-synthetic', hidden: ''}));
   const capture = unitCapture(resident);
-  if (capture) name.append(el('span', `${capture.capture_mode} capture identity`,
+  if (capture) name.append(el('span', capture.capture_mode === 'live' ? 'Live volunteer' : 'Runner capture identity',
                               {class: 'unit-identity-label'}));
   let column = 1;
   const cell = (...children) => {
@@ -146,7 +146,11 @@ function unitPriorityCard(resident) {
   const card = el('article', '', {class: 'unit-priority-card',
     'data-priority': resident.patient_id, 'data-verdict': resident.latest_verdict});
   const heading = el('div', '', {class: 'unit-card-heading'});
-  heading.append(el('h3', resident.display_name), unitVerdict(resident));
+  const displayName = unitCapture(resident)?.name || resident.display_name;
+  heading.append(el('h3', displayName), unitVerdict(resident));
+  if (unitCapture(resident)?.capture_mode === 'live') {
+    heading.append(el('span', 'Live volunteer', {class: 'unit-identity-label'}));
+  }
   const description = {
     escalate: resident.over_budget
       ? 'Flagged for review; the shift interruption budget has been reached.'
@@ -159,7 +163,7 @@ function unitPriorityCard(resident) {
   meta.append(el('span', `Last check · ${formatTime(resident.last_check_ts)}`));
   if (resident.watch_window && resident.watch_window.open) meta.append(windowChip(resident.watch_window));
   card.append(meta, el('a', 'Open resident →', {href: `/resident/${encodeURIComponent(resident.patient_id)}`,
-    class: 'unit-open', 'aria-label': `Open ${resident.display_name}: assessment and source records`}),
+    class: 'unit-open', 'aria-label': `Open ${displayName}: assessment and source records`}),
   el('p', 'Measurements, context and source records inside', {class: 'unit-card-footnote'}));
   return card;
 }
@@ -192,7 +196,7 @@ function renderUnitData(body, data) {
   const searchStatus = body.querySelector('[data-unit=search-status]');
   const searchText = query ? `${matches.length} of ${data.residents.length} visible people match. Unit totals are unchanged.` : '';
   if (searchStatus.textContent !== searchText) searchStatus.textContent = searchText;
-  const roster = data.residents.filter((resident) => !unitCapture(resident));
+  const roster = data.residents.filter((resident) => unitCapture(resident)?.capture_mode !== 'runner');
   const allPriority = roster.filter((resident) => ['escalate', 'watch', 'explained'].includes(resident.latest_verdict));
   const matchingIds = new Set(matches.map((resident) => resident.patient_id));
   const priority = allPriority.filter((resident) => matchingIds.has(resident.patient_id));
@@ -206,7 +210,7 @@ function renderUnitData(body, data) {
     : roster.length ? 'No review flags in the current response' : 'No roster residents in the current response';
   body.querySelector('[data-unit=incomplete]').textContent = incomplete.length
     ? `${incomplete.length} residents have an unavailable assessment or are still enrolling. This is not a normal finding.` : '';
-  const captures = matches.filter(unitCapture);
+  const captures = matches.filter((resident) => unitCapture(resident)?.capture_mode === 'runner');
   const captureList = body.querySelector('[data-unit=capture-list]');
   captureList.replaceChildren(...captures.map((resident) => {
     const item = el('li', '', {class: 'unit-capture-item', 'data-capture': resident.patient_id});
@@ -284,7 +288,7 @@ async function renderUnit(main) {
        {class: 'unit-roster-note'}), table);
   const captures = el('section', '', {'data-unit': 'captures', class: 'unit-captures', hidden: ''});
   captures.append(el('h2', 'Separate capture identities'),
-    el('p', 'Live and runner recording identities are shown separately from the resident roster. Their assessments are not scripted cohort cases.'),
+    el('p', 'Runner recording identities are shown separately. Live volunteers appear in the unit roster with their measured results; they are not scripted cohort cases.'),
     el('ul', '', {'data-unit': 'capture-list'}));
   const retry = el('button', 'Refresh overview', {type: 'button', class: 'unit-refresh', 'data-unit': 'retry'});
   const updates = el('div', '', {class: 'unit-update-bar'});
