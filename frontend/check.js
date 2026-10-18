@@ -296,6 +296,7 @@ async function renderCheck(main) {
   let setup = null, captureProfile = null, capturePending = false, discard = false, disposed = false, sending = false;
   window.addEventListener('pagehide', () => {
     disposed = true; discard = true;
+    if (setup) setup.dispose();
     if (stream) stream.getTracks().forEach((track) => track.stop());
     stop();
   }, {once: true});
@@ -305,6 +306,7 @@ async function renderCheck(main) {
     const setupHost = el('div', '');
     main.prepend(setupHost);
     setup = await window.checkSetup(setupHost, patientId, (ready, mutation) => {
+      if (disposed) { button.disabled = true; return; }
       if (!ready) {
         discard = true;
         if (mutation) { lastBlob = null; retry.hidden = true; }
@@ -314,9 +316,11 @@ async function renderCheck(main) {
       button.disabled = !ready || sending;
       prompt.hidden = !ready;
     });
+    if (disposed) setup.dispose();
   }
 
   async function submit(blob) {
+    if (disposed) return;
     sending = true;
     retry.hidden = true;
     button.disabled = true;
@@ -328,25 +332,30 @@ async function renderCheck(main) {
     try {
       const data = params.mock
         ? await mockCheck(params.fixture)
-        : await uploadCheck(blob, fields, (s) => setStatus(s), {send: async (audio, values) => {
+        : await uploadCheck(blob, fields, (s) => { if (!disposed) setStatus(s); }, {send: async (audio, values) => {
+          if (disposed) { const error = new Error('Capture ended.'); error.status = 409; throw error; }
           if (setup && (!await setup.refresh() || !setup.ready
-              || setup.profile.version !== captureProfile.version)) {
+              || disposed || setup.profile.version !== captureProfile.version)) {
             const error = new Error('Counting setup or permission changed; record a new check.');
             error.status = 409; throw error;
           }
           return postCheck(audio, values);
         }});
+      if (disposed) return;
       setStatus(resident ? '' : params.mock ? 'Sent (mock)' : 'Sent', 'ok');
       if (params.mode === 'live') renderResult(result, data, blob);
       else result.replaceChildren(el('p', data.usable ? 'Thank you.' : 'Please tap Record to try again.',
                                      {class: 'bl-thanks'}));
     } catch (error) {
-      failure(`Could not send the recording (${error.message}). It is kept here; tap Try again.`, error);
-      retry.hidden = error.status === 403 || error.status === 409;
+      if (disposed) return;
+      const blocked = error.status === 403 || error.status === 409;
+      failure(blocked ? 'Recording discarded. Check permission and counting setup, then record a new check.'
+        : `Could not send the recording (${error.message}). It is kept here; tap Try again.`, error);
+      retry.hidden = blocked;
       if (retry.hidden) lastBlob = null;
     } finally {
       sending = false;
-      button.disabled = setup ? !setup.ready : false;
+      button.disabled = disposed || (setup ? !setup.ready : false);
     }
   }
 
@@ -357,6 +366,7 @@ async function renderCheck(main) {
   }
 
   button.addEventListener('click', async () => {
+    if (disposed) return;
     if (recorder && recorder.state === 'recording') { stop(); return; }
     if (capturePending) return;
     const mimeType = pickMimeType();
@@ -370,12 +380,14 @@ async function renderCheck(main) {
       button.disabled = true;
       if (setup) {
         const ready = await setup.refresh();
+        if (disposed) return;
         if (!ready || !setup.ready) { failure('Recording blocked. Check the current profile and voice permission.'); return; }
         captureProfile = {...setup.profile};
         admittedGeneration = setup.generation;
       }
       stream = await navigator.mediaDevices.getUserMedia({audio: true});  // permission on first tap
     } catch (error) {
+      if (disposed) return;
       failure('Microphone access was not allowed.', error);
       return;
     } finally { capturePending = false; button.disabled = disposed || (setup ? !setup.ready : false); }

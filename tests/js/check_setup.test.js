@@ -230,3 +230,28 @@ test('nurse resend refreshes effective consent before upload and sends no withdr
   assert.equal(uploads, 1);
   assert.equal(button(h, 'Record').disabled, true);
 });
+
+for (const phase of ['record', 'upload']) {
+  test(`pagehide during held nurse ${phase} preflight makes no late mic/upload or repaint`, async () => {
+    let reads = 0, releaseRead, asked = 0, uploads = 0;
+    const h = loadPage('/check?mode=live&patient=p1', {routes: {
+      'GET /v1/patients/p1/consent?scope=voice_check': () => ++reads === (phase === 'record' ? 2 : 3)
+        ? new Promise(resolve => { releaseRead = () => resolve({state: 'granted'}); }) : {state: 'granted'},
+      'POST /v1/patients/p1/checks': () => { uploads++; return {usable: true}; }}});
+    await until(() => button(h, 'Record') && !button(h, 'Record').disabled);
+    const original = h.window.navigator.mediaDevices.getUserMedia;
+    h.window.navigator.mediaDevices.getUserMedia = (...args) => { asked++; return original(...args); };
+    button(h, 'Record').click();
+    if (phase === 'upload') {
+      await until(() => button(h, 'Stop')); button(h, 'Stop').click();
+    }
+    await until(() => releaseRead);
+    for (const handler of h.window.listeners.pagehide || []) handler();
+    const text = h.main.textContent;
+    releaseRead(); await tick(40);
+    assert.equal(asked, phase === 'record' ? 0 : 1);
+    assert.equal(uploads, 0);
+    assert.equal(button(h, 'Record').disabled, true);
+    assert.equal(h.main.textContent, text, 'late response does not repaint an exited capture');
+  });
+}

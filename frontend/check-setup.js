@@ -7,7 +7,7 @@ window.checkSetup = async function(host, patientId, changed) {
     el('p', `For ${person ? person.name : patientId}`), message);
   host.append(section);
   const controller = {ready: false, profile: null, generation: 0};
-  let pendingMutations = 0;
+  let pendingMutations = 0, closed = false;
   const notify = (ready) => {
     controller.ready = Boolean(ready);
     controller.generation++;
@@ -21,10 +21,10 @@ window.checkSetup = async function(host, patientId, changed) {
       && consent.state === 'granted');
   };
   const refresh = async () => {
-    if (pendingMutations) return false;
+    if (closed || pendingMutations) return false;
     notify(false);
     const generation = controller.generation;
-    const stale = () => pendingMutations > 0 || generation !== controller.generation;
+    const stale = () => closed || pendingMutations > 0 || generation !== controller.generation;
     const profile = await api(profilePath);
     if (stale()) return false;
     if (!profile.can_configure || !profile.can_record_consent) {
@@ -38,6 +38,7 @@ window.checkSetup = async function(host, patientId, changed) {
     return controller.ready;
   };
   controller.refresh = refresh;
+  controller.dispose = () => { closed = true; notify(false); };
   try { await refresh(); }
   catch (error) { message.textContent = error.message; return controller; }
   const field = (label, control) => {
@@ -80,6 +81,7 @@ window.checkSetup = async function(host, patientId, changed) {
     field('Decision', decision), field('Decision maker', maker),
     field('SDM reference (required for a substitute decision maker)', reference), consentLabel, saveConsent);
   const show = () => {
+    if (closed) return;
     consentView.textContent = `Stored permission: ${consent.state}`
       + (consent.recorded_at ? `, recorded ${consent.recorded_at}` : '') + '.';
     message.textContent = controller.ready ? 'Counting is ready. Recording starts only when you tap Record.'
@@ -88,21 +90,21 @@ window.checkSetup = async function(host, patientId, changed) {
   section.append(profileForm, consentForm); show();
   controller.refresh = async () => { const ready = await refresh(); show(); return ready; };
   saveProfile.addEventListener('click', async () => {
-    if (!profileConfirmed.checked) return;
+    if (closed || !profileConfirmed.checked) return;
     let pending = true;
     saveProfile.disabled = true; pendingMutations++; notify(false);
     try {
       await api(profilePath, {method: 'PUT', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({first_name: name.value.trim() || null, preferred_locale: locale.value.trim() || null})});
       pendingMutations--; pending = false; await refresh(); show();
-    } catch (error) { notify(false); message.textContent = `Profile not saved: ${error.message}`; }
+    } catch (error) { if (!closed) { notify(false); message.textContent = `Profile not saved: ${error.message}`; } }
     finally {
       if (pending) pendingMutations--;
       profileConfirmed.checked = false; saveProfile.disabled = true;
     }
   });
   saveConsent.addEventListener('click', async () => {
-    if (!consentConfirmed.checked) return;
+    if (closed || !consentConfirmed.checked) return;
     let pending = true;
     saveConsent.disabled = true; pendingMutations++; notify(false);
     try {
@@ -115,7 +117,7 @@ window.checkSetup = async function(host, patientId, changed) {
       await api(`/v1/patients/${patientId}/consents`, {method: 'POST',
         headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
       pendingMutations--; pending = false; await refresh(); show();
-    } catch (error) { notify(false); message.textContent = `Permission not recorded: ${error.message}`; }
+    } catch (error) { if (!closed) { notify(false); message.textContent = `Permission not recorded: ${error.message}`; } }
     finally {
       if (pending) pendingMutations--;
       consentConfirmed.checked = false; saveConsent.disabled = true; reference.value = '';
