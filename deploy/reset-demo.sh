@@ -3,6 +3,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 [ -f .env.demo ] || { echo 'Initialize private .env.demo first; see docs/deployment-path.md.' >&2; exit 1; }
+# Server-side profile, before reading Compose configuration or changing running services.
+python3 -m scripts.prepare_deployment runner-profile
 C=(docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml)
 "${C[@]}" config --quiet
 "${C[@]}" stop api worker

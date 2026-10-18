@@ -127,3 +127,9 @@ Dedicated live/runner capture identities are outside the scripted reset allowlis
 them never grants consent: unknown continues to block capture until the care team records an
 actual volunteer decision. This avoids treating the non-audio cohort's synthetic consent as
 permission to record a person. Reset preserves their prior consent history and withdrawals.
+
+The reset wrapper atomically configures the canonical separate runner UUID in the server's
+`PM_NO_ESCALATE_PATIENTS` profile before loading or starting the API. Existing valid UUID profiles
+are retained; duplicate/malformed environment configuration fails before services are stopped.
+The setup helper uses only Python's standard library and emits no credentials. This is the
+existing server-side runner suppression contract, with no scoring/threshold or client-flag change.
