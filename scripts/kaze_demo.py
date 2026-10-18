@@ -2,7 +2,8 @@
 
 Creates the separate `kaze-demo` tenant with safety_mode on, two people going out (each an
 importer on their own patient row) and the `kaze-service` principal the scheduler and sender run
-as (nurse on every person). Prints short-lived tokens. Never run against a real database.
+as (nurse on every person). CLI writes short-lived tokens to an ignored local artifact.
+Never run against a real database.
 """
 import json
 from pathlib import Path

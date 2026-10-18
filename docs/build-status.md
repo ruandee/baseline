@@ -144,3 +144,10 @@ Known gap: `scripts.frontend` mints its token for the eval-corpus workspace tena
 loader writes the cohort to `uid("tenant-0")`. A default local `/unit` therefore lists the
 workspace patients with no voice checks; it shows the cohort only when `PM_DEMO_TOKEN` is set
 to the loader's `artifacts/baseline-demo/session.json` nurse token (BL-21 reset work).
+
+BL-28/29 draft pages: `/out` arms and records baseline/session checks; `/out/session/{id}` shows
+actual delivery and acknowledgements. A separate preconfigured self-custody KAZE bootstrap has
+no nurse fallback. Session-only location is explicit opt-in; pending microphone/location work
+is cancelled on end/expiry. Node fake-clock/DOM tests and runtime bootstrap contracts are added.
+Public phone/SMS loop, real audio, loud-venue SNR adjustment and rehearsals remain acceptance
+or feature gaps; standard escalation timing and held ADR018 questions are unchanged.
