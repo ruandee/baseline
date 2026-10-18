@@ -75,6 +75,8 @@ class Element_ extends Node_ {
   getContext() { return new Proxy({}, {get: () => () => {}, set: () => true}); }
   click() { if (!this.disabled) this.dispatchEvent({type: 'click', bubbles: true}); }
   focus() { this.ownerDocument.activeElement = this; }
+  pause() {}
+  load() {}
   matches(selector) {
     const m = selector.match(/^([a-z0-9]*)(?:\.([\w-]+))?(?:\[([\w-]+)(?:=([\w-]+))?\])?$/i);
     if (!m) throw new Error(`unsupported selector ${selector}`);
@@ -182,7 +184,9 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, s
     listeners: {},
     addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); },
     removeEventListener(type, fn) { this.listeners[type] = (this.listeners[type] || []).filter((f) => f !== fn); },
-    document: doc, location: {pathname: parsed.pathname, search: parsed.search},
+    document: doc, location: {pathname: parsed.pathname, search: parsed.search,
+      hash: parsed.hash, origin: parsed.origin},
+    crypto: require('node:crypto').webcrypto,
     fetch, atob, btoa, TextEncoder, TextDecoder, URLSearchParams, Blob, FormData, URL, Promise, JSON, Math, Date, Object, Array, Map,
     Number, String, Error, setTimeout, clearTimeout, setInterval, clearInterval,
     console: {error: (e) => errors.push(e), log() {}, warn() {}},
@@ -216,7 +220,7 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, s
       }
     });
   };
-for (const file of ['check-resident.js', 'check-setup.js', 'check.js', 'demo-days.js', 'resident-fixtures.js', 'note-export.js', 'signal-panel.js', 'resident.js',
+for (const file of ['check-resident.js', 'check-setup.js', 'check.js', 'demo-days.js', 'demo-handoff.js', 'resident-fixtures.js', 'note-export.js', 'signal-panel.js', 'resident.js',
     ...(kaze ? ['kaze-core.js', 'kaze-capture.js', 'kaze-consent.js', 'kaze.js'] : []), 'motion-core.js', 'motion-capture.js', 'motion.js', 'baseline.js']) {
     vm.runInContext(fs.readFileSync(path.join(FRONTEND, file), 'utf8'), ctx, {filename: file});
   }

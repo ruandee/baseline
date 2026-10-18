@@ -1,5 +1,14 @@
 # Implementation status and remaining gates
 
+BL-17 replacement (decision036): `/unit?demo=handoff` hosts a two-resident presentation room.
+Separate phone links record locally and submit only a duration/idempotency receipt. The runner
+arrives as Watch; nurse-added exertion context changes it to Explained. Dee's first/second
+submissions show Watch/Escalate. Findings/baselines are authored and disclosed as a demo scenario.
+Rooms are isolated from clinical history, expire in two hours, and require the single-process
+host. Old `demo=days` links enter the replacement; `demo=legacy-days` retains the old local mode.
+This supersedes the selected presentation in decision034, not genuine engine or consent rules.
+Deployment and physical-phone rehearsal must be verified on this release separately.
+
 BL-17 follow-up: live checks display eligible prior baseline checks from the engine contract
 and report measured engine/verdict elapsed milliseconds. This does not change scoring policy;
 real phone/audio and hosted latency acceptance remain open.

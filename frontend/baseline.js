@@ -224,6 +224,13 @@ async function renderPage(current, renderer) {
 
 async function render() {
   const current = route();
+  const demo = location.search ? new URLSearchParams(location.search).get('demo') : null;
+  if ((current.name === 'unit' || current.name === 'check')
+      && (demo === 'handoff' || demo === 'days')) {
+    await window.renderHandoff(document.getElementById('bl-main'),
+      {el, chip, bootstrap, api, VERDICT_LABELS});
+    return;
+  }
   if (current.name === 'out') {
     await renderPage(current, (main) => renderKaze(main, current.id));
     return;
@@ -234,7 +241,7 @@ async function render() {
   }
   if (current.name === 'check') {
     const query = new URLSearchParams(location.search);
-    if (query.get('mode') === 'live' && query.get('demo') === 'days') {
+    if (query.get('mode') === 'live' && query.get('demo') === 'legacy-days') {
       // Public fictional presentation only: no session bootstrap, retrieval or API writes.
       window.renderDemoDays(document.getElementById('bl-main'), {el, chip, maxSeconds: CHECK_MAX_S});
       return;
