@@ -104,3 +104,6 @@
 .unit-search-tools input { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #a9b9ad; border-radius: 4px; background: #fff; color: var(--ink); font: inherit; }
 .unit-search-tools button { min-height: 46px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--ink); font: inherit; cursor: pointer; }
 @media(max-width:640px) { .unit-search-tools { align-items: stretch; flex-direction: column; }.unit-search-tools label { width: 100%; }.unit-search-tools button { align-self: flex-start; } }
+
+/* Nav "Demo scenario" disclosure: styles.css boxes .demo-badge and app-shell.css drops its right padding. */
+@media (min-width:761px) { .care-app .nav-foot .nav-disclosure > summary.demo-badge { padding-right: 9px; cursor: pointer; } }
