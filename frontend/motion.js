@@ -88,7 +88,10 @@ window.renderMotion = async function(host) {
       if (disposed || op !== operation) return;
       status.textContent = 'Camera active for 10 seconds. Stand up and take three steps.';
       const measured = await capture.capture();
-      if (!measured || disposed || op !== operation) return;
+      if (disposed || op !== operation) return;
+      if (!measured) {
+        status.textContent = "Camera off. No movement measurements were submitted."; return;
+      }
       status.textContent = 'Camera off. Sending measurements only.';
       const data = await api(`/v1/patients/${patient}/motion-checks`, {
         method: 'POST', headers: {'Content-Type': 'application/json'},

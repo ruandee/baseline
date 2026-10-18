@@ -75,7 +75,7 @@ def _history(conn, patient_id, at):
         "AND n.published_at IS NOT NULL AND n.retracted_at IS NULL AND n.purged_at IS NULL) "
         "ORDER BY m.ts", (patient_id, at)).fetchall()
     return [Check(str(r["id"]), r["ts"], r["device_id"], PROTOCOL, r["is_baseline"], True,
-                  {n: r[n] for n in FEATURES}, "motion") for r in rows]
+                  {n: r[n] for n in FEATURES}, "motion", _evidence(conn, patient_id, r)) for r in rows]
 
 
 def project(conn, cfg, patient_id, at):
@@ -91,7 +91,12 @@ def project(conn, cfg, patient_id, at):
                   True, {n: row[n] for n in FEATURES}, "motion", ids)
     history = _history(conn, patient_id, check.ts)
     mode = "enrolled" if sum(c.is_baseline for c in history) >= MIN_BASELINE else "rolling"
-    return ModalityResult("motion", check.ts, evaluate(check, history, mode, cfg), check.id, ids)
+    result = evaluate(check, history, mode, cfg)
+    result.params["baseline_check_ids"] = list(result.baseline_ids)
+    result.params["baseline_evidence_ids"] = sorted({
+        fact for capture in history if capture.id in result.baseline_ids
+        for fact in capture.evidence_ids})
+    return ModalityResult("motion", check.ts, result, check.id, ids)
 
 
 register_projection("motion", project)

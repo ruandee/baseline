@@ -227,3 +227,38 @@ def test_runtime_motion_rls_hides_other_tenants_and_rejects_cross_patient_source
                              "trunk_sway,step_cadence_spm,source_id) "
                              "VALUES(%s,%s,%s,'synthetic',true,10,100,100,'{}',1.2,.04,60,%s)",
                              (actors["nurse"].tenant_id, other, uuid4(), result["source_id"]))
+
+
+def test_motion_first_publication_rejects_forged_numbers_with_correct_object_key(sandbox):
+    grant(sandbox)
+    cfg, pid, actors, _ = sandbox
+    cid, sid = uuid4(), uuid4()
+    key = f"{actors['nurse'].tenant_id}/{pid}/{sid}.json"
+    with pytest.raises(psycopg.errors.InvalidParameterValue):
+        with transaction(cfg, actors["nurse"]) as conn:
+            with scoring_context(conn, pid):
+                conn.execute("INSERT INTO motion_checks(tenant_id,patient_id,id,device_id,usable,"
+                             "duration_s,total_frames,confident_frames,quality,sit_to_stand_s,"
+                             "trunk_sway,step_cadence_spm,source_id) "
+                             "VALUES(%s,%s,%s,'synthetic',true,10,100,100,'{}',1.2,.04,60,%s)",
+                             (actors["nurse"].tenant_id, pid, cid, sid))
+                raw = conn.execute("SELECT pm_motion_source_payload(%s,%s) AS payload",
+                                   (pid, cid)).fetchone()["payload"]
+                raw["records"][0]["value"] = "9.9"
+                conn.execute("SELECT pm_publish_motion_source(%s,%s,%s,%s)",
+                             (pid, cid, json.dumps(raw), key))
+    with psycopg.connect(cfg.admin_database_url) as admin:
+        assert admin.execute("SELECT count(*) FROM sources WHERE id=%s", (sid,)).fetchone()[0] == 0
+        assert admin.execute("SELECT count(*) FROM motion_checks WHERE id=%s", (cid,)).fetchone()[0] == 0
+
+
+def test_expired_motion_consent_blocks_readiness_and_publication(sandbox, monkeypatch):
+    grant(sandbox)
+    cfg, pid, _, objects = sandbox
+    with psycopg.connect(cfg.admin_database_url) as admin:
+        admin.execute("UPDATE resident_consents SET recorded_at=clock_timestamp()-interval '2 days',"
+                      "expires_at=clock_timestamp()-interval '1 day' "
+                      "WHERE patient_id=%s AND scope='motion_check'", (pid,))
+    monkeypatch.setattr(objects, "put", lambda *a: pytest.fail("expired consent published source"))
+    assert client(sandbox).get(f"/v1/patients/{pid}/motion-checks/readiness").status_code == 403
+    assert capture(sandbox).status_code == 403

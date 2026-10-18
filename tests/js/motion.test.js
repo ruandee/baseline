@@ -85,3 +85,40 @@ test('cancellation during permission prompt stops a late stream without analyzin
   assert.equal(await pending, null); assert.equal(stopped, 1);
   assert.equal(capture.pending.size, 0);
 });
+
+
+test('cancel and camera deadline settle capture even when video playback never resolves', async () => {
+  for (const deadline of [false, true]) {
+    let stopped = 0, expire, playing;
+    const started = new Promise((resolve) => { playing = resolve; });
+    const video = {play: () => { playing(); return new Promise(() => {}); }};
+    const capture = new MotionCapture(video, {Worker: WorkerStub, core,
+      setTimeout: (callback) => { expire = callback; return undefined; },
+      mediaDevices: {getUserMedia: async () => ({getTracks: () => [{stop: () => stopped++}]})}});
+    await capture.warm();
+    const pending = capture.capture(); await started;
+    if (deadline) expire(); else capture.cancel();
+    assert.equal(await pending, null); assert.equal(stopped, 1);
+    assert.equal(capture.capturing, false); assert.equal(video.srcObject, null);
+    capture.cancel();
+  }
+});
+
+test('cancel settles an in-flight worker frame and stops camera tracks', async () => {
+  let stopped = 0, dispatched;
+  const frameStarted = new Promise((resolve) => { dispatched = resolve; });
+  class HangingWorker extends WorkerStub {
+    postMessage(data) {
+      if (data.type === 'frame') { data.bitmap.close(); dispatched(); }
+      else super.postMessage(data);
+    }
+  }
+  const video = {currentTime: 0, readyState: 2, play: async () => {}};
+  const capture = new MotionCapture(video, {Worker: HangingWorker, core,
+    mediaDevices: {getUserMedia: async () => ({getTracks: () => [{stop: () => stopped++}]})},
+    bitmap: async () => ({close: () => {}})});
+  await capture.warm(); const pending = capture.capture(); await frameStarted;
+  capture.cancel(); assert.equal(await pending, null);
+  assert.equal(stopped, 1); assert.equal(capture.pending.size, 0);
+  assert.equal(capture.worker.terminated, true);
+});
