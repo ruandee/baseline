@@ -3,6 +3,8 @@
 const POLL_MS = 10000;
 const VERDICT_LABELS = {escalate: 'Escalate', watch: 'Watch', explained: 'Explained',
                         within_normal: 'Within normal', enrolling: 'Enrolling'};
+const UNIT_COLUMNS = ['Resident', 'Status', 'Follow-up window', 'Change score',
+                      'Speech trend', 'Last check'];
 const state = {session: null, unitStop: null};
 
 async function api(path, options = {}) {
@@ -101,13 +103,17 @@ function formatTime(iso) {
 
 function unitRow(resident) {
   const row = document.createElement('tr');
+  row.setAttribute('data-verdict', resident.latest_verdict || 'unknown');
   const name = document.createElement('td');
   const link = el('a', resident.display_name, {href: `/resident/${resident.patient_id}`,
-                                               class: 'bl-name'});
+                                               class: 'bl-name',
+                                               'aria-label': `Open details for ${resident.display_name}`});
   name.append(link);
   if (resident.synthetic) name.append(' ', el('span', 'synthetic', {class: 'bl-synthetic'}));
+  let column = 1;
   const cell = (...children) => {
     const td = document.createElement('td');
+    td.setAttribute('data-label', UNIT_COLUMNS[column++]);
     td.append(...children);
     return td;
   };
@@ -137,22 +143,51 @@ function renderUnitData(body, data) {
   const rows = body.querySelector('tbody');
   rows.replaceChildren(...data.residents.map(unitRow));
   body.querySelector('[data-unit=empty]').hidden = data.residents.length > 0;
+  ['escalate', 'watch', 'explained'].forEach((verdict) => {
+    body.querySelector(`[data-unit=count-${verdict}]`).textContent =
+      String(data.residents.filter((resident) => resident.latest_verdict === verdict).length);
+  });
+  body.querySelector('[data-unit=count-total]').textContent = String(data.residents.length);
 }
 
 async function renderUnit(main) {
   if (state.unitStop) state.unitStop();
   main.replaceChildren();
   const body = document.createElement('section');
+  body.className = 'bl-unit';
   const table = document.createElement('table');
   table.className = 'bl-table';
   const head = document.createElement('thead');
   const headRow = document.createElement('tr');
-  ['Resident', 'Verdict', 'Watch window', 'Fused z', 'Speech rate, 14 days', 'Last check']
+  UNIT_COLUMNS
     .forEach((label) => headRow.append(el('th', label, {scope: 'col'})));
   head.append(headRow);
   table.append(head, document.createElement('tbody'));
   const notice = el('div', '', {class: 'bl-status', 'data-state': 'error', 'data-unit': 'error', hidden: ''});
-  body.append(el('h1', 'Unit watch list'),
+  const heading = el('div', '', {class: 'bl-page-heading'});
+  const introduction = el('div', '');
+  introduction.append(el('p', 'CARE TEAM', {class: 'bl-eyebrow'}),
+    el('h1', 'Your unit, at a glance'),
+    el('p', 'See who needs a closer look. Open a resident to understand the change.',
+       {class: 'bl-intro'}));
+  heading.append(introduction, el('a', 'Start voice checks',
+    {href: '/check?mode=resident', class: 'bl-primary-link'}));
+  const summary = el('div', '', {class: 'bl-unit-summary', 'aria-label': 'Unit summary'});
+  [['escalate', 'Needs review', 'Flagged for nurse review'],
+   ['watch', 'On watch', 'A change to follow up'],
+   ['explained', 'Context available', 'An explanation to consider'],
+   ['total', 'Residents', 'Visible to your care team']].forEach(([key, label, hint]) => {
+    const card = el('div', '', {class: 'bl-stat', 'data-summary': key});
+    card.append(el('span', label, {class: 'bl-stat-label'}),
+      el('strong', '\u2014', {'data-unit': `count-${key}`}),
+      el('span', hint, {class: 'bl-stat-hint'}));
+    summary.append(card);
+  });
+  const listHeading = el('div', '', {class: 'bl-list-heading'});
+  listHeading.append(el('h2', 'Resident watchlist'),
+    el('p', 'Listed in review order. Measurements and source records are inside.',
+       {class: 'bl-muted'}));
+  body.append(heading, summary, listHeading,
               el('p', 'Loading…', {class: 'bl-shift', 'data-unit': 'shift'}),
               notice, table,
               el('p', 'No residents are visible to this account.', {'data-unit': 'empty', hidden: ''}));

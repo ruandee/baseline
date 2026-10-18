@@ -100,12 +100,15 @@
       return card;
     }
     const overBudget = a.verdict === 'escalate' && a.over_budget;
-    card.append(h.chip(overBudget ? 'Escalate (over budget)' : h.VERDICT_LABELS[a.verdict] || a.verdict,
+    card.append(h.el('p', 'LATEST ASSESSMENT', {class: 'bl-eyebrow'}),
+                h.chip(overBudget ? 'Escalate (over budget)' : h.VERDICT_LABELS[a.verdict] || a.verdict,
                        overBudget ? 'watch' : a.verdict));
     if (data.watch_window && data.watch_window.open) {
       card.append(' ', h.el('span', `Day ${data.watch_window.day} of ${data.watch_window.of}`,
                             {class: 'bl-window'}));
     }
+    card.append(h.el('p', 'Compared with this resident’s own usual range. '
+      + 'Review the measurements and supporting records below.', {class: 'bl-muted'}));
     if (a.suggested_action && a.suggested_action.id !== 'none') {
       const actionId = `action-${a.id}`;
       const button = h.el('button', a.suggested_action.label, {class: 'bl-action', type: 'button',
