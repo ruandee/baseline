@@ -209,3 +209,7 @@ legacy speech compatibility. New captures reproject eligible immutable modalitie
 revision without restoring invalidated decisions; first-change markers reject stale/session
 snapshots. Only speech is registered in this base. Decision025/migration010 track the contract;
 final exact-head CI remains authoritative after hosting/status integration.
+
+BL-21 reset (pending combined CI): fixture-only current-time reset verifies all twelve
+canonical outcomes, preserves unrelated recordings/consent, refreshes private nurse/PSW/KAZE
+credentials and configures runner suppression. Hosted reset under one minute remains unverified.

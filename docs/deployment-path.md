@@ -129,3 +129,37 @@ References: [Google Cloud free program](https://docs.cloud.google.com/free/docs/
 [Compute Engine Linux instances](https://docs.cloud.google.com/compute/docs/create-linux-vm-instance),
 [Docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/),
 [Caddy automatic HTTPS](https://caddyserver.com/docs/automatic-https).
+
+
+## One-command current-day core demo reset (BL-21)
+
+After private `.env.demo` setup and the reviewed image prerequisites, run:
+
+```sh
+bash deploy/reset-demo.sh
+# For a repeatable chosen UTC anchor:
+bash deploy/reset-demo.sh 2026-10-18T14:00:00Z
+```
+
+This refreshes both private role tokens to 48 hours, restores the twelve scripted story prefixes
+at one current/chosen UTC instant, verifies their actual canonical outcomes, and prints `/unit`,
+the PSW `/check` and a dedicated live-check URL. A separate runner URL is also printed. The unit
+roster can include the two explicitly named capture volunteers in addition to the twelve scripted
+residents; the scripted PSW due cohort stays separate. No credentials are printed.
+
+Original fixture files and the existing all-history/scenario-snapshots loader modes are unchanged.
+The reset accepts only exact authored fixture rows. It refuses real/runner/session checks or other
+unrecognized data inside the scripted identities, rather than deleting them. Existing capture
+volunteers, other patients/tenants, consent withdrawals and revoked assignments are preserved.
+
+Creating the dedicated live/runner identities does not record consent. Their initial consent is
+unknown and capture returns `403 consent_required` until the authorized care team records the
+volunteer's actual decision through the existing consent endpoint. Reset never grants or restores
+that consent. The authored, non-audio cohort uses explicit synthetic fixture consent separately.
+Use the printed live/runner URLs to keep new recordings outside the scripted identities.
+
+API and worker are stopped before reset to prevent concurrent admissions. If validation or strict
+outcome checks fail, they remain stopped; inspect the safe error and ignored reset report, resolve
+the discrepancy and rerun. Do not wipe volumes, bypass fixture validation, or restart a partial
+reset as though it passed. Same explicit-anchor reruns preserve data counts and are idempotent.
+Live phone audio, public DNS/certificates and host latency are still separate acceptance gates.
