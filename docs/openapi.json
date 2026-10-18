@@ -922,6 +922,240 @@
         }
       }
     },
+    "/v1/patients/{patient_id}/sessions": {
+      "post": {
+        "summary": "Arm Session",
+        "operationId": "arm_session_v1_patients__patient_id__sessions_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionArm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Sessions",
+        "operationId": "list_sessions_v1_patients__patient_id__sessions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/patients/{patient_id}/sessions/{session_id}": {
+      "get": {
+        "summary": "Session Status",
+        "operationId": "session_status_v1_patients__patient_id__sessions__session_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/patients/{patient_id}/sessions/{session_id}/end": {
+      "post": {
+        "summary": "End Session",
+        "operationId": "end_session_v1_patients__patient_id__sessions__session_id__end_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionEnd"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/watchlist": {
       "get": {
         "summary": "Watchlist",
@@ -1465,6 +1699,57 @@
             "type": "boolean",
             "title": "Is Baseline",
             "default": false
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 90.0,
+                "minimum": -90.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 180.0,
+                "minimum": -180.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "accuracy_m": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accuracy M"
           }
         },
         "type": "object",
@@ -1689,6 +1974,16 @@
             },
             "type": "object",
             "title": "Timings Ms"
+          },
+          "session": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SessionSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -2218,6 +2513,103 @@
         "title": "DueResident",
         "description": "Deliberately score-free: no verdict, fused z, feature, sparkline or SBAR fields."
       },
+      "EscalationOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "episode": {
+            "type": "integer",
+            "title": "Episode"
+          },
+          "level": {
+            "type": "integer",
+            "title": "Level"
+          },
+          "trigger": {
+            "type": "string",
+            "enum": [
+              "missed_checkin",
+              "speech_change"
+            ],
+            "title": "Trigger"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "nudge",
+              "sms"
+            ],
+            "title": "Channel"
+          },
+          "contact_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Index"
+          },
+          "sent_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Sent At"
+          },
+          "delivery": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "logged",
+              "sent",
+              "failed"
+            ],
+            "title": "Delivery"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "ack_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ack At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "episode",
+          "level",
+          "trigger",
+          "channel",
+          "contact_index",
+          "sent_at",
+          "delivery",
+          "message",
+          "ack_at"
+        ],
+        "title": "EscalationOut"
+      },
       "Evidence": {
         "properties": {
           "evidence_id": {
@@ -2502,6 +2894,469 @@
           "value"
         ],
         "title": "Record"
+      },
+      "SessionArm": {
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Display Name"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ends At"
+          },
+          "interval_min": {
+            "type": "integer",
+            "maximum": 180.0,
+            "minimum": 1.0,
+            "title": "Interval Min",
+            "default": 45
+          },
+          "contacts": {
+            "items": {
+              "$ref": "#/components/schemas/SessionContactInput"
+            },
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Contacts"
+          },
+          "context_tags": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "exertion",
+                "loud_venue"
+              ]
+            },
+            "type": "array",
+            "maxItems": 2,
+            "title": "Context Tags"
+          },
+          "escalation_enabled": {
+            "type": "boolean",
+            "title": "Escalation Enabled",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "display_name",
+          "ends_at",
+          "contacts"
+        ],
+        "title": "SessionArm",
+        "description": "Arm a KAZE safety session (decision 018). `ends_at` is checked against the server clock."
+      },
+      "SessionBaseline": {
+        "properties": {
+          "required": {
+            "type": "integer",
+            "title": "Required"
+          },
+          "usable": {
+            "type": "integer",
+            "title": "Usable"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "required",
+          "usable"
+        ],
+        "title": "SessionBaseline"
+      },
+      "SessionCheckOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "usable": {
+            "type": "boolean",
+            "title": "Usable"
+          },
+          "is_baseline": {
+            "type": "boolean",
+            "title": "Is Baseline"
+          },
+          "change_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Status"
+          },
+          "has_location": {
+            "type": "boolean",
+            "title": "Has Location"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "ts",
+          "usable",
+          "is_baseline",
+          "change_status",
+          "has_location"
+        ],
+        "title": "SessionCheckOut"
+      },
+      "SessionContactInput": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "phone_e164": {
+            "type": "string",
+            "pattern": "^\\+[1-9][0-9]{7,14}$",
+            "title": "Phone E164"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "phone_e164"
+        ],
+        "title": "SessionContactInput"
+      },
+      "SessionContactOut": {
+        "properties": {
+          "contact_index": {
+            "type": "integer",
+            "title": "Contact Index"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "phone_masked": {
+            "type": "string",
+            "title": "Phone Masked"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "contact_index",
+          "name",
+          "phone_masked"
+        ],
+        "title": "SessionContactOut"
+      },
+      "SessionEnd": {
+        "properties": {},
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SessionEnd"
+      },
+      "SessionList": {
+        "properties": {
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/SessionOut"
+            },
+            "type": "array",
+            "title": "Sessions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sessions"
+        ],
+        "title": "SessionList"
+      },
+      "SessionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "patient_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Patient Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "arming",
+              "active",
+              "escalating",
+              "acknowledged",
+              "ended"
+            ],
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "activated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated At"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ends At"
+          },
+          "interval_min": {
+            "type": "integer",
+            "title": "Interval Min"
+          },
+          "context_tags": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "exertion",
+                "loud_venue"
+              ]
+            },
+            "type": "array",
+            "title": "Context Tags"
+          },
+          "escalation_enabled": {
+            "type": "boolean",
+            "title": "Escalation Enabled"
+          },
+          "next_due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Due At"
+          },
+          "last_checkin_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Checkin At"
+          },
+          "ladder_level": {
+            "type": "integer",
+            "title": "Ladder Level"
+          },
+          "episode": {
+            "type": "integer",
+            "title": "Episode"
+          },
+          "ladder_trigger": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "missed_checkin",
+                  "speech_change"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ladder Trigger"
+          },
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "end_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "user",
+                  "expired"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Reason"
+          },
+          "delete_after": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delete After"
+          },
+          "baseline": {
+            "$ref": "#/components/schemas/SessionBaseline"
+          },
+          "contacts": {
+            "items": {
+              "$ref": "#/components/schemas/SessionContactOut"
+            },
+            "type": "array",
+            "title": "Contacts"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/SessionCheckOut"
+            },
+            "type": "array",
+            "title": "Checks",
+            "default": []
+          },
+          "escalations": {
+            "items": {
+              "$ref": "#/components/schemas/EscalationOut"
+            },
+            "type": "array",
+            "title": "Escalations",
+            "default": []
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "patient_id",
+          "display_name",
+          "status",
+          "created_at",
+          "activated_at",
+          "ends_at",
+          "interval_min",
+          "context_tags",
+          "escalation_enabled",
+          "next_due_at",
+          "last_checkin_at",
+          "ladder_level",
+          "episode",
+          "ladder_trigger",
+          "acknowledged_at",
+          "ended_at",
+          "end_reason",
+          "delete_after",
+          "baseline",
+          "contacts"
+        ],
+        "title": "SessionOut"
+      },
+      "SessionSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "arming",
+              "active",
+              "escalating",
+              "acknowledged",
+              "ended"
+            ],
+            "title": "Status"
+          },
+          "baseline_required": {
+            "type": "integer",
+            "title": "Baseline Required"
+          },
+          "baseline_usable": {
+            "type": "integer",
+            "title": "Baseline Usable"
+          },
+          "next_due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Due At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "baseline_required",
+          "baseline_usable",
+          "next_due_at"
+        ],
+        "title": "SessionSummary"
       },
       "SkipInput": {
         "properties": {

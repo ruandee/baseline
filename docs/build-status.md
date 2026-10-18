@@ -154,3 +154,7 @@ ordinary PSW transactions cannot retrieve scoring data, records or evidence. Res
 pending-permission refusal, uses stable per-mode devices and retains the one-retry/warm-close flow.
 See decision 017. Real-browser/nontechnical tester acceptance, additional language protocols and
 source-submitter attribution for ?Your observation helped? remain open. This is synthetic only.
+
+KAZE session model, expiry/retention hardening and synthetic engineering tests from decision 018
+are integrated. Migration 007 follows 006; explicit synthetic session fixtures record consent.
+Scheduler, delivery and real-device acceptance remain separate work.
