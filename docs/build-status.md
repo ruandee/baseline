@@ -117,9 +117,10 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
   6 slow tests were deselected. Its actual DB test requires all 12 canonical labels/actions,
   idempotency, exact evidence, RLS/revocation and contamination rejection. Final integrated CI
   is tracked on PRs #60/#53/#61; no local Docker/DB run is claimed.
-- Real golden recordings, slow Whisper/VAD acceptance and runner baseline/backup/race clips
-  remain outstanding. Recordings are on hold. FFmpeg is installed locally; no real audio has
-  been validated by the feature loader.
+- PR #94 records a separately approved live-voice protocol revision and reports a local real
+  Whisper golden run. Its review and CI remain pending; the original stairs-direction failure
+  is retained. Actual hosted baseline enrollment, physical-device capture and rehearsals remain
+  outstanding. The feature loader itself does not validate real audio.
 - Public HTTPS/DNS/token configuration, LTE Safari/Chrome capture and warm host p95 below 5 s
   remain acceptance work. UI evidence/SBAR readback passes API-captured DOM and lifecycle tests;
   physical-phone readback has not been verified.
@@ -235,7 +236,8 @@ No model, threshold/action policy change, clinical sign-off or writeback is intr
 
 ## Acceptance audit against all Baseline tickets
 
-Snapshot: main `ed7758d`, reviewed 2026-10-18 UTC. The acceptance text comes from
+Snapshot: main `ed7758d`, reviewed 2026-10-18 UTC, with pending PR #94 noted separately.
+The acceptance text comes from
 `baseline-tickets.json` and `06-baseline.md`; adopted decisions supersede the original frontend
 location, unsafe hypertables and approved change-policy/scenario assumptions. A green synthetic
 test proves its engineering case only. Missing measurements, recordings and human actions remain
@@ -249,7 +251,7 @@ remaining branches land.
 | BL-03 | Fresh migration CI and runtime-role isolation in `test_baseline_rls.py`; ordinary voice table per decision004 | No hypertable isolation claim |
 | BL-04 | Constructed-silence audio/VAD/feature tests; corrected pause boundaries | Real recordings are BL-06, not proved by these fixtures |
 | BL-05 | Short/noisy/clipped/off-script quality tests | Real venue/phone quality remains separate |
-| BL-06 | Golden-clip harness exists | Normal/slow/pausey/stairs recordings absent; ON HOLD (#8) |
+| BL-06 | Golden-clip harness merged; pending #94 reports a local real Whisper run against its explicitly revised protocol, preserving the original stairs failure | Review the revised protocol and run evidence before accepting #8; no exertion-detection validation claimed |
 | BL-07 | Multipart format, authorization, unusable clip and payload-limit contract tests | Hosted p95 below5s unmeasured; #9 reopened for its explicit remaining gate |
 | BL-08 | Original speech cases plus calibration/confirmation/CUSUM regressions; accepted decision019 | Engineering thresholds only; no clinical sensitivity/specificity claim |
 | BL-09 | Structured medication/vital context tests verify exact source spans and order semantics | None for the synthetic engineering gate |
@@ -258,7 +260,7 @@ remaining branches land.
 | BL-12 | Validator/fallback and valid configured-draft publication tests; speech SBAR merged | Grounded multimodal draft/export #87 merged; configured live model quality unmeasured |
 | BL-13 | Watchlist/overview API contracts and committed OpenAPI | Final schema/compatibility CI after pending PSW branches |
 | BL-14 | Actual loader/runtime-role scoring verifies all12 approved synthetic outcomes, idempotence and evidence | Authored fixtures are not statistical/clinical validation |
-| BL-15 | Server suppression and separate runner identity implemented | Five rested baselines and stairs/race/backup recordings absent; ON HOLD (#17) |
+| BL-15 | Server suppression and separate runner identity merged; pending #94 adds same-person baseline enrollment and live-demo instructions | Actual API enrollment with five distinct rested takes, the confirmed live speaker and rehearsals remain unverified (#17) |
 | BL-16 | Same-origin shell/bootstrap and Host/Origin/authorization tests; decision005 | No Next.js/web directory requirement under the adopted decision |
 | BL-17 | Recording/retry/permission/race and MIME engineering tests | Physical iPhone/Android HTTPS/LTE acceptance unrun (#19) |
 | BL-18 | Real cohort/API-captured JS proves API sort order and hidden-tab polling stop/resume | Specified engineering gate accepted; #20 closed |
