@@ -18,7 +18,7 @@ These contracts are normative for the prototype. B02 must encode them as Pydanti
 | GET `/health/live` | None | 200 process alive, no internals |
 | GET `/health/ready` | Internal authorization | 200 dependencies ready or 503 |
 
-`SourceInput`: `{external_document_id, external_version_id, source_system, kind, author_role, visibility, recorded_at, effective_from?, effective_to?, supersedes_version_id?, text?, records?}`. Kinds: `nursing_note`, `patient_report`, `observation`, `medication_event`. Exactly one of text (nonempty) or records (nonempty array); text for note/report, records for structured kinds. Record: `{concept, value, unit?, polarity, effective_from?, effective_to?, order_id?, event_type?}`. Medication event types: `ordered`, `administered`, `stopped`, `mentioned`; require order_id for ordered/stopped. Polarity: `present`, `absent`, `uncertain`. `author_role` and visibility are validated against the caller's granted import capabilities. Visibility: `care_team` or `patient_and_care_team`.
+`SourceInput`: `{external_document_id, external_version_id, source_system, kind, author_role, author_principal_id?, visibility, recorded_at, effective_from?, effective_to?, supersedes_version_id?, text?, records?}`. Kinds: `nursing_note`, `patient_report`, `observation`, `medication_event`. Exactly one of text (nonempty) or records (nonempty array); text for note/report, records for structured kinds. Record: `{concept, value, unit?, polarity, effective_from?, effective_to?, order_id?, event_type?}`. Medication event types: `ordered`, `administered`, `stopped`, `mentioned`; require order_id for ordered/stopped. Polarity: `present`, `absent`, `uncertain`. `author_role` and visibility are validated against the caller's granted import capabilities. Visibility: `care_team` or `patient_and_care_team`.
 
 Reject future `known_at`, inverted intervals, unsupported content types and cross-patient supersession. A patient ID on the route is canonical; reject conflicting IDs inside source payloads. MVP importers must supply correctly linked IDs. Unknown unit/concept mappings remain explicit unmapped values rather than guessed conversions.
 
@@ -79,3 +79,11 @@ Read from one published patient revision. Before returning a generated answer, c
 API tests must cover role × route × patient ownership, not just happy paths. Citation fetches enforce current permission even when the answer was created earlier.
 
 Implementation additions: administrators manage assignments through `PUT /patients/{id}/assignments`; importers can change source visibility with `PUT .../sources/{version}/visibility` and request active-store erasure with `POST .../sources/{version}/purge`. Those source mutations require idempotency keys; purge returns 202. Unsupported request content types return 415. When retrieved evidence exists but the model selects none, unknown reason is `selection_abstained`, distinct from `not_documented`.
+
+
+BL-31 explicit care-note attribution (decision 030): assigned importers may supply a same-tenant,
+same-patient active `author_principal_id` matching the note's `nurse` or `psw` author role.
+PSW authorship requires that explicit principal; no PSW import capability is granted. Omitted
+attribution retains exact legacy source serialization and remains unknown. The score-free due
+list returns `observation_helped: true` only for an exact own-note citation in a current eligible
+fresh escalation; all other cases return null and expose no clinical evidence or score.

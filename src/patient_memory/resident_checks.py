@@ -1,6 +1,6 @@
 """PSW-facing check workflow (BL-31, decision 017): due list, skips and consent records.
 
-Nothing here reads assessments, verdicts or features: the responses are score-free by
+A closed database aggregate returns positive own-note credit without exposing clinical rows: the responses are score-free by
 construction, so a PSW device never receives a score.
 """
 from datetime import UTC, datetime
@@ -27,7 +27,7 @@ def due_checks(conn, cfg: Settings, now: datetime | None = None) -> dict:
     start = day_start(now or datetime.now(UTC), cfg.shift_timezone)
     rows = conn.execute(
         "SELECT p.id, p.external_id,"
-        " pm_last_check_at(p.id) AS last_check_ts,"
+        " pm_last_check_at(p.id) AS last_check_ts, pm_observation_helped(p.id) AS observation_helped,"
         " EXISTS(SELECT FROM check_skips s WHERE s.tenant_id=p.tenant_id AND s.patient_id=p.id"
         "  AND s.recorded_at>=%s) AS skipped_today"
         " FROM patients p WHERE pm_checker(p.id) ORDER BY p.external_id, p.id", (start,)).fetchall()
@@ -40,7 +40,7 @@ def due_checks(conn, cfg: Settings, now: datetime | None = None) -> dict:
                   else "skipped" if row["skipped_today"] else "due")
         residents.append({"patient_id": row["id"], "display_name": row["external_id"],
                           "status": status, "consent_state": state, "last_check_ts": last,
-                          "skipped_today": row["skipped_today"], "observation_helped": None})
+                          "skipped_today": row["skipped_today"], "observation_helped": row["observation_helped"]})
     return {"day_start": start, "residents": residents}
 
 

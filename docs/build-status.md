@@ -228,3 +228,9 @@ preliminary export now use exact current/baseline capture evidence, registered l
 current context and existing standard actions. Nurse readback and export revalidate revision,
 permissions, source lifecycle and expiry. Missing provenance withholds the draft. No model,
 clinical validation, threshold change, clinical sign-off or writeback is introduced.
+
+
+BL-31 attribution follow-up adds importer-asserted, patient-scoped immutable note authorship and
+true-or-unknown own-note credit in the score-free due list. Ordinary PSW clinical retrieval stays
+denied; legacy source serialization/reset hashes are preserved. Decision030/migration013 record
+the feedback-only freshness and exact current-citation gates. Exact-head CI remains required.
