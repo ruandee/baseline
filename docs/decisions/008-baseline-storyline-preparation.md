@@ -109,7 +109,8 @@ A scoped operations marker stores the canonical fingerprint, current anchor and 
 object keys. Same-anchor reruns preserve data IDs/counts and resume loader publication/scoring;
 interrupted cleanup is retryable without broad object deletion. All publication precedes scoring.
 The actual twelve outcomes and current-shift budget are checked after loading, with nonzero exit
-on mismatch. A failed reset leaves API/worker stopped for diagnosis; do not bypass the allowlist.
+on mismatch. The original wrapper left API/worker stopped on any failure; the recovery addendum
+below supersedes that availability behavior without changing the strict allowlist.
 
 Separate deterministic live and runner volunteers sit outside the twelve-person fixture allowlist.
 Their recordings and consent are preserved across every reset. Hosted roster metadata marks them
@@ -118,7 +119,8 @@ An explicit patient query remains possible. They have no PSW assignment, keeping
 cohort separate. The report explicitly distinguishes twelve scripted residents from two captures.
 
 `deploy/reset-demo.sh` stops API/worker, migrates, privately refreshes 48-hour nurse/PSW tokens,
-runs the offline reset, and restarts only after the strict gate passes. It prints three core URLs
+runs the offline reset, and starts services with explicit success/failure reporting (see recovery
+addendum below). It prints three core URLs
 and an optional runner URL. No down-v, real audio, provider/SMS call, cloud action or paid resource
 is part of this implementation. Public-host/phone/latency acceptance remains separate.
 # Capture consent during reset
@@ -133,3 +135,19 @@ The reset wrapper atomically configures the canonical separate runner UUID in th
 are retained; duplicate/malformed environment configuration fails before services are stopped.
 The setup helper uses only Python's standard library and emits no credentials. This is the
 existing server-side runner suppression contract, with no scoring/threshold or client-flag change.
+
+## BL-21 reset failure recovery
+
+Stopping admissions is necessary during the offline reset, but a refused fixture guard must not
+silently leave the public API unavailable. After migration and private credential preparation
+have completed, the wrapper attempts its existing readiness-checked service startup even when
+`scripts.demo_reset` fails. It preserves the original reset exit status and explicitly says the
+data was not certified as reset. Recovery failure is reported separately without claiming
+availability; it never changes the original failure into success or retries deletion.
+
+There is deliberately no broad EXIT trap: migration, image/build, dependency readiness and token
+preparation failures may leave schema/configuration unsafe, so they do not trigger an automatic
+API start. An operator must inspect those failures first. Strict fixture validation, immutable
+sources, exact deletion targets and consent remain unchanged. Shell fakes exercise the actual
+wrapper without Docker, services or data; actual hosted reset acceptance remains blocked when
+the guard detects a nonfixture check, and host latency/phone gates remain separate.

@@ -317,3 +317,10 @@ It does not compare the speaker with a measured personal baseline. ADR034 distin
 from ordinary live checks. A held stale recorder callback cannot cancel a newer stop timer;
 synthetic-only browser proof covered all three labelled days and resource cleanup. Combined
 release CI is required; no deployed rollout or real-device acceptance is claimed here.
+
+
+BL-21 recovery follow-up: after successful migration and private token preparation, a refused or
+failed offline reset attempts readiness-checked service recovery while returning the original
+reset failure. Failed recovery reports availability as unconfirmed; earlier migration/config
+failures never auto-start the API. Strict fixture/data guards are unchanged. Offline shell-fake
+regressions do not establish a successful hosted reset or the under-one-minute acceptance gate.
