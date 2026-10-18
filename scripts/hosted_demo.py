@@ -13,9 +13,9 @@ import json
 import logging
 import os
 import shutil
-import time
 import urllib.request
 from datetime import timedelta
+from pathlib import Path
 
 import jwt
 
@@ -106,13 +106,32 @@ def readiness(cfg):
             raise RuntimeError(f"liveness returned {response.status}")
 
 
+def bootstrap_kaze(cfg, *, grant_consent=False, destination=Path("artifacts/kaze-demo/session.json")):
+    """Explicit synthetic setup; keep person credentials private and omit the service token."""
+    from scripts.kaze_demo import kaze_demo
+
+    payload = kaze_demo(cfg, grant_consent=grant_consent)
+    payload.pop("service")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+        json.dump(payload, output)
+    os.chmod(destination, 0o600)
+    return payload
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("bootstrap", "serve", "worker", "check"))
+    parser.add_argument("command", choices=("bootstrap", "kaze-bootstrap", "serve", "worker",
+                                            "kaze-worker", "check"))
     parser.add_argument("--json", action="store_true", help="Bootstrap nurse/PSW JSON for private stdin")
+    parser.add_argument("--grant-fixture-consent", action="store_true",
+                        help="Explicit synthetic consent for KAZE fixtures; preserves withdrawals")
     args = parser.parse_args()
-    if args.json and args.command != "bootstrap":
-        parser.error("--json is only valid with bootstrap")
+    if args.json and args.command not in ("bootstrap", "kaze-bootstrap"):
+        parser.error("--json is only valid with bootstrap or kaze-bootstrap")
+    if args.grant_fixture_consent and args.command != "kaze-bootstrap":
+        parser.error("--grant-fixture-consent is only valid with kaze-bootstrap")
     cfg = deployment_settings()
     if args.command == "bootstrap":
         ObjectStore(cfg).initialize()
@@ -122,6 +141,11 @@ def main():
             print(json.dumps({role: tokens[role] for role in ("nurse", "psw")}))
         else:
             print(tokens["nurse"])
+    elif args.command == "kaze-bootstrap":
+        payload = bootstrap_kaze(cfg, grant_consent=args.grant_fixture_consent)
+        if args.json:  # private command substitution, as with resident bootstrap
+            person = payload["people"][0]
+            print(json.dumps({"kaze": person["token"], "kaze_patient_id": person["patient_id"]}))
     elif args.command == "check":
         readiness(cfg)
     elif args.command == "serve":
@@ -133,14 +157,12 @@ def main():
         uvicorn.run(app, host=host, port=PORT, access_log=False, proxy_headers=True,
                     forwarded_allow_ips=os.environ.get("PM_PROXY_TRUSTED_IPS", "127.0.0.1"))
     else:
-        from patient_memory.worker import run_once
+        from patient_memory.worker import run_worker
 
         runtime_only(cfg)
-        actor = Identity(uid("0/importer"), uid("tenant-0"))
-        objects = ObjectStore(cfg)
-        while True:
-            if not run_once(cfg, actor, objects):
-                time.sleep(1)
+        actor = (Identity(uid("kaze-demo/service"), uid("kaze-demo"))
+                 if args.command == "kaze-worker" else Identity(uid("0/importer"), uid("tenant-0")))
+        run_worker(cfg, actor)
 
 
 if __name__ == "__main__":

@@ -191,3 +191,8 @@ Physical phone/SMS/rehearsal gates remain open; page setup is in docs/kaze-pages
 BL-25 loud-venue follow-up scopes the specified 3 dB SNR tolerance to authorized stored session
 context and adds the open-session quiet-place hint. All other quality gates remain unchanged;
 synthetic checks do not establish real venue or golden-recording acceptance.
+
+Hosted KAZE integration (BL-26 / decision026) adds a separate runtime-role safety worker,
+explicit contact-free bootstrap and private safety-person credentials. Consent remains unknown
+unless explicitly granted for fixtures; existing withdrawals remain preserved. Public-phone and
+real-SMS acceptance remain open.

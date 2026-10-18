@@ -75,7 +75,7 @@ Record acceptance in #22 before closing:
 Stop public access after demo:
 
 ```sh
-docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml stop caddy api worker
+docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml stop caddy api worker kaze-worker
 ```
 
 Preserve volumes until a deliberate synthetic reset. Revoke signing secret/unpublish DNS when
