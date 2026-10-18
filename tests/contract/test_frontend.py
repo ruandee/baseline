@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from patient_memory.auth import synthetic_token
 from patient_memory.errors import Problem
-from scripts.frontend import PAGE_CSP, SHELL_ROUTES, workspace_app
+from scripts.frontend import LOCAL_JWT_SECRET, PAGE_CSP, SHELL_ROUTES, workspace_app
 from tests.contract.test_api import import_note, source_payload
 
 
@@ -48,8 +48,16 @@ def test_workspace_rejects_cross_origin_and_remote_bootstrap(sandbox):
     assert remote.get('/demo/session', headers={'X-PM-Demo': '1'}).status_code == 403
 
 
-def hosted_client(sandbox, **kwargs):
-    cfg, patient, actors, _ = sandbox
+DEPLOYMENT_SECRET = 'deployment-only-test-secret-32-characters'
+
+
+def hosted_cfg(sandbox):
+    return sandbox[0].model_copy(update={'jwt_secret': DEPLOYMENT_SECRET})
+
+
+def hosted_client(sandbox, cfg=None, **kwargs):
+    cfg = cfg or hosted_cfg(sandbox)
+    _, patient, actors, _ = sandbox
     app = workspace_app(cfg, actors['nurse'], [
         {'id': str(patient), 'name': 'Synthetic Test', 'reference': 'synthetic-test'}], **kwargs)
     return TestClient(app, base_url='https://demo.example.com', client=('127.0.0.1', 1234))
@@ -57,7 +65,7 @@ def hosted_client(sandbox, **kwargs):
 
 def test_hosted_mode_allows_only_listed_hosts(sandbox):
     client = hosted_client(sandbox, extra_hosts=('demo.example.com',),
-                           demo_token=synthetic_token(sandbox[2]['nurse'], sandbox[0]))
+                           demo_token=synthetic_token(sandbox[2]['nurse'], hosted_cfg(sandbox)))
     ok = client.get('/demo/session', headers={'X-PM-Demo': '1',
                                               'Origin': 'https://demo.example.com'})
     assert ok.status_code == 200
@@ -73,8 +81,8 @@ def test_hosted_mode_allows_only_listed_hosts(sandbox):
 
 
 def test_hosted_mode_serves_configured_demo_token(sandbox):
-    cfg, patient, actors, _ = sandbox
-    configured = synthetic_token(actors['nurse'], cfg)
+    _, patient, actors, _ = sandbox
+    configured = synthetic_token(actors['nurse'], hosted_cfg(sandbox))
     client = hosted_client(sandbox, extra_hosts=('demo.example.com',), demo_token=configured)
     token = client.get('/demo/session', headers={'X-PM-Demo': '1'}).json()['token']
     assert token == configured
@@ -87,6 +95,18 @@ def test_hosted_mode_requires_a_valid_demo_token(sandbox):
         hosted_client(sandbox, extra_hosts=('demo.example.com',))
     with pytest.raises(Problem):
         hosted_client(sandbox, extra_hosts=('demo.example.com',), demo_token='not.a.jwt')
+
+
+def test_hosted_mode_refuses_the_public_default_signing_secret(sandbox):
+    local = sandbox[0].model_copy(update={'jwt_secret': LOCAL_JWT_SECRET})
+    short = sandbox[0].model_copy(update={'jwt_secret': 'short'})
+    for cfg in (local, short):
+        token = synthetic_token(sandbox[2]['nurse'], cfg)
+        with pytest.raises(ValueError, match='deployment-only'):
+            hosted_client(sandbox, cfg, extra_hosts=('demo.example.com',), demo_token=token)
+    # Loopback-only mode keeps working with the local default.
+    assert workspace_client(sandbox).get('/demo/session',
+                                         headers={'X-PM-Demo': '1'}).status_code == 200
 
 
 def test_baseline_pages_share_one_shell_with_mic_csp(sandbox):
