@@ -57,8 +57,11 @@ def roster(cfg, reader):
                             "ORDER BY external_id, id").fetchall()
     if not rows:
         raise ValueError("No patients assigned to the seeded nurse: run migrate and bootstrap")
+    captures = {uid(f"0/{mode}-capture"): mode for mode in ("live", "runner")}
+    scripted = {uid(f"0/patient-{index}") for index in range(12)}
     return [{"id": str(row["id"]), "name": row["external_id"], "reference": row["external_id"],
-             "questions": []} for row in rows]
+             "questions": [], "scripted_cohort": row["id"] in scripted,
+             "capture_mode": captures.get(row["id"])} for row in rows]
 
 
 def hosted_app(cfg, patients=None):
