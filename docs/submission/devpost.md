@@ -33,7 +33,7 @@ checks, and brings relevant notes and recorded observations into the same view. 
 a short, prioritized list and can open the records behind each explanation. A draft handoff
 helps them share what they found; the nurse remains responsible for reviewing it.
 
-Our fictional residents show three different situations:
+Our fictional cases explore three different situations:
 
 - **Mrs. K needs review:** her speech changed, and there is relevant context in her care record.
 - **Mrs. L needs another look:** a change is being watched rather than treated as a diagnosis.
@@ -116,8 +116,9 @@ provides S3-compatible source storage in the demo; do not describe it as a produ
 
 - Code: https://github.com/ruandee/patient-memory-backend — currently private; a repo admin must
   decide on publication after the history/secret review. Do not change visibility as part of this draft.
-- Demo: https://baseline.deeruan.com/unit — verified on release
-  `6e4d7d95f288abd860b124f121b8d28468cfa9ff`, with historical scenario snapshots.
+- Demo: https://baseline.deeruan.com/unit — visually checked in connected Chrome on release
+  `258a1f61df30b64a272ade487539b187efc7bfc2`, at desktop and phone widths. The nurse roster
+  currently includes twelve scripted residents plus two separate capture volunteers.
   Recheck immediately before submission; the original VM is scheduled to stop October 18 at
   about 9:09 PM Toronto time. Newer merged features are not automatically deployed.
 - Video: add the actual uploaded video URL and verify access from a signed-out browser.
@@ -139,6 +140,9 @@ provides S3-compatible source storage in the demo; do not describe it as a produ
 ### Final editing checks
 
 - Keep the three fictional cases and a screenshot of the actual nurse screen.
+- At the latest hosted check, Mr. T had a newer check and his latest verdict was within normal,
+  rather than the authored explained snapshot. Existing records were preserved. Confirm that
+  segment with the deployment operator, or cut it; do not delete recordings to force the story.
 - Remove any sentence describing a feature that cannot be shown in the final demo.
 - Replace the fallback-provider sentence only after verifying the configured live model.
 - If including a runner or live speaker, confirm permission, personal baseline and an actual
