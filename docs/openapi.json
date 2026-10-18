@@ -2971,7 +2971,15 @@
             "title": "Skipped Today"
           },
           "observation_helped": {
-            "type": "null",
+            "anyOf": [
+              {
+                "type": "boolean",
+                "const": true
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Observation Helped"
           }
         },
@@ -4272,10 +4280,23 @@
             "type": "string",
             "enum": [
               "nurse",
+              "psw",
               "patient",
               "system"
             ],
             "title": "Author Role"
+          },
+          "author_principal_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Principal Id"
           },
           "visibility": {
             "type": "string",

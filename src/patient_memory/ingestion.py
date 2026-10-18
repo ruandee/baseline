@@ -60,6 +60,12 @@ def submit(conn, identity, patient_id, source: SourceInput, key, objects):
                                   (patient_id, source.supersedes_version_id)).fetchone()
             if not parent or parent["document_key"] != document_key or parent["purged_at"]:
                 raise Problem(422, "invalid_supersession")
+        if source.author_principal_id is not None:
+            valid = conn.execute("SELECT pm_note_author_valid(%s,%s,%s) AS ok",
+                                 (patient_id, source.author_principal_id,
+                                  source.author_role)).fetchone()["ok"]
+            if valid is not True:
+                raise Problem(422, "invalid_note_author")
         sid, jid = uuid4(), uuid4()
         object_key = f"{identity.tenant_id}/{patient_id}/{sid}.json"
         objects.put(object_key, raw)
@@ -70,6 +76,11 @@ def submit(conn, identity, patient_id, source: SourceInput, key, objects):
              payload_hash, object_key, Jsonb(payload), source.visibility, source.recorded_at,
              source.supersedes_version_id),
         )
+        if source.author_principal_id is not None:
+            conn.execute("INSERT INTO source_authors(tenant_id,patient_id,source_id,"
+                         "author_principal_id,author_role,asserted_by) VALUES(%s,%s,%s,%s,%s,%s)",
+                         (identity.tenant_id, patient_id, sid, source.author_principal_id,
+                          source.author_role, identity.principal_id))
         conn.execute("INSERT INTO jobs(id,tenant_id,patient_id,source_id) VALUES(%s,%s,%s,%s)",
                      (jid, identity.tenant_id, patient_id, sid))
         return {"job_id": str(jid), "source_version_id": str(sid), "status": "queued"}

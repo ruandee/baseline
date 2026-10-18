@@ -38,19 +38,13 @@ def watch_window(tags: list[dict], now: datetime) -> dict:
 
 
 def _latest_assessment(conn, patient_id: UUID, modality: str | None = None, at=None):
-    # Non-speech adapters carry immutable signal event time in params; legacy speech rows
-    # derive it from voice_checks. Session signals never enter the resident read model.
+    # Shared invoker helper preserves the same eligibility for readback and narrow feedback.
     return conn.execute(
-        "SELECT * FROM (SELECT a.*, COALESCE((a.params->>'signal_ts')::timestamptz,v.ts)"
-        " AS check_ts, v.synthetic AS check_synthetic FROM assessments a LEFT JOIN voice_checks v "
+        "SELECT a.*, COALESCE((a.params->>'signal_ts')::timestamptz,v.ts) AS check_ts,"
+        "v.synthetic AS check_synthetic FROM assessments a LEFT JOIN voice_checks v "
         "ON v.tenant_id=a.tenant_id AND v.patient_id=a.patient_id AND v.id=a.check_id "
-        "WHERE a.patient_id=%s AND COALESCE((a.params->>'invalidated')::boolean,false)=false "
-        "AND a.params->>'session_id' IS NULL AND v.session_id IS NULL "
-        "AND (%s::text IS NULL OR COALESCE(a.params->>'modality','speech')=%s) "
-        "AND (a.params->>'source_revision')::bigint=(SELECT revision FROM patients WHERE id=%s)"
-        ") eligible WHERE check_ts<=%s ORDER BY check_ts DESC,created_at DESC,id DESC LIMIT 1",
-        (patient_id, modality, modality, patient_id, at or datetime.now(UTC))
-    ).fetchone()
+        "WHERE a.patient_id=%s AND a.id=pm_latest_resident_assessment_id(%s,%s,%s)",
+        (patient_id, patient_id, at or datetime.now(UTC), modality)).fetchone()
 
 
 def _assessment_payload(row, tags, change_row_features) -> dict:
