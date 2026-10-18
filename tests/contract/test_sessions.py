@@ -401,6 +401,11 @@ def test_three_baseline_clips_activate_the_session(kaze_sandbox, usable_clip):
     last = client(k).get(f"/v1/patients/{k['patient']}/sessions/{sid}").json()["last_checkin_at"]
     assert datetime.fromisoformat(last) == datetime.fromisoformat(response.json()["ts"])
 
+    # Session arming/check-ins above require no resident counting profile. Only this distinct
+    # ordinary non-session counting check needs an explicitly configured language.
+    profile_path = f"/v1/patients/{k['patient']}/check-profile"
+    assert client(k).get(profile_path).json()["state"] == "unconfigured"
+    assert client(k).put(profile_path, json={"preferred_locale": "en"}).status_code == 200
     # A check outside the session never borrows the session's baseline clips.
     outside = client(k).post(f"/v1/patients/{k['patient']}/checks",
                              data={"mode": "live", "device_id": "phone"},

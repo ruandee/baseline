@@ -117,11 +117,13 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
   6 slow tests were deselected. Its actual DB test requires all 12 canonical labels/actions,
   idempotency, exact evidence, RLS/revocation and contamination rejection. Final integrated CI
   is tracked on PRs #60/#53/#61; no local Docker/DB run is claimed.
-- Real golden recordings, slow Whisper/VAD acceptance and runner baseline/backup/race clips
-  remain outstanding. Recordings are on hold. FFmpeg is installed locally; no real audio has
-  been validated by the feature loader.
-- Public HTTPS/DNS/token configuration, LTE Safari/Chrome capture and warm host p95 below 5 s
-  remain acceptance work. UI evidence/SBAR readback passes API-captured DOM and lifecycle tests;
+- Accepted ADR030 records the local real Whisper run against the revised live-voice protocol,
+  retaining the original stairs-direction failure. Actual hosted personal baseline enrollment,
+  physical-device capture and rehearsals remain outstanding; the feature loader does not validate
+  personal recordings. The former recording hold is superseded for that approved protocol.
+- Public HTTPS/bootstrap/watchlist respond at baseline.deeruan.com; the current release still
+  needs rollout. LTE Safari/Chrome capture and warm host p95 below5s remain acceptance work.
+  UI evidence/SBAR readback passes API-captured DOM and lifecycle tests;
   physical-phone readback has not been verified.
 - The 12-patient roster, Mrs. K's sourced 37.1 C observation, resident charts and preliminary
   export are merged (#55). Current-time reset #79 is merged; hosted timing remains unverified.
@@ -236,3 +238,82 @@ BL-31 attribution follow-up adds importer-asserted, patient-scoped immutable not
 true-or-unknown own-note credit in the score-free due list. Ordinary PSW clinical retrieval stays
 denied; legacy source serialization/reset hashes are preserved. Decision033/migration013 record
 the feedback-only freshness and exact current-citation gates. Exact-head CI remains required.
+
+## Acceptance audit against all Baseline tickets
+
+Snapshot: main `b4a804d`, reviewed 2026-10-18 UTC, with pending PR #94 noted separately.
+The acceptance text comes from
+`baseline-tickets.json` and `06-baseline.md`; adopted decisions supersede the original frontend
+location, unsafe hypertables and approved change-policy/scenario assumptions. A green synthetic
+test proves its engineering case only. Missing measurements, recordings and human actions remain
+unaccepted even when the implementation is merged. Final integrated CI is required after the
+remaining branches land.
+
+| Ticket | Engineering evidence / current implementation | Remaining acceptance |
+| --- | --- | --- |
+| BL-01 | Config/auth TTL tests; strict provider schema smoke recorded twice in the validation ledger | Reconfirm authorized provider connectivity before submission; prior calls prove only those requests |
+| BL-02 | Specification, AGENTS link and adopted decisions merged | None for the documentation gate |
+| BL-03 | Fresh migration CI and runtime-role isolation in `test_baseline_rls.py`; ordinary voice table per decision004 | No hypertable isolation claim |
+| BL-04 | Constructed-silence audio/VAD/feature tests; corrected pause boundaries | Real recordings are BL-06, not proved by these fixtures |
+| BL-05 | Short/noisy/clipped/off-script quality tests | Real venue/phone quality remains separate |
+| BL-06 | Golden-clip harness merged; pending #94 reports a local real Whisper run against its explicitly revised protocol, preserving the original stairs failure | Review the revised protocol and run evidence before accepting #8; no exertion-detection validation claimed |
+| BL-07 | Multipart format, authorization, unusable clip and payload-limit contract tests | Hosted p95 below5s unmeasured; #9 reopened for its explicit remaining gate |
+| BL-08 | Original speech cases plus calibration/confirmation/CUSUM regressions; accepted decision019 | Engineering thresholds only; no clinical sensitivity/specificity claim |
+| BL-09 | Structured medication/vital context tests verify exact source spans and order semantics | None for the synthetic engineering gate |
+| BL-10 | Note extraction tests cover exact quotes, fabrication/negation rejection and offline fallback | Real model quality is not established by stub tests |
+| BL-11 | Verdict status/context combinations, amplifier precedence and runner suppression tests | Real runner capture remains BL-15 |
+| BL-12 | Validator/fallback and valid configured-draft publication tests; speech SBAR merged | Grounded multimodal draft/export #87 merged; configured live model quality unmeasured |
+| BL-13 | Watchlist/overview API contracts and committed OpenAPI | Profile/consent contracts passed combined service-backed CI in #100 |
+| BL-14 | Actual loader/runtime-role scoring verifies all12 approved synthetic outcomes, idempotence and evidence | Authored fixtures are not statistical/clinical validation |
+| BL-15 | Server suppression and separate runner identity merged; pending #94 adds same-person baseline enrollment and live-demo instructions | Actual API enrollment with five distinct rested takes, the confirmed live speaker and rehearsals remain unverified (#17) |
+| BL-16 | Same-origin shell/bootstrap and Host/Origin/authorization tests; decision005 | No Next.js/web directory requirement under the adopted decision |
+| BL-17 | Recording/retry/permission/race and MIME engineering tests | Physical iPhone/Android HTTPS/LTE acceptance unrun (#19) |
+| BL-18 | Real cohort/API-captured JS proves API sort order and hidden-tab polling stop/resume | Specified engineering gate accepted; #20 closed |
+| BL-19 | Real API-captured resident DOM proves four bands/markers, every citation readback, action and draft; headless Chrome layouts | Physical-phone hosted readback still unrun; #21's specified engineering gate accepted |
+| BL-20 | Opt-in image, same-origin proxy, secret/host guards and deployment helpers merged; user supplied baseline.deeruan.com and read-only HTTPS checks returned the shell,12-person roster and watchlist | Hosted assets predate pending profile/permission fixes; deployment operator/release, physical LTE capture and latency still need verification (#22) |
+| BL-21 | Merged fixture-only current-time reset; DB interruption/resumption/concurrency and volunteer-preservation tests | One-command hosted reset under1minute unmeasured (#23) |
+| BL-22 | Draft submission material only | Public visibility and actual Devpost submission unverified; original deadline is not proof (#24) |
+| BL-23 | README/run guides, draft write-up and video shot list merged | Clean-clone host walkthrough and video saved in two locations unverified (#25) |
+| BL-24 | Rehearsal checklist and empty run log | Two solo runs under4minutes without manual fixes unrecorded (#26) |
+| BL-25 | Actual three-usable-clip activation, forced RLS, expiry and scoped24h retention tests | Specified engineering gate accepted; #27 closed |
+| BL-26 | On-time reset, five-minute level2, acknowledgement stop and DB race tests; hosted service worker merged | Specified engineering gate accepted; #28 closed |
+| BL-27 | Durable claim, provider mock, public acknowledgement/expiry and honest logged/failed/unknown states | Verified phone text receipt and actual link acknowledgement unrun (#29) |
+| BL-28 | Arm/enroll/capture/cancel/countdown/timeline engineering tests | Full two-phone arm/miss/text/ack loop unrun (#30) |
+| BL-29 | KAZE script/prize notes remain preparation material | Two rehearsals and actual Devpost KAZE selection unverified (#31) |
+| BL-30 | Unchanged original speech tests and persisted two-modality corroboration/lifecycle tests; #78 merged | Specified registry gate accepted; #32 closed |
+| BL-31 | Consent, score-free PSW/resident, one-retry and warm-close flows merged | Explicit note attribution #92 and profile/capture fixes #100 merged; nontechnical tester/physical accessibility acceptance unrun (#33) |
+| BL-32 | Mock encounter segmentation, voiced-duration, strict request/stored consent and audio-cleanup tests | Consenting teammate-voiced fixture/real Vox UI acceptance unrun; no real EHR integration (#34) |
+| BL-33 | Preliminary DocumentReference shape/text/provenance tests and actual API-to-button preview | Specified export/preview gate accepted; #35 closed; no real sign-off queue/writeback claimed |
+| BL-34 | Main motion capture/provenance/RLS tests, real Chrome model startup/failure and phone-width layout | Physical chair-to-three-measurements in under15s unverified (#36); client-derived numbers remain unverified |
+| BL-35 | Explicit resting HR/RR adapter and isolated Mrs.K corroboration tests in #84 | Final main integration accepted in #84; #37 closed; canonical cohort unchanged |
+
+Golden recordings, hosting, actual phone contacts and presenter run logs are external inputs.
+Do not replace them with mock screenshots, provider acceptance, a written checklist or historic
+test counts. This audit does not establish real-data pilot readiness or clinical validation.
+
+Deployment update,2026-10-18 UTC: `https://baseline.deeruan.com/unit` is reachable. Read-only
+checks returned200 for the HTML shell, header-authorized demo bootstrap with12 residents,
+`/v1/health/live` and the authenticated watchlist. The public host returned404 for
+`check-setup.js`, `kaze-consent.js` and `/v1/health/ready`; it has not received the pending
+profile/permission integration. No credentials were printed, data changed or audio uploaded.
+The server/deployment operator, live speaker and personal baselines, physical phones and SMS
+recipient are being confirmed. This supersedes earlier statements that no host was provisioned;
+it does not establish readiness, hosted latency or a completed rehearsal.
+
+## Integrated full-product release
+
+BL-15/31 and BL-28 integration includes explicit English counting profiles, consent and capture
+mutation cancellation, canonical PCM baseline uniqueness, and version-bound live enrollment.
+Accepted ADR030 records the revised live-voice protocol and preserves the original stairs failure.
+Accepted ADR032 adds only the assigned safety custodian's own voice permission; unknown remains
+the default. Migrations014/015 passed combined CI at03ab933:633unit/380DB tests, stub evaluation and image
+smoke; merged in #100 asb4a804d. Physical acceptance and hosted rollout remain unverified.
+
+## Local three-day presentation follow-up
+
+The opt-in `/check?mode=live&demo=days` renders explicitly authored fictional outcomes after
+a local recording/import. It bypasses bootstrap and all API/upload/provider/history writes.
+It does not compare the speaker with a measured personal baseline. ADR034 distinguishes it
+from ordinary live checks. A held stale recorder callback cannot cancel a newer stop timer;
+synthetic-only browser proof covered all three labelled days and resource cleanup. Combined
+release CI is required; no deployed rollout or real-device acceptance is claimed here.
