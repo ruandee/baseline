@@ -6,23 +6,36 @@ window.checkSetup = async function(host, patientId, changed) {
   section.append(el('h2', 'Care-team counting setup'),
     el('p', `For ${person ? person.name : patientId}`), message);
   host.append(section);
-  const controller = {ready: false, profile: null};
+  const controller = {ready: false, profile: null, generation: 0};
+  let pendingMutations = 0;
+  const notify = (ready) => {
+    controller.ready = Boolean(ready);
+    controller.generation++;
+    changed(controller.ready, pendingMutations > 0);
+  };
   let consent;
   const profilePath = `/v1/patients/${patientId}/check-profile`;
   const consentPath = `/v1/patients/${patientId}/consent?scope=voice_check`;
   const update = () => {
-    controller.ready = controller.profile && controller.profile.state === 'ready' && consent
-      && consent.state === 'granted';
-    changed(Boolean(controller.ready));
+    notify(controller.profile && controller.profile.state === 'ready' && consent
+      && consent.state === 'granted');
   };
   const refresh = async () => {
-    controller.ready = false; changed(false);
-    controller.profile = await api(profilePath);
-    if (!controller.profile.can_configure || !controller.profile.can_record_consent) {
+    if (pendingMutations) return false;
+    notify(false);
+    const generation = controller.generation;
+    const stale = () => pendingMutations > 0 || generation !== controller.generation;
+    const profile = await api(profilePath);
+    if (stale()) return false;
+    if (!profile.can_configure || !profile.can_record_consent) {
       throw new Error('An assigned nurse must configure voice capture.');
     }
-    consent = await api(consentPath);
+    const currentConsent = await api(consentPath);
+    if (stale()) return false;
+    controller.profile = profile;
+    consent = currentConsent;
     update();
+    return controller.ready;
   };
   controller.refresh = refresh;
   try { await refresh(); }
@@ -73,20 +86,25 @@ window.checkSetup = async function(host, patientId, changed) {
       : `Recording blocked. Profile: ${controller.profile.state}; voice permission: ${consent.state}.`;
   };
   section.append(profileForm, consentForm); show();
-  controller.refresh = async () => { await refresh(); show(); };
+  controller.refresh = async () => { const ready = await refresh(); show(); return ready; };
   saveProfile.addEventListener('click', async () => {
     if (!profileConfirmed.checked) return;
-    saveProfile.disabled = true; changed(false);
+    let pending = true;
+    saveProfile.disabled = true; pendingMutations++; notify(false);
     try {
       await api(profilePath, {method: 'PUT', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({first_name: name.value.trim() || null, preferred_locale: locale.value.trim() || null})});
-      await refresh(); show();
-    } catch (error) { controller.ready = false; changed(false); message.textContent = `Profile not saved: ${error.message}`; }
-    finally { profileConfirmed.checked = false; saveProfile.disabled = true; }
+      pendingMutations--; pending = false; await refresh(); show();
+    } catch (error) { notify(false); message.textContent = `Profile not saved: ${error.message}`; }
+    finally {
+      if (pending) pendingMutations--;
+      profileConfirmed.checked = false; saveProfile.disabled = true;
+    }
   });
   saveConsent.addEventListener('click', async () => {
     if (!consentConfirmed.checked) return;
-    saveConsent.disabled = true; changed(false);
+    let pending = true;
+    saveConsent.disabled = true; pendingMutations++; notify(false);
     try {
       if (!decision.value || !maker.value) throw new Error('Choose the actual decision and decision maker.');
       const body = {scope: 'voice_check', status: decision.value, decided_by: maker.value};
@@ -96,9 +114,12 @@ window.checkSetup = async function(host, patientId, changed) {
       }
       await api(`/v1/patients/${patientId}/consents`, {method: 'POST',
         headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-      await refresh(); show();
-    } catch (error) { controller.ready = false; changed(false); message.textContent = `Permission not recorded: ${error.message}`; }
-    finally { consentConfirmed.checked = false; saveConsent.disabled = true; reference.value = ''; }
+      pendingMutations--; pending = false; await refresh(); show();
+    } catch (error) { notify(false); message.textContent = `Permission not recorded: ${error.message}`; }
+    finally {
+      if (pending) pendingMutations--;
+      consentConfirmed.checked = false; saveConsent.disabled = true; reference.value = '';
+    }
   });
   return controller;
 };

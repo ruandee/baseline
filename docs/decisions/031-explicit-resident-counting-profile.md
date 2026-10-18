@@ -11,7 +11,8 @@ roles can replace the explicit nullable `first_name` and `preferred_locale` thro
 `GET/PUT /v1/patients/{id}/check-profile`; writes take the patient lock and mint a new version
 UUID even if the language remains unchanged. The full explicitly supplied given name is kept.
 The projection includes only score-free role capabilities (`can_configure`,
-`can_record_consent`); neither grants authority beyond the existing server gates.
+`can_record_consent`) and effective `voice_consent_state`; none grants authority beyond the
+existing server gates. PSWs receive no SDM reference or detailed consent record.
 Null means unconfigured; other syntactically valid locale preferences remain unsupported.
 The protocol registry recognizes exactly `en`, deriving `protocol_locale=en` and
 `prompt_version=count20-days-v1`. Regional tags are not silently normalized into support.
@@ -51,9 +52,15 @@ consent are separate explicit saves; saving either never implies the other. Cons
 existing nurse-only view/append endpoints, an explicit decision/maker, confirmation and an SDM
 reference when applicable. Unknown/declined/withdrawn/expired consent blocks Record. The panel
 refreshes profile and standing permission before microphone access and sends the captured
-profile version with the upload. A local setup change cancels an active recording or disposes
-of a pending microphone stream. The PSW view never mounts these forms or retrieves consent
-details. The screen can display staff-facing failures without exposing them to residents.
+profile version with the upload. Beginning a local setup mutation clears readiness synchronously
+and advances a generation. Pending microphone and recorder callbacks from any earlier generation
+are discarded even if a later refresh becomes ready again; resuming requires a new tap. Active
+streams stop immediately. The PSW view never mounts these forms or retrieves consent details.
+It reads the combined score-free profile/consent projection before each microphone attempt and
+each upload/resend/automatic retry, with operation tokens preventing stale responses after skip
+or page exit from re-enabling capture. The screen can display staff-facing failures without
+exposing them to residents. Server admission remains authoritative for external consent changes
+that occur after a client preflight.
 
 Verification covers score-free RLS and role denial, unsupported/missing predecode rejection,
 version races, append-only provenance, preserved seed choices, explicit multiword first names,

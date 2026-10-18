@@ -229,5 +229,10 @@ Nurse live/runner capture pages provide explicit profile and standing voice-perm
 so setup needs no terminal. Permission requires the actual decision, decision maker, confirmation
 and SDM reference when applicable. Missing/withdrawn permission keeps Record disabled; the PSW
 view receives no setup form or SDM details.
+Beginning any setup mutation immediately clears readiness and invalidates microphone/recorder
+callbacks; stale preflight reads cannot re-enable capture during a pending write. A fresh tap
+is required after setup returns ready. Resident microphone attempts and both resident/nurse
+uploads, resends and automatic retries recheck current effective consent and profile; PSWs use
+only the score-free consent-state field in the existing profile projection.
 Phone screenshots use synthetic loopback responses with no microphone access; real-device,
 golden-recording and clinical acceptance gates remain open.

@@ -26,9 +26,10 @@ def test_profile_and_due_are_score_free_and_authorized(sandbox):
         profile = client_for(sandbox, role).get(path(sandbox))
         assert profile.status_code == 200
         assert set(profile.json()) == {"first_name", "preferred_locale", "version", "state",
-                                       "protocol_locale", "prompt_version", "can_configure", "can_record_consent"}
+                                       "protocol_locale", "prompt_version", "can_configure", "can_record_consent", "voice_consent_state"}
         assert profile.json()["can_record_consent"] is (role == "nurse")
         assert profile.json()["can_configure"] is (role != "psw")
+        assert profile.json()["voice_consent_state"] == "granted"
     for role in ("patient", "admin"):
         assert client_for(sandbox, role).get(path(sandbox)).status_code == 404
     assert client_for(sandbox, "psw").put(path(sandbox), json={"preferred_locale": "fr"}).status_code == 404
@@ -66,6 +67,19 @@ def test_client_cannot_override_resident_protocol_or_replay_an_old_profile(sandb
     monkeypatch.setattr("patient_memory.api.analyze", lambda *a, **k: pytest.fail("decode must not run"))
     assert upload(sandbox, protocol_locale="fr").status_code == 409
     assert upload(sandbox, profile_version=str(uuid4())).status_code == 409
+
+
+def test_psw_effective_consent_projection_refreshes_without_sdm_details(sandbox, monkeypatch):
+    response = client_for(sandbox).post(f"/v1/patients/{sandbox[1]}/consents", json={
+        "scope": "voice_check", "status": "withdrawn", "decided_by": "substitute_decision_maker",
+        "sdm_reference": "synthetic-private-reference"})
+    assert response.status_code == 201
+    profile = client_for(sandbox, "psw").get(path(sandbox)).json()
+    assert profile["voice_consent_state"] == "withdrawn"
+    assert not {"sdm_reference", "decided_by", "note", "recorded_by", "recorded_at"} & set(profile)
+    assert "synthetic-private-reference" not in str(profile)
+    monkeypatch.setattr("patient_memory.api.analyze", lambda *a, **k: pytest.fail("decode/ASR must not run"))
+    assert upload(sandbox).status_code == 403
 
 
 def test_profile_cannot_be_read_across_tenants(sandbox):

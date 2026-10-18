@@ -293,7 +293,7 @@ async function renderCheck(main) {
   let timer = null;
   let limit = null;
   let lastBlob = null;
-  let setup = null, captureProfile = null, capturePending = false, discard = false, disposed = false;
+  let setup = null, captureProfile = null, capturePending = false, discard = false, disposed = false, sending = false;
   window.addEventListener('pagehide', () => {
     disposed = true; discard = true;
     if (stream) stream.getTracks().forEach((track) => track.stop());
@@ -304,14 +304,20 @@ async function renderCheck(main) {
     prompt.hidden = true;
     const setupHost = el('div', '');
     main.prepend(setupHost);
-    setup = await window.checkSetup(setupHost, patientId, (ready) => {
-      if (!ready && recorder && recorder.state === 'recording') { discard = true; stop(); }
-      button.disabled = !ready;
+    setup = await window.checkSetup(setupHost, patientId, (ready, mutation) => {
+      if (!ready) {
+        discard = true;
+        if (mutation) { lastBlob = null; retry.hidden = true; }
+        if (stream) stream.getTracks().forEach((track) => track.stop());
+        if (recorder && recorder.state === 'recording') stop();
+      }
+      button.disabled = !ready || sending;
       prompt.hidden = !ready;
     });
   }
 
   async function submit(blob) {
+    sending = true;
     retry.hidden = true;
     button.disabled = true;
     const fields = {patient_id: patientId, mode: params.mode, device_id: checkDeviceId(params),
@@ -322,15 +328,24 @@ async function renderCheck(main) {
     try {
       const data = params.mock
         ? await mockCheck(params.fixture)
-        : await uploadCheck(blob, fields, (s) => setStatus(s));
+        : await uploadCheck(blob, fields, (s) => setStatus(s), {send: async (audio, values) => {
+          if (setup && (!await setup.refresh() || !setup.ready
+              || setup.profile.version !== captureProfile.version)) {
+            const error = new Error('Counting setup or permission changed; record a new check.');
+            error.status = 409; throw error;
+          }
+          return postCheck(audio, values);
+        }});
       setStatus(resident ? '' : params.mock ? 'Sent (mock)' : 'Sent', 'ok');
       if (params.mode === 'live') renderResult(result, data, blob);
       else result.replaceChildren(el('p', data.usable ? 'Thank you.' : 'Please tap Record to try again.',
                                      {class: 'bl-thanks'}));
     } catch (error) {
       failure(`Could not send the recording (${error.message}). It is kept here; tap Try again.`, error);
-      retry.hidden = false;
+      retry.hidden = error.status === 403 || error.status === 409;
+      if (retry.hidden) lastBlob = null;
     } finally {
+      sending = false;
       button.disabled = setup ? !setup.ready : false;
     }
   }
@@ -349,34 +364,45 @@ async function renderCheck(main) {
       failure('This browser cannot record audio. Use HTTPS and a current browser.');
       return;
     }
+    let admittedGeneration;
     try {
       capturePending = true;
       button.disabled = true;
       if (setup) {
-        await setup.refresh();
-        if (!setup.ready) { failure('Recording blocked. Check the current profile and voice permission.'); return; }
+        const ready = await setup.refresh();
+        if (!ready || !setup.ready) { failure('Recording blocked. Check the current profile and voice permission.'); return; }
         captureProfile = {...setup.profile};
+        admittedGeneration = setup.generation;
       }
       stream = await navigator.mediaDevices.getUserMedia({audio: true});  // permission on first tap
     } catch (error) {
       failure('Microphone access was not allowed.', error);
       return;
     } finally { capturePending = false; button.disabled = disposed || (setup ? !setup.ready : false); }
-    if (disposed || (setup && (!setup.ready || setup.profile.version !== captureProfile.version))) {
+    if (disposed || (setup && (!setup.ready || setup.generation !== admittedGeneration
+        || setup.profile.version !== captureProfile.version))) {
       stream.getTracks().forEach((track) => track.stop());
       return;
     }
     discard = false;
     const chunks = [];
-    recorder = new MediaRecorder(stream, mimeType ? {mimeType} : undefined);
+    const recordingStream = stream;
+    recorder = new MediaRecorder(recordingStream, mimeType ? {mimeType} : undefined);
+    const recordingRecorder = recorder;
+    let recordingFailed = false;
     recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-    recorder.onerror = () => { stop(); failure('Recording failed.'); };
+    recorder.onerror = () => {
+      recordingFailed = true;
+      if (recorder === recordingRecorder) { stop(); failure('Recording failed.'); }
+    };
     recorder.onstop = () => {
-      stream.getTracks().forEach((t) => t.stop());
+      recordingStream.getTracks().forEach((t) => t.stop());
+      if (recorder !== recordingRecorder) return;
       button.textContent = 'Record';
       countdown.textContent = '';
-      if (discard) return;
-      lastBlob = new Blob(chunks, {type: recorder.mimeType || mimeType || 'audio/webm'});
+      if (discard || disposed || recordingFailed
+          || (setup && setup.generation !== admittedGeneration)) return;
+      lastBlob = new Blob(chunks, {type: recordingRecorder.mimeType || mimeType || 'audio/webm'});
       submit(lastBlob);
     };
     result.replaceChildren();

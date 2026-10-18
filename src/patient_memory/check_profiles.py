@@ -2,7 +2,7 @@
 from uuid import uuid4
 
 from patient_memory.baseline.assess import COUNTING_PROMPT
-from patient_memory.consent import check_gate
+from patient_memory.consent import check_gate, consent_state
 from patient_memory.errors import Problem
 from patient_memory.ingestion import lock_patient
 from patient_memory.storage import audit
@@ -23,7 +23,8 @@ def read_profile(conn, patient_id):
     care = check_gate(conn, patient_id)
     row = conn.execute("SELECT * FROM resident_check_profiles WHERE patient_id=%s",
                        (patient_id,)).fetchone()
-    return {**project(row), "can_configure": care,
+    return {**project(row), "voice_consent_state": consent_state(conn, patient_id),
+            "can_configure": care,
             "can_record_consent": bool(conn.execute("SELECT pm_role(%s,'nurse') AS ok",
                                                      (patient_id,)).fetchone()["ok"])}
 
