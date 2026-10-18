@@ -92,3 +92,27 @@ test('a stale in-flight session read cannot reopen recording after the end respo
     assert.doesNotMatch(h.main.textContent, /Loading session/);
   } finally { for (const f of h.window.listeners.pagehide || []) f(); }
 });
+
+
+test('recording hint follows stored loud-venue context only while the session is open', async () => {
+  for (const [context_tags, status, expected] of [
+    [[], 'active', false], [['exertion'], 'active', false],
+    [['loud_venue'], 'active', true], [['loud_venue'], 'arming', true],
+    [['loud_venue'], 'ended', false],
+  ]) {
+    const session = {id: 's1', status, interval_min: 45, episode: 0, context_tags,
+      created_at: new Date().toISOString(), ends_at: new Date(Date.now() + 3600000).toISOString(),
+      next_due_at: new Date(Date.now() + 2700000).toISOString(),
+      baseline: {required: 3, usable: status === 'arming' ? 0 : 3},
+      contacts: [], checks: [], escalations: []};
+    const h = loadPage('/out/session/s1', {kaze: true, routes: {
+      'GET /v1/patients/p1/sessions': () => ({sessions: [session]}),
+      'GET /v1/patients/p1/sessions/s1': () => session}});
+    try {
+      await until(() => /Session timeline/.test(h.main.textContent));
+      assert.equal(h.main.textContent.includes('Step outside to answer'), expected);
+    } finally {
+      for (const f of h.window.listeners.pagehide || []) f();
+    }
+  }
+});

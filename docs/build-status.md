@@ -187,3 +187,7 @@ BL-28 pages add separate KAZE bootstrap, arming, baseline/session recording, cou
 and a delivery/acknowledgement timeline. Logged/failed attempts never claim sent SMS. Latest
 SMS integration preserves public acknowledgement navigation and clinical/bootstrap guards.
 Physical phone/SMS/rehearsal gates remain open; page setup is in docs/kaze-pages.md.
+
+BL-25 loud-venue follow-up scopes the specified 3 dB SNR tolerance to authorized stored session
+context and adds the open-session quiet-place hint. All other quality gates remain unchanged;
+synthetic checks do not establish real venue or golden-recording acceptance.

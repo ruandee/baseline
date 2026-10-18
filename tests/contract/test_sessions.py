@@ -317,6 +317,50 @@ def check_in(k, sid, clip, is_baseline, **fields):
         files={"audio": ("clip", clip, "application/octet-stream")})
 
 
+@pytest.mark.parametrize("tags,expected", [([], {}), (["exertion"], {}),
+                                        (["loud_venue"], {"loud_venue": True})])
+def test_noise_tolerance_comes_only_from_authorized_stored_session(
+        kaze_sandbox, monkeypatch, tags, expected):
+    k = kaze_sandbox
+    sid = arm(k, context_tags=tags).json()["id"]
+    calls = []
+
+    def analyze(*args, **kwargs):
+        calls.append(kwargs)
+        return Analysis(False, {**QUALITY, "reasons": ["too_short"]}, BASE, [], [], {})
+
+    monkeypatch.setattr("patient_memory.api.analyze", analyze)
+    # An extra form field cannot request relaxed quality; stored session context wins.
+    response = check_in(k, sid, b"synthetic stub", True, loud_venue="true")
+    assert response.status_code == 200, response.text
+    assert calls == [expected]
+    assert response.json()["usable"] is False
+    # A foreign session never reaches audio analysis, even if the form asks for tolerance.
+    response = check_in(k, str(uuid4()), b"synthetic stub", True, loud_venue="true")
+    assert response.status_code == 404 and calls == [expected]
+
+
+def test_form_cannot_relax_an_ordinary_or_someone_elses_recording(
+        sandbox, kaze_sandbox, monkeypatch):
+    cfg, patient, actors, objects = sandbox
+    seen = []
+    def analyze(*args, **kwargs):
+        seen.append(kwargs)
+        return Analysis(False, {**QUALITY, "reasons": ["too_noisy"]}, BASE, [], [], {})
+    monkeypatch.setattr("patient_memory.api.analyze", analyze)
+    ordinary = TestClient(create_app(cfg, objects, transcriber=on_script))
+    ordinary.headers["Authorization"] = "Bearer " + synthetic_token(actors["nurse"], cfg)
+    response = ordinary.post(f"/v1/patients/{patient}/checks",
+                             data={"mode": "resident", "device_id": "ordinary-phone", "loud_venue": "true"},
+                             files={"audio": ("clip", b"synthetic stub", "audio/wav")})
+    assert response.status_code == 200, response.text
+    assert seen == [{}] and response.json()["quality"]["reasons"] == ["too_noisy"]
+    k = kaze_sandbox
+    other = arm(k, "other", patient=k["other_patient"], context_tags=["loud_venue"]).json()["id"]
+    response = check_in(k, other, b"synthetic stub", True, loud_venue="true")
+    assert response.status_code == 404 and seen == [{}]
+
+
 @needs_ffmpeg
 def test_three_baseline_clips_activate_the_session(kaze_sandbox, usable_clip):
     k = kaze_sandbox

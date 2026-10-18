@@ -137,7 +137,10 @@ async function renderKazeSession(host, base, sid, judge) {
       if (stopped || version !== refreshVersion) return;
       session = latest;
       const view = KazeCore.personView(session);
-      heading.textContent = view.headline; detail.textContent = view.detail;
+      heading.textContent = view.headline;
+      detail.textContent = view.detail + (session.status !== 'ended'
+        && (session.context_tags || []).includes('loud_venue')
+        ? ' Step outside to answer, somewhere quiet before recording.' : '');
       record.textContent = capture.isRecording() ? 'Stop' : session.status === 'arming'
         ? `Record baseline (${session.baseline.usable}/${session.baseline.required})` : 'Record check-in';
       events.replaceChildren(el('h2', 'Session timeline'));
