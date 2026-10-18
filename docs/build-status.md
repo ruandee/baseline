@@ -172,3 +172,5 @@ once, and delivered outside DB locks. Default sender logs redacted messages only
 Twilio requires explicit allowlisted configuration. Public GET/POST acknowledgement uses hashed
 tokens and fresh after-lock expiry checks. No real SMS receipt or phone-link acceptance claimed;
 held ADR018 choices remain open (decision023).
+
+BL-26 dependency: session assessments bypass PCC budget/no-escalate flags; session explainers and escalation_enabled govern the KAZE ladder.
