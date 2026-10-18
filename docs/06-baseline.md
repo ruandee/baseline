@@ -497,7 +497,7 @@ Deletes and reloads synthetic patients only (never the runner's real clips), min
 
 ### Deployment
 
-- `compose.yaml` services: `db` (image `timescale/timescaledb-ha:pg17`; confirm it includes pgvector, else install it in BL-03), `object-store` (LocalStack, unchanged), `api` (uvicorn, image with ffmpeg), `worker` (loops for tenant 0), `web` (`next start`).
+- Local `compose.yaml` retains `db` and `object-store`. Opt-in `compose.demo.yaml` adds an ffmpeg-equipped `api` serving the same-origin `frontend/`, tenant-0 `worker`, Caddy TLS proxy, and explicit migration/bootstrap commands. No `web` service (decision 005). See [hosting recipe](demo-hosting.md); public HTTPS/LTE acceptance is still pending.
 - Host: a Vultr VM (4 vCPU, 8 GB) with Caddy for HTTPS on a GoDaddy domain (also qualifies for those two MLH prizes). Fallback: a teammate's laptop plus a Cloudflare tunnel. Decide by 16:00.
 - The repo must be public before judging (Devpost rule), so never commit `.env` or keys.
 
