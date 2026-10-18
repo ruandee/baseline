@@ -13,12 +13,12 @@ import psycopg
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import Depends, FastAPI, Form, Header, Query, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import AwareDatetime
 
 from patient_memory.auth import decode_token
-from patient_memory.baseline import sessions
+from patient_memory.baseline import ack, sessions
 from patient_memory.baseline.context import add_context
 from patient_memory.baseline.notes import extract_pending_notes
 from patient_memory.baseline.overview import overview as build_overview
@@ -400,6 +400,27 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
                     actor=actor_dep):
         with transaction(cfg, actor) as conn:
             return sessions.end(conn, actor, patient_id, session_id, request.state.request_id)
+
+    def ack_response(kind: str) -> HTMLResponse:
+        code = {"invalid": 404, "unavailable": 503}.get(kind, 200)
+        return HTMLResponse(ack.page(kind), status_code=code, headers=ack.HEADERS)
+
+    # Public acknowledgement links from KAZE texts (decision 023): no bearer identity, the token
+    # is the only credential. GET only shows a button, so link previews cannot acknowledge.
+    @app.get("/ack/{token}", response_class=HTMLResponse)
+    def ack_page(token: str):
+        return ack_response("confirm" if ack.well_formed(token) else "invalid")
+
+    @app.post("/ack/{token}", response_class=HTMLResponse)
+    def ack_submit(token: str):
+        if not ack.well_formed(token):
+            return ack_response("invalid")
+        try:
+            result = ack.acknowledge(cfg, token)
+        except psycopg.Error:
+            logging.getLogger("patient_memory.requests").warning("acknowledgement unavailable")
+            return ack_response("unavailable")
+        return ack_response(result)
 
     @app.get("/v1/watchlist")
     def watchlist(actor=actor_dep):
