@@ -161,3 +161,21 @@ def test_expired_latest_resting_observation_is_unknown_not_older_quiet_fallback(
     result = store(sandbox, SLOW)
     assert not result.assessment["corroborated"]
     assert result.change["modalities"]["vitals"]["status"] == "unavailable"
+
+
+def test_refresh_failure_preserves_source_success_and_audits_separate_error(sandbox, monkeypatch, caplog):
+    def unavailable(*args, **kwargs):
+        raise RuntimeError("sensitive-synthetic-marker-must-not-be-logged")
+    monkeypatch.setattr("patient_memory.worker.refresh_vitals", unavailable)
+    imported = example(sandbox)
+    with transaction(sandbox[0], sandbox[2]["importer"]) as conn:
+        job = conn.execute("SELECT status,stage,error_code FROM jobs WHERE id=%s",
+                           (imported["job_id"],)).fetchone()
+        assert job == {"status": "completed", "stage": "published", "error_code": None}
+        audit = conn.execute("SELECT action,result FROM audit WHERE patient_id=%s AND action='vitals_refresh'",
+                             (sandbox[1],)).fetchall()
+        assert audit == [{"action": "vitals_refresh", "result": "error"}]
+    assert "sensitive-synthetic-marker" not in caplog.text
+    assert overview(sandbox)["latest_assessment"] is None
+    assert refresh(sandbox)["reused"] is False
+    assert overview(sandbox)["latest_assessment"]["corroborated"]
