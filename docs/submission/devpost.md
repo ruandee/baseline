@@ -8,7 +8,7 @@ Baseline
 
 ## Tagline
 
-Help care teams notice when someone is different from their usual self.
+Detect changes in speech by comparing each person with their own baseline.
 
 ## Inspiration
 
@@ -18,15 +18,15 @@ That confusion (delirium) is easy to miss. In a [2001 study in *Archives of Inte
 
 Care aides often notice that someone "seems off" days before anything reaches the chart. In one nursing-home study [published in the *Journal of the American Geriatrics Society*](https://pubmed.ncbi.nlm.nih.gov/10983908/), aides documented signs of illness an average of five days before the chart did. But "seems off" is not something a system can track. On a night shift one nurse may cover a whole unit: [Ontario's Auditor General found](https://www.auditor.on.ca/en/content/news/23_summaries/ag_AR_LTCresidential_en23.pdf) evening and overnight ratios as high as one nurse to 80 residents. And agency staff do not know what anyone's normal looks like. Their share of hours worked in Ontario long-term care nearly doubled in a single year, from 7.6 to 14.9 percent, according to [Ministry of Health figures obtained by The Canadian Press](https://www.cbc.ca/1.7154329).
 
-PointClickCare's "Catch It Early" challenge asked for a way to catch a confused moment early and to explain *why* something was flagged. We built around that last part.
+PointClickCare's "Catch It Early" challenge asked for a way to catch a confused moment early and to explain *why* something was flagged. We built Baseline to make a change from someone's usual self visible, measurable, and easier to explain.
 
 ## What it does
 
-Baseline turns a short voice check into a clearer picture of who may need attention. Care teams can see what changed, read relevant care notes, and prepare a handoff without searching through scattered records.
+Baseline measures changes in a resident's speech against their personal baseline: the range of speech patterns seen in their earlier checks. Care teams can see what changed for that person, read relevant care notes, and prepare a handoff without searching through scattered records.
 
 ## How it works
 
-A care aide opens a resident's check and records them counting and saying the days of the week during a 30-second recording window. Baseline checks the recording, turns speech into text, and measures patterns such as speaking speed and pauses. It compares those patterns with the resident's earlier checks to look for a change from their usual range.
+A care aide opens a resident's check and records them counting and saying the days of the week during a 30-second recording window. Baseline checks the recording, turns speech into text, and measures patterns such as speaking speed and pauses. Earlier checks establish that resident's personal baseline. Each new check is measured against it to detect changes in how they speak.
 
 The result reaches the nurse's overview, where residents needing attention are easier to find. Opening a resident shows the change over time alongside relevant notes and links to the original records. The nurse reviews that context and decides what to do next. The resident simply receives a thank-you, without a clinical score.
 
@@ -34,11 +34,11 @@ If a recording is unusable or there is too little history, Baseline says so. A c
 
 ## Challenges and what we learned
 
-The hardest part was making a change understandable. A number alone cannot explain someone's situation. We learned to keep the recording simple and put the history, supporting notes, and uncertainty together for the person reviewing it.
+The hardest part was making a change meaningful. Everyone speaks differently, so a measurement needs the context of that person's usual patterns. We learned to show the personal baseline, the change from it, and the supporting notes together.
 
 ## What we're proud of
 
-We connected recording, comparison, and review in one working prototype, demonstrated with fictional residents.
+We connected a simple voice check to personal-baseline comparisons and an evidence-backed review in one working prototype, demonstrated with fictional residents.
 
 ## What's next
 
@@ -50,9 +50,9 @@ Test the experience with consenting volunteers and care professionals, especiall
 flowchart TD
     A["Record a 30-second voice check in the browser"] --> B["Check the audio and turn speech into text"]
     B --> C["Measure speech patterns"]
-    C --> D["Compare with the resident's usual range"]
-    H[("Earlier voice checks")] --> D
-    C --> H
+    C --> D["Measure change against the resident's personal baseline"]
+    H[("Earlier voice checks")] --> P["Establish the resident's usual speech patterns"]
+    P --> D
     D --> E["Show changes alongside relevant care notes"]
     N[("Care notes")] --> E
     E --> F["Nurse reviews the evidence and decides what to do next"]
