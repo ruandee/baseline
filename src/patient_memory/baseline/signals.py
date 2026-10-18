@@ -51,12 +51,12 @@ def signal_sources(conn, patient_id, check):
         "AND s.published_at IS NOT NULL AND s.retracted_at IS NULL AND s.purged_at IS NULL "
         "AND s.payload->>'kind'='observation' AND s.payload->>'author_role'='system' "
         "AND f.polarity='present' AND f.experiencer='patient' "
-        "AND COALESCE(f.valid_from,s.recorded_at)<=%s AND s.recorded_at<=%s "
+        "AND COALESCE(f.valid_from,s.recorded_at)<=%s AND s.recorded_at<=clock_timestamp() "
         "AND (f.valid_to IS NULL OR f.valid_to>%s) "
         "AND NOT EXISTS(SELECT FROM sources newer WHERE newer.tenant_id=s.tenant_id "
         "AND newer.patient_id=s.patient_id AND newer.supersedes=s.id "
         "AND newer.published_at IS NOT NULL AND newer.retracted_at IS NULL "
-        "AND newer.purged_at IS NULL)", (patient_id, list(ids), check.ts, check.ts, check.ts)).fetchall()
+        "AND newer.purged_at IS NULL)", (patient_id, list(ids), check.ts, check.ts)).fetchall()
     if {row["id"] for row in rows} != ids:
         raise Problem(409, "signal_evidence_unavailable")
     return {str(row["source_id"]) for row in rows}

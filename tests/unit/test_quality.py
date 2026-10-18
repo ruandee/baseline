@@ -103,6 +103,30 @@ def test_every_failing_reason_is_reported_in_table_order():
     assert result.reasons == ("too_short", "too_little_speech", "too_few_words", "off_script")
 
 
+@pytest.mark.parametrize("snr,ordinary,venue", [
+    (10.01, True, True), (9.99, False, True), (7.01, False, True), (6.99, False, False),
+])
+def test_loud_venue_accepts_exactly_three_db_more_noise(snr, ordinary, venue):
+    # Known frame-aligned energy ratio; actual SNR calculation, no audio/model network.
+    audio = np.full(round(7.2 * SAMPLE_RATE), .02, dtype=np.float32)
+    audio[round(.6 * SAMPLE_RATE):round(6.6 * SAMPLE_RATE)] *= np.sqrt(10 ** (snr / 10))
+    runs = [Span(.6, 6.6)]
+    assert snr_db(audio, runs) == pytest.approx(snr, abs=.001)
+    spoken = words(*SCRIPT)
+    assert assess(audio, spoken, runs).usable is ordinary
+    assert assess(audio, spoken, runs, loud_venue=True).usable is venue
+
+
+def test_loud_venue_keeps_every_other_gate_and_unknown_noise_rejection():
+    audio = np.zeros(SAMPLE_RATE, dtype=np.float32)
+    result = assess(audio, [], [Span(0, 1)], loud_venue=True)
+    assert result.reasons == ("too_short", "too_little_speech", "too_few_words",
+                              "too_noisy", "off_script")
+    assert assess(np.clip(clip(GOOD_PLAN) * 8, -1, 1), words(*SCRIPT),
+                  [Span(.3, 2.8), Span(3.4, 5.9), Span(6.5, 9)],
+                  loud_venue=True).reasons == ("clipped",)
+
+
 @pytest.mark.slow
 @pytest.mark.skipif(shutil.which("say") is None or shutil.which("ffmpeg") is None,
                     reason="needs macOS say and ffmpeg")

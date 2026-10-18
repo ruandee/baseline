@@ -5,7 +5,7 @@ self.onmessage = async ({data}) => {
   const {id, type} = data;
   try {
     if (type === 'init') {
-      const files = await FilesetResolver.forVisionTasks('/assets/vendor/mediapipe/wasm');
+      const files = await FilesetResolver.forVisionTasks('/assets/vendor/mediapipe/wasm', true);
       model = await PoseLandmarker.createFromOptions(files, {
         baseOptions: {modelAssetPath: '/assets/vendor/mediapipe/pose_landmarker_lite.task',
           delegate: 'CPU'}, runningMode: 'VIDEO', numPoses: 1,

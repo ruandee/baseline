@@ -81,3 +81,8 @@ The new primary snapshot records immutable_capture_current_revision and the new 
 reprojected modalities. It recomputes current context/verdict once; no old verdict, SBAR or score
 is copied, no old row is restored, and no extra speech assessment/budget reservation is created.
 The callback registry is trusted application code, never a client/model-controlled tool surface.
+
+Late-recorded observations preserve their effective event time. Current-knowledge recomputation
+may use a published source recorded after that event, but not a future recorded time; this is
+not an assertion that the source was known at the earlier event. No historical known_at endpoint
+is added by the registry.

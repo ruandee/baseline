@@ -51,6 +51,7 @@ def test_pinned_local_pose_assets_match_the_committed_integrity_manifest():
     worker = (ROOT / "frontend/motion-worker.js").read_text(encoding="utf-8")
     assert "https://" not in worker and "http://" not in worker
     assert "outputSegmentationMasks: false" in worker
+    assert "forVisionTasks('/assets/vendor/mediapipe/wasm', true)" in worker
 
 
 @pytest.mark.skipif(not shutil.which("node"), reason="Node is required for local pose logic tests")

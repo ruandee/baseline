@@ -1,6 +1,7 @@
 """Score a stored check, decide the verdict and persist the assessment."""
 from dataclasses import replace
 from datetime import datetime
+from time import perf_counter
 from uuid import UUID, uuid4
 
 from psycopg.types.json import Jsonb
@@ -121,13 +122,13 @@ def change_payload(assessment, mode: str) -> dict:
 def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_id: UUID,
                  ts: datetime, device_id: str, prompt_version: str, is_baseline: bool,
                  features: dict, display_name: str,
-                 session_id: UUID | None = None) -> tuple[dict, dict]:
+                 session_id: UUID | None = None, timings_ms: dict | None = None) -> tuple[dict, dict]:
     """Speech adapter: scoped immutable voice history enters the shared signal assessment."""
     check = Check(str(check_id), ts, device_id, prompt_version, is_baseline, True, dict(features),
                   evidence_ids=("check:" + str(check_id),))
     return assess_modality(conn, cfg, patient_id, tenant_id, check, display_name,
                            lambda scoped: _history(scoped, patient_id, ts, prompt_version, session_id),
-                           session_id=session_id)
+                           session_id=session_id, timings_ms=timings_ms)
 
 
 def _latest_modalities(conn, cfg, patient_id, check, revision):
@@ -222,7 +223,8 @@ register_projection("speech", _speech_projection)
 
 
 def assess_modality(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check: Check,
-                    display_name: str, history_loader, *, session_id: UUID | None = None):
+                    display_name: str, history_loader, *, session_id: UUID | None = None,
+                    timings_ms: dict | None = None):
     """Adapter admission hook: authorize/lock before loading history and publish atomically.
 
     Capture adapters own immutable check storage and scoped history retrieval. There is no
@@ -250,6 +252,7 @@ def assess_modality(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, chec
     history = [c for c in history_loader(conn) if c.modality == check.modality
                and c.prompt_version == check.prompt_version and c.usable and c.ts < check.ts]
     mode = "enrolled" if sum(c.is_baseline for c in history) >= MIN_BASELINE else "rolling"
+    started = perf_counter()
     result = evaluate(check, history, mode, engine_settings(cfg, check.prompt_version))
     source_revision = conn.execute("SELECT revision FROM patients WHERE id=%s",
                                    (patient_id,)).fetchone()["revision"]
@@ -257,6 +260,8 @@ def assess_modality(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, chec
     combined = combine([*other, ModalityResult(check.modality, check.ts, result, check.id,
                                                check.evidence_ids)], check.ts)
     modal = combined_payload(combined)
+    engine_ms = round((perf_counter()-started)*1000)
+    started = perf_counter()
     tags = valid_tags(conn, patient_id, check.ts)
     decision = decide(combined.verdict_status, combined.fused, [(t["kind"], t["tag"]) for t in tags])
     flags = {"over_budget": False, "no_escalate": False, "would_escalate": False}
@@ -265,6 +270,9 @@ def assess_modality(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, chec
         decision, flags = apply_profile(
             decision, escalations_used=escalations_used(conn, check.ts, cfg),
             budget=cfg.escalation_budget, no_escalate=no_escalate)
+    verdict_ms = round((perf_counter()-started)*1000)
+    if timings_ms is not None:
+        timings_ms.update(engine=engine_ms, verdict=verdict_ms)
     change = change_payload(result, mode)
     change.update(modal)
     reasons = [t for t in tags if t["kind"] == "amplifier"] if decision.verdict in (

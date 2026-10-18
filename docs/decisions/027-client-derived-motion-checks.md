@@ -62,3 +62,12 @@ Source purge's protected trigger removes the matching duplicate raw motion row a
 assessment. No direct runtime capture UPDATE/DELETE capability is introduced. Standard source
 retraction/supersession/visibility checks withhold capture readback and future corroboration.
 OpenAPI is regenerated; LF normalization of the prior CRLF export is included.
+
+
+A headless Chrome 155 smoke exercised the actual module worker and deployed response CSP with
+no camera permission requested. Selecting the module WASM fileset is required: the classic
+loader otherwise fails with `ModuleFactory not set`. The corrected local WASM/model graph
+initialized in 606 ms; a model 404 left Start disabled with a clear failure. Both cases made
+only same-origin GET requests and no camera requests. This is model preparation evidence,
+not physical-phone capture or end-to-end latency acceptance. Playback stalls are covered by
+the camera deadline, and cancellation settles pending playback/inference without submission.

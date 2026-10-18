@@ -57,3 +57,20 @@ def test_a_file_that_is_not_audio_is_refused(tmp_path):
     upload.write_bytes(b"not audio at all")
     with pytest.raises(InvalidAudio):
         analyze(upload, tmp_path, never)
+
+
+def test_loud_venue_tolerance_reaches_the_gate_without_bypassing_other_checks(
+        tmp_path, monkeypatch):
+    from patient_memory.speech import quality
+
+    monkeypatch.setattr(quality, "snr_db", lambda *args: 8.0)
+    # A real normalize/VAD/features pass; transcript is deterministic and on script.
+    from tests.unit.test_quality import GOOD_PLAN, SCRIPT, words
+    upload = tmp_path / "upload.wav"
+    sf.write(upload, clip(GOOD_PLAN), SAMPLE_RATE)
+    def transcribe(audio):
+        return words(*SCRIPT)
+    normal = analyze(upload, tmp_path, transcribe)
+    venue = analyze(upload, tmp_path, transcribe, loud_venue=True)
+    assert normal.quality["reasons"] == ["too_noisy"]
+    assert venue.usable and venue.quality["reasons"] == []

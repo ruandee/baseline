@@ -2,9 +2,11 @@
 
 Creates the separate `kaze-demo` tenant with safety_mode on, two people going out (each an
 importer on their own patient row) and the `kaze-service` principal the scheduler and sender run
-as (nurse on every person). Prints short-lived tokens. Never run against a real database.
+as (nurse on every person). CLI writes short-lived tokens to an ignored local artifact.
+Never run against a real database.
 """
 import json
+from pathlib import Path
 
 import psycopg
 
@@ -16,7 +18,7 @@ from scripts.seed import uid
 PEOPLE = 2
 
 
-def kaze_demo(cfg=None) -> dict:
+def kaze_demo(cfg=None, *, grant_consent=False) -> dict:
     cfg = cfg or Settings()
     tenant, service = uid("kaze-demo"), uid("kaze-demo/service")
     with psycopg.connect(cfg.admin_database_url) as conn:
@@ -33,7 +35,8 @@ def kaze_demo(cfg=None) -> dict:
             for principal, role in [(person, "importer"), (service, "nurse")]:
                 conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,%s,true) "
                              "ON CONFLICT DO NOTHING", (tenant, person, principal, role))
-            grant_fixture_consent(conn, tenant, person, person)
+            if grant_consent:
+                grant_fixture_consent(conn, tenant, person, person)
     people = [uid(f"kaze-demo/person-{n}") for n in range(PEOPLE)]
     return {
         "tenant_id": str(tenant),
@@ -44,5 +47,13 @@ def kaze_demo(cfg=None) -> dict:
     }
 
 
+def main():
+    output = Path("artifacts/kaze-demo/session.json")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(kaze_demo(), indent=2), encoding="utf-8")
+    output.chmod(0o600)
+    print(f"Synthetic KAZE identities written to ignored {output}; configure locally, never share it.")
+
+
 if __name__ == "__main__":
-    print(json.dumps(kaze_demo(), indent=2))
+    main()

@@ -192,7 +192,8 @@ function featureCell(feature, result) {
   } else {
     const n = change.count;
     cell.append(el('div', change.status === 'enrolling'
-      ? `building baseline${Number.isInteger(n) ? ` ${n} of ${change.of || 3}` : ''}`
+      ? `building baseline${Number.isInteger(n) && Number.isInteger(change.of)
+        ? ` ${n} of ${change.of} eligible prior checks` : ''}`
       : 'no baseline yet',
       {class: 'bl-delta bl-muted'}));
   }
