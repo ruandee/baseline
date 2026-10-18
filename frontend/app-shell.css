@@ -130,7 +130,7 @@ body.care-app {
 .care-app .bl-handoff-content > section[aria-label] { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 32px; }
 .care-app .bl-handoff-content h2 { margin-top: 0; font-size: 23px; }
 .care-app .bl-handoff-content button { min-height: 48px; padding: 10px 16px; border: 1px solid #b6c4b7; border-radius: 4px; background: #fff; color: var(--ink); font: inherit; cursor: pointer; }
-.care-app .bl-handoff-content button:hover { background: var(--pale); }
+.care-app .bl-handoff-content button:hover:not(:disabled) { background: var(--pale); }
 .care-app .bl-handoff-content button:disabled { opacity: .55; cursor: default; }
 .care-app .bl-handoff-content select { width: 100%; min-height: 46px; margin: 8px 0 12px; padding: 10px; font: inherit; background: #fff; border: 1px solid var(--line); border-radius: 4px; }
 .care-app [data-demo-role=phone] { max-width: 520px; background: #faf8f1; margin-top: 22px; padding: 26px; }
