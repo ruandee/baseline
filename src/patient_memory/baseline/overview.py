@@ -4,6 +4,7 @@ from uuid import UUID
 
 from patient_memory.baseline.assess import escalations_used, valid_tags
 from patient_memory.baseline.engine import FEATURES
+from patient_memory.baseline.observations import documented_observations
 from patient_memory.baseline.verdict import (
     ACTION_LABELS,
     VERDICT_RANK,
@@ -105,6 +106,7 @@ def overview(conn, cfg: Settings, patient: dict, days: int, now: datetime | None
         "baseline": baseline, "first_change_ts": first.isoformat() if first else None,
         "latest_assessment": assessment,
         "context_tags": tags,
+        "documented_observations": documented_observations(conn, pid, now, days),
     }
 
 

@@ -1,5 +1,5 @@
 // /resident/:id (BL-19): verdict card, small-multiple charts, evidence chain, SBAR, decision table.
-// Called from baseline.js with its helpers; `?mock=1` swaps in resident-fixtures.js (BL-13 pending).
+// Uses the real overview/evidence contracts by default; ?mock=1 is explicitly fixture-only.
 (function () {
   const SECTIONS = {S: 'Situation', B: 'Background', A: 'Assessment', R: 'Recommendation'};
   const SBAR_BADGE = {gemini: 'AI draft, verify', template: 'Template'};
@@ -71,16 +71,20 @@
   }
 
   async function openEvidence(h, ctx, evidenceId, target) {
+    const request = String(Number(target.dataset.request || 0) + 1);
+    target.dataset.request = request;
     target.replaceChildren(h.el('p', 'Loading source…'));
     try {
       const ev = ctx.mock ? window.RESIDENT_FIXTURE_EVIDENCE[evidenceId]
-        : await h.api(`/v1/patients/${ctx.id}/evidence/${evidenceId}`);
+        : await h.api(`/v1/patients/${encodeURIComponent(ctx.id)}/evidence/${encodeURIComponent(evidenceId)}`);
+      if (target.dataset.request !== request) return;
       if (!ev) throw new Error('404 evidence');
       target.replaceChildren(
         h.el('p', `${ev.source_kind} · ${ev.author_role} · recorded ${h.formatTime(ev.recorded_at)}`,
              {class: 'bl-muted'}),
         h.el('blockquote', ev.quote, {class: 'bl-source-quote'}));
     } catch (error) {
+      if (target.dataset.request !== request) return;
       target.replaceChildren(h.el('p', `Could not open the source (${error.message}).`,
                                   {class: 'bl-status', 'data-state': 'error'}));
     }
@@ -102,9 +106,19 @@
                             {class: 'bl-window'}));
     }
     if (a.suggested_action && a.suggested_action.id !== 'none') {
-      // No 4AT flow exists yet, so the action is a label, not a control.
-      const label = h.el('p', a.suggested_action.label, {class: 'bl-action', role: 'status'});
-      card.append(label);
+      const actionId = `action-${a.id}`;
+      const button = h.el('button', a.suggested_action.label, {class: 'bl-action', type: 'button',
+        'aria-expanded': 'false', 'aria-controls': actionId});
+      const heading = h.el('h3', 'Review the proposed action and handoff', {tabindex: '-1'});
+      const detail = h.el('section', '', {id: actionId, class: 'bl-action-detail', hidden: ''});
+      detail.append(heading, h.el('p', `Suggested: ${a.suggested_action.label}. Review the evidence `
+        + 'and draft below, then use your facility’s assessment workflow.'));
+      button.addEventListener('click', () => {
+        detail.hidden = !detail.hidden;
+        button.setAttribute('aria-expanded', String(!detail.hidden));
+        if (!detail.hidden) heading.focus();
+      });
+      card.append(button, detail);
       if (a.no_escalate_profile) {
         card.append(h.el('p', 'Would escalate, disabled for this profile.', {class: 'bl-muted'}));
       }
@@ -116,7 +130,7 @@
     const section = h.el('section', '', {class: 'bl-section'});
     section.append(h.el('h2', 'Evidence'));
     const reasons = (data.latest_assessment && data.latest_assessment.reasons) || [];
-    if (!reasons.length) section.append(h.el('p', 'No context tags apply to this change.', {class: 'bl-muted'}));
+    if (!reasons.length) section.append(h.el('p', 'No current context evidence supplied for this assessment.', {class: 'bl-muted'}));
     reasons.forEach((r) => {
       const row = h.el('div', '', {class: 'bl-reason'});
       const open = h.el('button', 'Open source', {type: 'button', class: 'bl-link'});
@@ -131,12 +145,20 @@
                  open, detail);
       section.append(row);
     });
-    const normals = (data.latest_assessment && data.latest_assessment.documented_normal) || [];
-    if (normals.length) {
-      section.append(h.el('h3', 'Documented and normal'));
-      normals.forEach((n) => section.append(
-        h.el('p', `${n.label} · ${n.source_kind} · ${h.formatTime(n.recorded_at)}`)));
-    }
+    const observations = data.documented_observations || [];
+    section.append(h.el('h3', 'Documented observations'));
+    if (!observations.length) section.append(h.el('p', 'No temperature measurement available in this view.', {class: 'bl-muted'}));
+    observations.forEach((observation) => {
+      const row = h.el('div', '', {class: 'bl-observation'});
+      const open = h.el('button', 'Open source', {type: 'button', class: 'bl-link bl-observation-source'});
+      const detail = h.el('div', '', {class: 'bl-source', hidden: ''});
+      open.addEventListener('click', async () => {
+        detail.hidden = false;
+        await openEvidence(h, ctx, observation.evidence_id, detail);
+      });
+      row.append(h.el('p', `${observation.label} · ${observation.source_kind} · recorded ${h.formatTime(observation.recorded_at)}`), open, detail);
+      section.append(row);
+    });
     return section;
   }
 
@@ -190,7 +212,7 @@
     const thead = document.createElement('thead');
     thead.append(head);
     const body = document.createElement('tbody');
-    Object.entries(a.change.per_feature).forEach(([name, f]) => {
+    Object.entries(a.change.per_feature || {}).forEach(([name, f]) => {
       const tr = document.createElement('tr');
       [((data.features || {})[name] || {}).label || name, fmt(name, f.value), fmt(name, f.median),
        fmtSpread(name, f.scale), num(f.z, 2), num(f.ewma, 2),
@@ -198,9 +220,9 @@
       body.append(tr);
     });
     table.append(thead, body);
-    const params = Object.entries(a.change.params).map(([k, v]) => `${k}=${v}`).join(' · ');
+    const params = JSON.stringify(a.change.params || {}, null, 2);
     details.append(h.el('p', `Status ${a.change.status} · mode ${a.change.mode} · fused z ${num(a.change.fused_z, 1)}`),
-                   table, h.el('p', `Parameters: ${params}`, {class: 'bl-muted'}));
+                   table, h.el('pre', params, {class: 'bl-muted bl-parameters', 'aria-label': 'Engine parameters'}));
     return details;
   }
 
@@ -210,7 +232,7 @@
       if (!data) throw new Error(`404 no fixture for "${ctx.id}"`);
       return data;
     }
-    return h.api(`/v1/patients/${ctx.id}/overview?days=30`);
+    return h.api(`/v1/patients/${encodeURIComponent(ctx.id)}/overview?days=30`);
   }
 
   window.renderResident = async function (main, id, h) {
@@ -237,5 +259,8 @@
     main.replaceChildren(title, verdictCard(h, data), h.el('h2', 'Last 30 days'), grid, legend,
                          evidenceChain(h, ctx, data), ...(sbar ? [sbar] : []),
                          decisionTable(h, data));
+    if (!ctx.mock && data.latest_assessment && data.latest_assessment.sbar && window.noteExportPanel) {
+      main.append(window.noteExportPanel(h, ctx.id, data.latest_assessment.id));
+    }
   };
 })();

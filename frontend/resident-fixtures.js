@@ -1,5 +1,5 @@
 // Fixture for GET /v1/patients/{id}/overview?days=30, shaped from docs/06-baseline.md.
-// BL-13 has not landed, so the field names below are this page's assumed contract.
+// Explicit offline example; live /resident reads the authorized overview API.
 // Used only when /resident/<id> is opened with ?mock=1; never contacts the API.
 (function () {
   const DAY = 86400000;  // ms
@@ -41,6 +41,8 @@
   window.RESIDENT_FIXTURES = {
     'mrs-k': {
       patient_id: 'mrs-k', display_name: 'Mrs. K', synthetic: true,
+      documented_observations: [{label: 'Temperature 37.1 ?C documented', value: 37.1,
+        evidence_id: EV.temp, source_kind: 'observation', recorded_at: '2026-10-14T12:00:00Z'}],
       watch_window: {open: true, day: 3, of: 7, reason: 'high_risk_med_new'},
       series, baseline: {mode: 'enrolled', n_checks: 5, features: baseline},
       first_change_ts: firstChange,
@@ -59,9 +61,6 @@
           {kind: 'amplifier', tag: 'new_confusion', label: 'New confusion noted',
            evidence_id: EV.note, quote: QUOTES.note, match: span(QUOTES.note, 'Not her usual chatty self'),
            source_kind: 'progress_note', recorded_at: new Date(start + 27 * DAY).toISOString()}],
-        documented_normal: [
-          {label: 'Temperature 37.1 °C documented, normal', evidence_id: EV.temp,
-           source_kind: 'observation', recorded_at: new Date(start + 27 * DAY).toISOString()}],
         change: {status: 'change', mode: 'enrolled', fused_z: 3.1,
           params: {z_threshold: 2.0, provisional_z: 3.0, min_features: 2, consecutive: 2, mad_floor_pct: 0.05},
           per_feature: {

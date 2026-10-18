@@ -44,6 +44,7 @@ from patient_memory.domain import (
     PatientInput,
     Question,
     Reason,
+    ResidentOverview,
     SessionArm,
     SessionEnd,
     SessionList,
@@ -456,7 +457,7 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
                 raise Problem(404, "not_found")
             return build_watchlist(conn, cfg)
 
-    @app.get("/v1/patients/{patient_id}/overview")
+    @app.get("/v1/patients/{patient_id}/overview", response_model=ResidentOverview)
     def patient_overview(patient_id: UUID, days: Annotated[int, Query(ge=1, le=90)] = 30,
                          actor=actor_dep):
         with transaction(cfg, actor) as conn:

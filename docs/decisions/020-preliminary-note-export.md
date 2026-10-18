@@ -62,3 +62,21 @@ evidence claims, revalidation failure and changed server drafts. DB-backed check
 repository's PostgreSQL/S3 CI environment. Real frontend mounting, human usability/readback and
 external-system interoperability are separate acceptance gates. No real records or provider calls
 are used by the default tests.
+
+## BL-19 resident readback integration
+
+The live resident route mounts the local human draft/export module only for an available
+stored SBAR. It uses authorized overview and evidence requests, preserves the server action
+label as a button opening the handoff review, and renders engine parameters as structured JSON.
+No action click records a completed clinical assessment.
+
+Overview now includes typed `documented_observations`: the most recent currently published,
+unsuperseded patient temperature fact within the requested window, with numeric Celsius value,
+exact evidence ID/quote, source ID, recorded and effective times. UCUM `Cel`, `C` and degree-C
+units are supported. Future/expired/retracted/purged evidence is excluded under caller RLS.
+Missing or unmeasured temperature remains unknown. The resident page shows the measurement
+and source/time without deriving a normal, fever or negative clinical finding.
+
+The API-captured synthetic cohort test follows Mrs. K overview, temperature and SBAR citations
+through the real resident DOM into the preliminary export and explicitly unverified human
+preview. This is synthetic engineering acceptance; phone and hosted acceptance remain separate.

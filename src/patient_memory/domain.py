@@ -250,6 +250,33 @@ class CheckReceipt(Contract):
     usable: bool
 
 
+class DocumentedObservation(Contract):
+    evidence_id: UUID
+    source_id: UUID
+    concept: Literal["temperature_c"]
+    value: FiniteFloat
+    unit: Literal["C"]
+    label: str
+    quote: str
+    recorded_at: AwareDatetime
+    effective_at: AwareDatetime
+    source_kind: Literal["observation"]
+
+
+class ResidentOverview(Contract):
+    patient_id: UUID
+    display_name: str
+    synthetic: bool
+    watch_window: dict
+    features: dict
+    series: dict
+    baseline: dict
+    first_change_ts: AwareDatetime | None
+    latest_assessment: dict | None
+    context_tags: list[dict]
+    documented_observations: list[DocumentedObservation]
+
+
 ConsentScope = Literal["voice_check", "vox_encounter"]
 ConsentState = Literal["granted", "declined", "withdrawn", "expired", "unknown"]
 

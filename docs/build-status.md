@@ -169,3 +169,10 @@ mount hook previews the payload and supports explicitly unverified local human e
 before each edited preview and removing inherited evidence claims. No model, external queue, EHR
 write or human-edit persistence is involved. See decision 020. Resident-page wiring and integrated
 frontend/nontechnical tester acceptance remain open; default tests are synthetic.
+
+BL-19 resident integration (review branch): live authorized overview, four speech charts,
+clickable source evidence, server-labelled action handoff button, and structured engine
+parameters. Recorded temperature includes source/time (Mrs. K 37.1 Celsius); no absence or
+normal-range inference. The available stored SBAR mounts BL-33 exact preliminary export and
+local human-edited, unverified preview. API-captured cohort/DOM and lifecycle tests are added;
+DB-backed CI and real phone/host acceptance remain gates until their actual results.
