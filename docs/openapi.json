@@ -730,6 +730,53 @@
         }
       }
     },
+    "/v1/integrations/vox/encounters": {
+      "post": {
+        "tags": [
+          "mock integrations"
+        ],
+        "summary": "MOCK Vox Advantage encounter (not a real PointClickCare/Vox integration)",
+        "description": "Mock adapter contract defined by this project (decision 016); no Vox API exists to us.\n\nAuthorization comes first (404 before anything else). Consent must be exactly one part\nwhose raw value is `true`; otherwise the refusal is audited, nothing else is stored and\nthe answer is 422 `consent_not_given` (distinct from stored-consent 403\n`consent_required`, BL-31). Only resident segments are analyzed, as free conversation.",
+        "operationId": "vox_encounter_v1_integrations_vox_encounters_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_vox_encounter_v1_integrations_vox_encounters_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoxEncounterResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/v1/checks/due": {
       "get": {
         "summary": "Checks Due",
@@ -1835,6 +1882,68 @@
           "device_id"
         ],
         "title": "Body_create_check_v1_patients__patient_id__checks_post"
+      },
+      "Body_vox_encounter_v1_integrations_vox_encounters_post": {
+        "properties": {
+          "resident_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Resident Id"
+          },
+          "audio": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio"
+          },
+          "segments": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segments"
+          },
+          "consent": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consent"
+          },
+          "encounter_ts": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encounter Ts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "resident_id"
+        ],
+        "title": "Body_vox_encounter_v1_integrations_vox_encounters_post"
       },
       "CheckFeatures": {
         "properties": {
@@ -3727,6 +3836,100 @@
           "visibility"
         ],
         "title": "VisibilityInput"
+      },
+      "VoxEncounterResult": {
+        "properties": {
+          "mock": {
+            "type": "boolean",
+            "const": true,
+            "title": "Mock",
+            "default": true
+          },
+          "adapter": {
+            "type": "string",
+            "const": "vox-advantage-mock-v1",
+            "title": "Adapter",
+            "default": "vox-advantage-mock-v1"
+          },
+          "resident_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Resident Id"
+          },
+          "prompt_version": {
+            "type": "string",
+            "const": "free-conversation-v1",
+            "title": "Prompt Version",
+            "default": "free-conversation-v1"
+          },
+          "usable": {
+            "type": "boolean",
+            "title": "Usable"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "resident_speech_s": {
+            "type": "number",
+            "title": "Resident Speech S"
+          },
+          "analyzed_s": {
+            "type": "number",
+            "title": "Analyzed S"
+          },
+          "truncated": {
+            "type": "boolean",
+            "title": "Truncated"
+          },
+          "segments": {
+            "$ref": "#/components/schemas/VoxSegmentCounts"
+          },
+          "check": {
+            "$ref": "#/components/schemas/CheckResult"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "resident_id",
+          "usable",
+          "reasons",
+          "resident_speech_s",
+          "analyzed_s",
+          "truncated",
+          "segments",
+          "check"
+        ],
+        "title": "VoxEncounterResult",
+        "description": "Result of the MOCK Vox adapter. Not a PointClickCare or Vox Advantage integration."
+      },
+      "VoxSegmentCounts": {
+        "properties": {
+          "resident": {
+            "type": "integer",
+            "title": "Resident"
+          },
+          "staff": {
+            "type": "integer",
+            "title": "Staff"
+          },
+          "other": {
+            "type": "integer",
+            "title": "Other"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "resident",
+          "staff",
+          "other"
+        ],
+        "title": "VoxSegmentCounts"
       }
     },
     "securitySchemes": {

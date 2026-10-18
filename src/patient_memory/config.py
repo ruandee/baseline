@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     whisper_model: str = "base"
     keep_audio: bool = False
     z_threshold: float = Field(default=2.0, gt=0, allow_inf_nan=False)
+    # Free conversation (Vox encounters) is noisier than the counting prompt.
+    z_threshold_free: float = Field(default=2.5, gt=0, allow_inf_nan=False)
     provisional_z: float = Field(default=3.0, gt=0, allow_inf_nan=False)
     min_features: int = Field(default=2, ge=1, le=4)
     ewma_lambda: float = Field(default=0.3, gt=0, le=1, allow_inf_nan=False)

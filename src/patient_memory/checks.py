@@ -5,7 +5,7 @@ from psycopg.pq import TransactionStatus
 from psycopg.types.json import Jsonb
 
 from patient_memory.baseline import sessions
-from patient_memory.baseline.assess import assess_check, lock_assessment
+from patient_memory.baseline.assess import COUNTING_PROMPT, assess_check, lock_assessment
 from patient_memory.config import Settings
 from patient_memory.consent import check_gate, require_consent
 from patient_memory.domain import CheckResult
@@ -24,7 +24,8 @@ def care_gate(conn, patient_id: UUID):
 def store_check(conn, identity, patient_id: UUID, request_id: UUID, analysis: Analysis,
                 mode, device_id, device_ts, is_baseline, cfg: Settings,
                 consent_scope: str = "voice_check", session_id: UUID | None = None,
-                location: tuple[float, float, float | None] | None = None) -> CheckResult:
+                location: tuple[float, float, float | None] | None = None,
+                prompt_version: str = COUNTING_PROMPT) -> CheckResult:
     """Insert the check (unusable ones too, for audit) and audit the write.
 
     Raises ConsentRequired (403) when consent is not granted at insert time; callers audit the
@@ -42,7 +43,7 @@ def store_check(conn, identity, patient_id: UUID, request_id: UUID, analysis: An
     require_consent(conn, patient_id, consent_scope)  # withdrawn during decode: nothing stored
     with scoring_context(conn, patient_id):
         result = _store_check(conn, identity, patient_id, request_id, analysis, mode, device_id,
-                              device_ts, is_baseline, cfg, session_id, location)
+                              device_ts, is_baseline, cfg, session_id, location, prompt_version)
     check_gate(conn, patient_id)  # role revocation must not leak a result
     require_consent(conn, patient_id, consent_scope)
     return result
@@ -64,7 +65,7 @@ def scoring_context(conn, patient_id: UUID):
 
 
 def _store_check(conn, identity, patient_id, request_id, analysis, mode, device_id, device_ts,
-                 is_baseline, cfg, session_id, location):
+                 is_baseline, cfg, session_id, location, prompt_version):
     session = None
     if session_id is not None:
         session = sessions.check_gate(conn, patient_id, session_id, mode, is_baseline, lock=True)
@@ -77,13 +78,13 @@ def _store_check(conn, identity, patient_id, request_id, analysis, mode, device_
     ts = conn.execute(
         "INSERT INTO voice_checks(tenant_id,patient_id,id,device_ts,device_id,mode,is_baseline,"
         "usable,quality,speech_rate_wpm,pause_ratio,mean_pause_s,f0_median_hz,transcript,words,"
-        "session_id,lat,lon,accuracy_m) "
-        "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING ts",
+        "session_id,lat,lon,accuracy_m,prompt_version) "
+        "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING ts",
         (identity.tenant_id, patient_id, check_id, device_ts, device_id, mode, is_baseline,
          analysis.usable, Jsonb(analysis.quality), features["speech_rate_wpm"],
          features["pause_ratio"], features["mean_pause_s"], features["f0_median_hz"],
          " ".join(w["w"] for w in words), Jsonb(words), session_id, lat, lon,
-         accuracy)).fetchone()["ts"]
+         accuracy, prompt_version)).fetchone()["ts"]
     audit(conn, identity, patient_id, "create_check", request_id)
     change = assessment = None
     if analysis.usable:  # unusable clips are stored for audit but never scored
@@ -91,7 +92,7 @@ def _store_check(conn, identity, patient_id, request_id, analysis, mode, device_
                             (patient_id,)).fetchone()["external_id"]
         change, assessment = assess_check(
             conn, cfg, patient_id, identity.tenant_id, check_id, ts, device_id,
-            "count20-days-v1", is_baseline, features, name, session_id=session_id)
+            prompt_version, is_baseline, features, name, session_id=session_id)
     summary = sessions.after_check(
         conn, session, ts, analysis.usable, is_baseline,
         change_status=change and change["status"]) if session else None
