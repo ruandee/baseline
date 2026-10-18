@@ -232,3 +232,7 @@ columns. BL-27's saved `prepare_sms` / commit / `send` contract must be integrat
 delivery: never call a network sender from this locked adapter. Its postcommit delivery/crash
 semantics and public acknowledgement route remain BL-27 work, with no real delivery verified here.
 The six held product questions remain undecided.
+
+BL-26 integration preserves session exclusion in PCC escalation counting after consent/PSW
+scoring integration. Clearing session profile flags must not make those assessments consume
+the resident shift budget. Session assessment responses retain false PCC suppression flags.
