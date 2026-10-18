@@ -2,8 +2,8 @@ from pathlib import Path
 
 from alembic import op
 
-revision = "009"
-down_revision = "008"
+revision = "010"
+down_revision = "009"
 
 
 def upgrade():
