@@ -1,7 +1,7 @@
-"""BL-31 resident/PSW /check experience: runs the node:test suite and checks static layout rules.
+"""BL-31 resident/PSW /check static layout and score-free readback checks.
 
 The behaviour tests live in tests/js (fake DOM, stubbed mic/speech/API). They need Node, which the
-CI runner has (it already runs `node --check` on frontend/*.js); without Node they are skipped.
+CI runner has; test_frontend_js.py runs them in the shared batch and skips when Node is absent.
 They are not a substitute for real-browser or phone acceptance.
 """
 import re

@@ -1,4 +1,4 @@
-"""KAZE capture/state tests use fake clocks, permissions and uploads; no model or SMS calls."""
+"""KAZE bootstrap keeps synthetic credentials in private artifacts rather than stdout."""
 
 
 
