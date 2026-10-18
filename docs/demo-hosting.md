@@ -98,3 +98,7 @@ References: [Compose startup ordering](https://docs.docker.com/compose/how-tos/s
 The image smoke loads the cohort before its first uploaded check. Loader preflight rejects
 previously recorded seed patients deliberately; it never overwrites an upload to make setup pass.
 The API is recreated and its twelve-patient session roster refreshed before upload plumbing runs.
+
+During first setup, run the cohort load before starting the long-running worker. The loader
+publishes its own queued sources before scoring; a concurrent worker can hold a source lease
+and correctly make the strict loader report incomplete. The image smoke follows the same order.

@@ -43,7 +43,7 @@ refuse "PM_DEMO_TOKEN must be" "${SERVE[@]}"
 refuse "deployment-only PM_JWT_SECRET" -e PM_DEMO_TOKEN="$TOKEN"   -e PM_JWT_SECRET=synthetic-local-only-change-before-any-deployment "${SERVE[@]}"
 
 sed -i "s|^PM_DEMO_TOKEN=.*|PM_DEMO_TOKEN=$TOKEN|" "$ENV_FILE"
-"${C[@]}" up -d --wait --wait-timeout 600 api worker caddy
+"${C[@]}" up -d --wait --wait-timeout 600 api caddy
 "${C[@]}" exec -T api python -m scripts.hosted_demo check
 
 # Only Caddy is published: the API port must not answer on the host.
@@ -102,6 +102,8 @@ echo "upload status $CODE: $(head -c 600 "$TMP/check.json")"
 jq -e '.timings_ms.asr | numbers' "$TMP/check.json" >/dev/null || fail "upload did not run ASR"
 
 
+# The loader drains its own source jobs; start the long-running consumer afterwards.
+"${C[@]}" up -d --wait worker
 sleep 3
 [ -n "$("${C[@]}" ps --status running -q worker)" ] || fail "worker not running"
 if "${C[@]}" logs worker | grep -q Traceback; then fail "worker raised"; fi
