@@ -3,7 +3,7 @@
 The selected presentation records audio locally, then shows three visibly scripted outcomes for
 a fictional resident. It requires no API enrollment, credentials or personal baseline. Start with
 Dee's clips, then use the teammate's clips or live microphone. There is no marathon, breathlessness
-or clinical-detection claim. See [decision 031](decisions/031-three-day-local-voice-demo.md).
+or clinical-detection claim. See [decision 034](decisions/034-three-day-local-voice-demo.md).
 
 ## Present Watch, Explained and Escalate
 

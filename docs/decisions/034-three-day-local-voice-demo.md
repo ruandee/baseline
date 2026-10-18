@@ -1,4 +1,4 @@
-# 031: Local voice capture with three scripted demo days
+# 034: Local voice capture with three scripted demo days
 
 Status: implemented for review after Dee requested Watch, Explained and Escalate with skipped
 days. This supersedes decision 030's optional simulation plan, not the genuine checks API.

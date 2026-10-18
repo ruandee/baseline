@@ -177,8 +177,8 @@
         ownRecorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
         ownRecorder.onstop = () => {
           media.getTracks().forEach((track) => track.stop());
-          clearTimeout(limit);
           if (token !== epoch) return;
+          clearTimeout(limit); // Only the admitted capture owns the current auto-stop timer.
           stream = recorder = null;
           record.textContent = 'Record live';
           showClip(new Blob(chunks, {type: ownRecorder.mimeType || mime || 'audio/webm'}),

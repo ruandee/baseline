@@ -128,3 +128,47 @@ test('live capture auto-stops at 30 seconds, has real recording time, and clears
   assert.equal(q(page, '.bl-demo-result').textContent, '');
   assert.equal(page.calls.length, 0);
 });
+
+test('late old recorder stop cannot cancel the new recording auto-stop after restart', async () => {
+  const page = start();
+  const timers = [];
+  const tracks = [];
+  const revoked = [];
+  const NativeURL = page.window.URL;
+  page.window.URL = {createObjectURL: blob => NativeURL.createObjectURL(blob),
+    revokeObjectURL: url => { revoked.push(url); NativeURL.revokeObjectURL(url); }};
+  page.window.setTimeout = (fn, ms) => {
+    const timer = {fn, ms, cancelled: false}; timers.push(timer); return timer;
+  };
+  page.window.clearTimeout = timer => { if (timer) timer.cancelled = true; };
+  page.window.navigator.mediaDevices.getUserMedia = async () => {
+    const track = {stops: 0, stop() { this.stops++; }}; tracks.push(track);
+    return {getTracks: () => [track]};
+  };
+  q(page, '.bl-demo-record').click();
+  await until(() => timers.length === 1);
+  const old = FakeRecorder.last;
+  let lateStop;
+  old.stop = () => { old.state = 'inactive'; lateStop = () => old.onstop(); };
+  q(page, '.bl-demo-reset').click();
+  assert(timers[0].cancelled);
+  q(page, '.bl-demo-record').click();
+  await until(() => timers.length === 2);
+  const current = FakeRecorder.last;
+  assert.notEqual(current, old);
+  const timer = timers[1];
+  assert.equal(timer.ms, 30000);
+  lateStop();
+  assert.equal(timer.cancelled, false, 'discarded callback must not touch the current timer');
+  assert.equal(current.state, 'recording');
+  assert.equal(tracks[1].stops, 0, 'discarded callback must not stop the new stream');
+  assert.equal(q(page, '.bl-demo-result').textContent, '');
+  timer.fn();
+  await until(() => q(page, '.bl-demo-result').dataset.verdict === 'watch');
+  assert.equal(current.state, 'inactive');
+  assert(tracks[0].stops > 0 && tracks[1].stops > 0);
+  page.window.listeners.pagehide.forEach(fn => fn());
+  assert.equal(q(page, 'audio'), null);
+  assert.equal(revoked.length, 1);
+  assert.equal(page.calls.length, 0);
+});

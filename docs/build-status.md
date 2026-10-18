@@ -242,7 +242,7 @@ An optional fixed-outcome presentation is documented as a labelled simulation pl
 hardcoded verdict or write into real capture history is implemented.
 
 BL-17 three-day presentation now implements that plan in an explicit local-only mode (decision
-031), `/check?mode=live&demo=days`: local live/file audio precedes Watch, Explained and Escalate
+034), `/check?mode=live&demo=days`: local live/file audio precedes Watch, Explained and Escalate
 authored scenarios. Next day resets only tab state, not real dates or patient history. Recordings
 are not analyzed/uploaded and fictional values/context are visibly labelled. Actual normal,
 slow and pausey WAV imports passed desktop/390px Chrome interaction checks with no API/session
