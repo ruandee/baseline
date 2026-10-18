@@ -70,3 +70,23 @@ test('three actual page recordings enroll then switch to normal check-in fields'
     assert.match(h.main.textContent, /Next check-in/);
   } finally { for (const f of h.window.listeners.pagehide || []) f(); }
 });
+
+test('a stale in-flight session read cannot reopen recording after the end response', async () => {
+  const active = {id: 's1', status: 'active', ends_at: new Date(Date.now() + 3600000).toISOString(),
+    created_at: new Date().toISOString(), interval_min: 45, episode: 0,
+    baseline: {required: 3, usable: 3}, contacts: [], checks: [], escalations: []};
+  let resolveRead;
+  const pending = new Promise((resolve) => { resolveRead = resolve; });
+  const h = loadPage('/out', {kaze: true, routes: {
+    'GET /v1/patients/p1/sessions': () => ({sessions: [active]}),
+    'GET /v1/patients/p1/sessions/s1': () => pending,
+    'POST /v1/patients/p1/sessions/s1/end': () => ({...active, status: 'ended'})}});
+  try {
+    await until(() => h.main.querySelector('.kaze-record'));
+    const end = [...h.main.querySelectorAll('button')].find((b) => b.textContent === 'End session');
+    end.click(); await until(() => /Session ended/.test(h.main.textContent));
+    resolveRead(active); await new Promise((resolve) => setTimeout(resolve, 30));
+    assert.equal(h.main.querySelector('.kaze-record').disabled, true);
+    assert.match(h.main.textContent, /Session ended/);
+  } finally { for (const f of h.window.listeners.pagehide || []) f(); }
+});

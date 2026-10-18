@@ -65,7 +65,7 @@ function renderKazeArm(host, base) {
 }
 
 async function renderKazeSession(host, base, sid, judge) {
-  let session, stopped = false, busyRefresh = false;
+  let session, stopped = false, busyRefresh = false, endingPending = false, refreshVersion = 0;
   const heading = el('h2', 'Loading session');
   const detail = el('p', '');
   const countdown = el('p', '', {role: 'status', class: 'kaze-countdown'});
@@ -82,7 +82,6 @@ async function renderKazeSession(host, base, sid, judge) {
   host.replaceChildren(heading, detail, countdown, status, el('p', CHECK_PROMPT, {class: 'bl-prompt'}),
     record, locationLabel, ending, link, result, events);
   const endpoint = `${base}/${encodeURIComponent(sid)}`;
-  const fresh = async () => { session = await api(endpoint); return session; };
   const capture = kazeCapture({getSession: () => api(endpoint),
     getMedia: () => navigator.mediaDevices.getUserMedia({audio: true}),
     Recorder: function(stream) {
@@ -130,10 +129,13 @@ async function renderKazeSession(host, base, sid, judge) {
     }
   }
   async function refresh() {
-    if (busyRefresh || stopped) return;
+    if (busyRefresh || stopped || endingPending) return;
     busyRefresh = true;
+    const version = ++refreshVersion;
     try {
-      await fresh();
+      const latest = await api(endpoint);
+      if (stopped || version !== refreshVersion) return;
+      session = latest;
       const view = KazeCore.personView(session);
       heading.textContent = view.headline; detail.textContent = view.detail;
       record.textContent = capture.isRecording() ? 'Stop' : session.status === 'arming'
@@ -153,6 +155,7 @@ async function renderKazeSession(host, base, sid, judge) {
       record.disabled = ended();
       tick();
     } catch (error) {
+      if (stopped || version !== refreshVersion) return;
       // Fail closed: a failed refresh cannot leave an apparently valid recording session.
       status.textContent = 'Could not refresh this session. Reload before recording.';
       capture.cancel(); record.disabled = true;
@@ -163,11 +166,16 @@ async function renderKazeSession(host, base, sid, judge) {
     if (capture.isRecording()) capture.stop(); else capture.start(location.checked);
   });
   ending.addEventListener('click', async () => {
+    endingPending = true; refreshVersion += 1; // an older poll must not reopen an ended view
     capture.cancel(); record.disabled = true;
-    try { session = await api(`${endpoint}/end`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'}); await refresh(); }
+    try {
+      session = await api(`${endpoint}/end`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'});
+      tick();
+    }
     catch (error) { status.textContent = 'Could not confirm the end. Reload to check.'; }
+    finally { endingPending = false; refresh(); }
   });
-  const cleanup = () => { stopped = true; capture.cancel(); clearInterval(poll); clearInterval(clock); };
+  const cleanup = () => { stopped = true; refreshVersion += 1; capture.cancel(); clearInterval(poll); clearInterval(clock); };
   window.addEventListener('pagehide', cleanup, {once: true});
   await refresh();
   if (!ended()) {
