@@ -187,3 +187,9 @@ BL-30 registry review adds scoped per-modality assessments, explicit unavailable
 corroboration, flat speech compatibility and source-safe first-change markers. Speech charts and
 check citations retain their original contract; non-speech drafts stay unavailable. Only speech
 is registered at runtime. Migration010 follows009; decision025 and exact-head CI track acceptance.
+
+BL-35 review adds explicit resting HR/RR observation projection and nurse source readback, with
+an isolated synthetic Mrs. K RR-rise example. Missing rest/time/units remain unavailable. Vitals
+uses documented engineering-only feature declarations (decision028); speech policy and canonical
+cohort are unchanged. Migration012 preserves private PSW scoring while ordinary evidence stays
+denied. Exact-head DB-backed CI and live/human acceptance remain separate gates.

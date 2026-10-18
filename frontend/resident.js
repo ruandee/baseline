@@ -297,7 +297,8 @@
     });
     const legend = h.el('p', 'Line: daily median · dots: each check · green band: usual range (median ± 2 × scale) · dashed line: first change', {class: 'bl-muted'});
     const sbar = sbarPanel(h, ctx, data);
-    main.replaceChildren(title, verdictCard(h, data), h.el('h2', 'Last 30 days'), grid, legend,
+    const signals = window.signalPanel && window.signalPanel(h, ctx, data);
+    main.replaceChildren(title, verdictCard(h, data), ...(signals ? [signals] : []), h.el('h2', 'Last 30 days'), grid, legend,
                          evidenceChain(h, ctx, data), ...(sbar ? [sbar] : []),
                          decisionTable(h, data));
     if (!ctx.mock && data.latest_assessment && data.latest_assessment.sbar && window.noteExportPanel) {

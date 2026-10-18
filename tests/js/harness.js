@@ -202,7 +202,7 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, s
       }
     });
   };
-  for (const file of ['check-resident.js', 'check.js', 'resident-fixtures.js', 'note-export.js', 'resident.js', 'baseline.js']) {
+  for (const file of ['check-resident.js', 'check.js', 'resident-fixtures.js', 'note-export.js', 'signal-panel.js', 'resident.js', 'baseline.js']) {
     vm.runInContext(fs.readFileSync(path.join(FRONTEND, file), 'utf8'), ctx, {filename: file});
   }
   return {doc, main, window, ctx, calls, spoken, errors};

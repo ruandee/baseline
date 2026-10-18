@@ -10,6 +10,8 @@ from patient_memory.baseline.context import store_tags, structured_tags
 from patient_memory.baseline.notes import note_tags, publish_note_tags
 from patient_memory.baseline.safety import PASS_EVERY_S, run_pass, sender_from_settings
 from patient_memory.baseline.sessions import retire as retire_sessions
+from patient_memory.baseline.vitals import UNITS as VITAL_CONCEPTS
+from patient_memory.baseline.vitals import refresh_vitals
 from patient_memory.config import Settings
 from patient_memory.domain import SourceInput
 from patient_memory.extraction import extract, store_facts, store_relations
@@ -31,6 +33,7 @@ def run_once(cfg: Settings, identity: Identity, objects=None):
             return False
         patient_access(conn, job["patient_id"], write=True)
         source = conn.execute("SELECT * FROM sources WHERE id=%s", (job["source_id"],)).fetchone()
+    published = False
     try:
         raw = objects.get(source["object_key"], source["payload_hash"])
         payload = SourceInput.model_validate_json(raw)
@@ -58,9 +61,23 @@ def run_once(cfg: Settings, identity: Identity, objects=None):
                          "WHERE id=%s", (job["id"],))
             bump(conn, job["patient_id"])
             audit(conn, identity, job["patient_id"], "publish", uuid4())
+        published = True
+        if payload.kind == "observation" and any(
+                record.concept in VITAL_CONCEPTS for record in payload.records or []):
+            # Source publication commits before acquiring the budget/patient admission locks.
+            # The fresh snapshot rechecks authorization, exact sources and current revision.
+            with transaction(cfg, identity) as conn:
+                result = refresh_vitals(conn, cfg, identity, job["patient_id"])
+                audit(conn, identity, job["patient_id"], "vitals_refresh", uuid4(),
+                      result="available" if result else "unavailable")
     except Exception as exc:
         permanent = isinstance(exc, ValueError)
         with transaction(cfg, identity) as conn:
+            if published:
+                # Source success is immutable; expose derivative failure separately, never
+                # relabel a successfully published source as failed or log its contents.
+                audit(conn, identity, job["patient_id"], "vitals_refresh", uuid4(), result="error")
+                return True
             conn.execute(
                 "UPDATE jobs SET status=%s,error_code=%s,lease_until=NULL,"
                 "next_attempt_at=now()+(%s * interval '1 second') WHERE id=%s AND lease_token=%s "

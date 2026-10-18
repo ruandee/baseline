@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 from psycopg.pq import TransactionStatus
 from psycopg.types.json import Jsonb
 
-from patient_memory.baseline import sessions
+from patient_memory.baseline import sessions, vitals  # noqa: F401 - register observation adapter
 from patient_memory.baseline.assess import COUNTING_PROMPT, assess_check, lock_assessment
 from patient_memory.config import Settings
 from patient_memory.consent import check_gate, require_consent
