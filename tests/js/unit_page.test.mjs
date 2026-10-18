@@ -169,6 +169,22 @@ test('the page never re-sorts: a reordered API response is rendered as returned'
                    reversed.residents.map((r) => `/resident/${r.patient_id}`));
 });
 
+test('summary counts follow the current visible roster when polling replaces it', async () => {
+  const reduced = {...FIXTURE, residents: FIXTURE.residents.filter(
+    (resident) => resident.latest_verdict !== 'escalate')};
+  const page = harness({responses: [FIXTURE, reduced]});
+  await page.settle();
+  assert.equal(page.main.querySelector('[data-unit=count-total]').textContent,
+               String(FIXTURE.residents.length));
+  assert.equal(page.main.querySelector('[data-unit=count-escalate]').textContent,
+               String(FIXTURE.residents.filter((r) => r.latest_verdict === 'escalate').length));
+  await page.tick();
+  assert.equal(page.main.querySelector('[data-unit=count-escalate]').textContent, '0');
+  assert.equal(page.main.querySelector('[data-unit=count-total]').textContent,
+               String(reduced.residents.length));
+  assert.equal(renderedRows(page.main).length, reduced.residents.length);
+});
+
 test('polls every 10 s while visible, stops when hidden and resumes when visible', async () => {
   const page = harness();
   await page.settle();
