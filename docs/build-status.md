@@ -211,3 +211,10 @@ BL-35 review adds explicit resting HR/RR observations, an isolated synthetic Mrs
 example and nurse source readback. Unknown rest/time/units stay unavailable; engineering-only
 vitals parameters are documented in decision028. Speech/canonical cohort are unchanged.012
 preserves private PSW scoring while ordinary evidence remains denied. Final CI remains required.
+
+
+BL-12/BL-33 follow-up (ADR029): grounded deterministic multimodal watch/escalate drafts and
+preliminary export now use exact current/baseline capture evidence, registered labels/units,
+current context and existing standard actions. Nurse readback and export revalidate revision,
+permissions, source lifecycle and expiry. Missing provenance withholds the draft. No model,
+clinical validation, threshold change, clinical sign-off or writeback is introduced.

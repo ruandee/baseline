@@ -54,7 +54,7 @@ def test_isolated_mrs_k_rr_rise_is_a_corroborating_vitals_change(sandbox):
     assert latest["modalities"]["speech"]["status"] == "provisional"
     assert latest["modalities"]["vitals"]["per_feature"]["resting_rr_bpm"]["value"] == 26.0
     assert latest["modalities"]["vitals"]["params"]["threshold_status"] == "engineering_unvalidated"
-    assert latest["sbar"] is None and latest["draft_status"] == "unavailable_multimodal_evidence"
+    assert latest["sbar"] and latest["draft_status"] == "multimodal_template"
     nurse = client_for(sandbox)
     baseline = latest["modalities"]["vitals"]["params"]["baseline_evidence_ids"]
     assert len(baseline) == 6

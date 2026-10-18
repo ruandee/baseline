@@ -19,6 +19,7 @@ from patient_memory.baseline.engine import (
     combined_payload,
     evaluate,
 )
+from patient_memory.baseline.grounded import multimodal_template
 from patient_memory.baseline.sbar import sbar_template
 from patient_memory.baseline.signals import (
     PROJECTIONS,
@@ -216,6 +217,8 @@ def _speech_projection(conn, cfg, patient_id, at):
     history = _history(conn, patient_id, check.ts, check.prompt_version)
     mode = "enrolled" if sum(c.is_baseline for c in history) >= MIN_BASELINE else "rolling"
     result = evaluate(check, history, mode, engine_settings(cfg, check.prompt_version))
+    result = replace(result, params={**result.params, "baseline_check_ids": list(result.baseline_ids),
+                     "baseline_evidence_ids": ["check:"+cid for cid in result.baseline_ids]})
     return ModalityResult("speech", check.ts, result, check.id, ("check:"+check.id,))
 
 
@@ -247,11 +250,15 @@ def assess_modality(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, chec
     mode = "enrolled" if sum(c.is_baseline for c in history) >= MIN_BASELINE else "rolling"
     started = perf_counter()
     result = evaluate(check, history, mode, engine_settings(cfg, check.prompt_version))
+    baseline_ids = set(result.baseline_ids)
+    result = replace(result, params={**result.params, "baseline_check_ids": list(result.baseline_ids),
+                     "baseline_evidence_ids": sorted({eid for prior in history if prior.id in baseline_ids
+                         for eid in (("check:"+prior.id,) if check.modality == "speech" else prior.evidence_ids)})})
     source_revision = conn.execute("SELECT revision FROM patients WHERE id=%s",
                                    (patient_id,)).fetchone()["revision"]
     other = _latest_modalities(conn, cfg, patient_id, check, source_revision) if session_id is None else []
     combined = combine([*other, ModalityResult(check.modality, check.ts, result, check.id,
-                                               check.evidence_ids)], check.ts)
+                                               (check.evidence_ids or (("check:"+check.id,) if check.modality == "speech" else ())))], check.ts)
     modal = combined_payload(combined)
     engine_ms = round((perf_counter()-started)*1000)
     started = perf_counter()
@@ -274,7 +281,8 @@ def assess_modality(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, chec
     non_speech_flag = check.modality != "speech" or any(
         name != "speech" and entry["current"] and entry["status"] in ("provisional", "change")
         for name, entry in modal["modalities"].items())
-    sbar = None if non_speech_flag else sbar_template(
+    sbar = multimodal_template(display_name, decision, modal["modalities"], tags,
+                               combined.corroborated) if non_speech_flag else sbar_template(
         display_name, combined.verdict_status, decision, check.id, change["per_feature"], reasons)
     params = {**result.params, "mode": mode, "prompt_version": check.prompt_version,
               "signal_ts": check.ts.isoformat(), "session_id": str(session_id) if session_id else None,
@@ -283,7 +291,9 @@ def assess_modality(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, chec
               "verdict_status": combined.verdict_status,
               "modality_results": {name: {k: v for k, v in entry.items() if k != "per_feature"}
                                    for name, entry in modal["modalities"].items()},
-              "draft_status": "unavailable_multimodal_evidence" if non_speech_flag else "speech",
+              "draft_context_ids": [t["context_tag_id"] for t in tags] if non_speech_flag else [],
+              "draft_status": ("multimodal_template" if sbar else "unavailable_multimodal_evidence")
+                              if non_speech_flag else "speech",
               "source_revision": source_revision,
               "source_ids": sorted(source_ids | {t["source_id"] for t in tags}), **flags}
     assessment_id = uuid4()

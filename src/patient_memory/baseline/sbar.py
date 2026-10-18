@@ -156,8 +156,8 @@ def _draft_snapshot(conn, patient_id, assessment_id, *, for_update=False):
     row = conn.execute(
         "SELECT a.*,p.external_id,p.revision FROM assessments a "
         "JOIN patients p ON p.tenant_id=a.tenant_id AND p.id=a.patient_id "
-        "JOIN voice_checks v ON v.tenant_id=a.tenant_id AND v.patient_id=a.patient_id "
-        "AND v.id=a.check_id WHERE a.patient_id=%s AND a.id=%s AND v.usable "
+        "LEFT JOIN voice_checks v ON v.tenant_id=a.tenant_id AND v.patient_id=a.patient_id "
+        "AND v.id=a.check_id WHERE a.patient_id=%s AND a.id=%s AND (v.usable OR a.params->>'modality'<>'speech') "
         + ("FOR UPDATE OF a" if for_update else ""), (patient_id, assessment_id)).fetchone()
     if (not row or row["params"].get("invalidated")
             or row["params"].get("source_revision") != row["revision"]):
