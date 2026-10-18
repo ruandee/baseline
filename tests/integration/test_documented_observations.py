@@ -11,7 +11,7 @@ from tests.integration.test_retrieval import publish
 
 def measurement(at, value=37.1, **changes):
     return SourceInput(external_document_id=str(uuid4()), external_version_id="1",
-        source_system="synthetic", kind="observation", author_role="nurse", recorded_at=at,
+        source_system="synthetic", kind="observation", author_role="system", recorded_at=at,
         records=[Record(concept="temperature_c", value=value, unit="Cel", effective_from=at)],
         **changes)
 

@@ -173,3 +173,8 @@ parameters. Recorded temperature includes source/time (Mrs. K 37.1 Celsius); no 
 normal-range inference. The available stored SBAR mounts BL-33 exact preliminary export and
 local human-edited, unverified preview. API-captured cohort/DOM and lifecycle tests are added;
 DB-backed CI and real phone/host acceptance remain gates until their actual results.
+
+BL-19 follow-up makes every check citation interactive with matching assessment/check identity
+and refreshed authorization. All reason, observation and SBAR citation buttons are exercised,
+including withheld readback after assessment change/revocation. Headless Chrome renders desktop
+and phone-width synthetic fixtures; this does not claim physical-phone or live-audio acceptance.

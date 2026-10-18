@@ -37,7 +37,8 @@ def watch_window(tags: list[dict], now: datetime) -> dict:
 
 def _latest_assessment(conn, patient_id: UUID):
     return conn.execute(
-        "SELECT a.*, v.ts AS check_ts FROM assessments a JOIN voice_checks v "
+        "SELECT a.*, v.ts AS check_ts, v.synthetic AS check_synthetic "
+        "FROM assessments a JOIN voice_checks v "
         "ON v.tenant_id=a.tenant_id AND v.patient_id=a.patient_id AND v.id=a.check_id "
         "WHERE a.patient_id=%s AND COALESCE((a.params->>'invalidated')::boolean,false)=false "
         "AND (a.params->>'source_revision')::bigint=(SELECT revision FROM patients WHERE id=%s) "
@@ -49,6 +50,8 @@ def _assessment_payload(row, tags, change_row_features) -> dict:
     params = row["params"]
     return {
         "id": str(row["id"]), "ts": row["check_ts"].isoformat(), "verdict": row["verdict"],
+        "check": {"id": str(row["check_id"]), "ts": row["check_ts"].isoformat(),
+                  "synthetic": row["check_synthetic"]},
         "over_budget": bool(params.get("over_budget")),
         "no_escalate_profile": bool(params.get("no_escalate")),
         "suggested_action": {"id": row["suggested_action"],

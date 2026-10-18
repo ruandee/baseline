@@ -80,3 +80,10 @@ and source/time without deriving a normal, fever or negative clinical finding.
 The API-captured synthetic cohort test follows Mrs. K overview, temperature and SBAR citations
 through the real resident DOM into the preliminary export and explicitly unverified human
 preview. This is synthetic engineering acceptance; phone and hosted acceptance remain separate.
+
+Every SBAR citation is interactive. Fact citations fetch the authorized exact source quote;
+`check:<uuid>` citations re-fetch the overview and require both the displayed assessment ID
+and its explicit check ID to match before showing the recorded time and measured features.
+Authored synthetic checks explicitly have no audio/source-document quote. A changed assessment
+or revoked access withholds the signal readback and asks for reload. Check IDs are never sent
+to the fact-only evidence endpoint. The DOM acceptance exercises every evidence button.

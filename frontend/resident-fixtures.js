@@ -41,13 +41,14 @@
   window.RESIDENT_FIXTURES = {
     'mrs-k': {
       patient_id: 'mrs-k', display_name: 'Mrs. K', synthetic: true,
-      documented_observations: [{label: 'Temperature 37.1 ?C documented', value: 37.1,
+      documented_observations: [{label: 'Temperature 37.1 \u00b0C documented', value: 37.1,
         evidence_id: EV.temp, source_kind: 'observation', recorded_at: '2026-10-14T12:00:00Z'}],
       watch_window: {open: true, day: 3, of: 7, reason: 'high_risk_med_new'},
       series, baseline: {mode: 'enrolled', n_checks: 5, features: baseline},
       first_change_ts: firstChange,
       features: FEATURES,
       latest_assessment: {
+        check: {id: 'asm-1', ts: new Date(start + 29 * DAY + 8 * 3600000).toISOString(), synthetic: true},
         id: 'asm-1', ts: new Date(start + 29 * DAY + 8 * 3600000).toISOString(),
         verdict: 'escalate', over_budget: false, suggested_action: {id: '4at', label: 'Run 4AT now'},
         no_escalate_profile: false,

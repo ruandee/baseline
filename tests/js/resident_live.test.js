@@ -11,12 +11,18 @@ test('live resident route: charts, actual evidence, action, editable preliminary
   const pid = captured ? captured.overview.patient_id : 'mrs-k';
   const overview = () => captured ? captured.overview : page.window.RESIDENT_FIXTURES['mrs-k'];
   const evidence = captured ? captured.evidence : null;
+  let readback = 'current';
   const note = captured ? captured.note : {resourceType: 'DocumentReference', id: 'note',
     meta: {tag: []}, identifier: [{system: 'urn:baseline:assessment', value: 'asm-1'}],
     status: 'current', docStatus: 'preliminary', subject: {reference: `Patient/${pid}`},
     content: [{attachment: {contentType: 'text/plain', data: btoa('S: Synthetic original draft')}}]};
   const routes = {
-    [`GET /v1/patients/${pid}/overview?days=30`]: overview,
+    [`GET /v1/patients/${pid}/overview?days=30`]: () => {
+      if (readback === 'revoked') throw {status: 404};
+      const data = overview();
+      return readback === 'changed'
+        ? {...data, latest_assessment: {...data.latest_assessment, id: 'new-assessment'}} : data;
+    },
   };
   // API handlers intentionally serve the same payload whether captured from real DB or offline.
   const allEvidence = evidence || Object.fromEntries(['1', '2', '3'].map((n) => [
@@ -38,13 +44,27 @@ test('live resident route: charts, actual evidence, action, editable preliminary
   assert.equal(action.getAttribute('aria-expanded'), 'true');
   assert.equal(page.main.querySelector('.bl-action-detail').hidden, false);
   assert.match(page.main.textContent, /37.1/);
-  const observation = page.main.querySelector('.bl-observation-source');
-  observation.click();
-  await until(() => page.main.querySelector('.bl-source-quote'));
-  assert.match(page.main.querySelector('.bl-source-quote').textContent, /37.1/);
-  const citation = page.main.querySelectorAll('.bl-cite').find((n) => n.tagName === 'BUTTON');
-  citation.click();
-  await until(() => page.main.querySelectorAll('.bl-source-quote').length === 2);
+  const references = page.main.querySelectorAll('[data-evidence-id]');
+  assert(references.length > 5);
+  assert(page.main.querySelectorAll('.bl-cite').every((node) => node.tagName === 'BUTTON'));
+  for (const reference of references) {
+    const id = reference.getAttribute('data-evidence-id');
+    const before = page.calls.length;
+    reference.click();
+    if (id.startsWith('check:')) {
+      await until(() => page.main.querySelector('.bl-check-evidence'));
+      const detail = page.main.querySelector('.bl-check-evidence').textContent;
+      assert.match(detail, /Stored voice check/);
+      assert.match(detail, /Authored synthetic measurements; no audio or source-document quote/);
+      assert.match(detail, new RegExp(String(Math.round(overview().latest_assessment.change.per_feature.speech_rate_wpm.value))));
+      assert(page.calls.slice(before).some((call) => call.key.endsWith('/overview?days=30')));
+      assert(!page.calls.slice(before).some((call) => call.key.includes('/evidence/check')));
+    } else {
+      const expected = evidence ? evidence[id] : page.window.RESIDENT_FIXTURE_EVIDENCE[id];
+      await until(() => page.main.querySelectorAll('.bl-source-quote').some((node) => node.textContent === expected.quote));
+      assert(page.calls.slice(before).some((call) => call.key.endsWith(`/evidence/${id}`)));
+    }
+  }
   const send = page.main.querySelectorAll('button').find((n) => n.textContent === 'Send to sign-off queue (preview)');
   send.click();
   await until(() => page.main.querySelector('.bl-note-editor'));
@@ -56,5 +76,12 @@ test('live resident route: charts, actual evidence, action, editable preliminary
   assert.match(page.main.textContent, /Human-edited, unverified/);
   assert(page.calls.every((c) => c.key.startsWith('GET ')));
   assert(page.calls.some((c) => c.key.includes('/overview?days=30')));
+  for (const state of ['changed', 'revoked']) {
+    readback = state;
+    page.main.querySelector('.bl-check-cite').click();
+    await until(() => !page.main.querySelector('.bl-check-evidence')
+      && page.main.textContent.includes('Could not open the voice check'));
+    assert.match(page.main.textContent, state === 'changed' ? /reload the resident/ : /404/);
+  }
   assert.equal(page.errors.length, 0);
 });

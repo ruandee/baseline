@@ -22,6 +22,11 @@ def test_loaded_resident_citations_and_editable_draft(sandbox, tmp_path):
     assert response.status_code == 200, response.text
     overview = response.json()
     assert overview["latest_assessment"]["verdict"] == "escalate"
+    check = overview["latest_assessment"]["check"]
+    assert check["synthetic"] is True
+    assert check["ts"] == overview["latest_assessment"]["ts"]
+    assert any(f"check:{check['id']}" in sentence["evidence_ids"]
+               for sentence in overview["latest_assessment"]["sbar"]["sentences"])
     temperature, = overview["documented_observations"]
     assert temperature["value"] == 37.1 and temperature["unit"] == "C"
     assert temperature["recorded_at"].startswith("2026-10-14T12:00")

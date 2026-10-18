@@ -126,6 +126,38 @@
     return card;
   }
 
+  async function openCheckEvidence(h, ctx, initial, evidenceId, target) {
+    const request = String(Number(target.dataset.request || 0) + 1);
+    target.dataset.request = request;
+    target.replaceChildren(h.el('p', 'Loading voice check…'));
+    try {
+      // Reauthorize readback, and refuse to mix a newer assessment with the displayed draft.
+      const current = ctx.mock ? initial : await load(h, ctx);
+      const assessment = current.latest_assessment;
+      if (!assessment || assessment.id !== initial.latest_assessment.id
+          || !assessment.check || `check:${assessment.check.id}` !== evidenceId) {
+        throw new Error('Check evidence changed or unavailable; reload the resident.');
+      }
+      if (target.dataset.request !== request) return;
+      const panel = h.el('section', '', {class: 'bl-check-evidence'});
+      panel.append(h.el('h3', 'Stored voice check'),
+        h.el('p', `Recorded ${h.formatTime(assessment.check.ts)}`),
+        h.el('p', assessment.check.synthetic
+          ? 'Authored synthetic measurements; no audio or source-document quote.'
+          : 'Voice-derived measurements; no source-document quote.'));
+      Object.entries(assessment.change.per_feature || {}).forEach(([name, feature]) => {
+        const meta = current.features[name] || {label: name, unit: ''};
+        panel.append(h.el('p', `${meta.label}: ${fmt(name, feature.value)}`
+          + (name === 'pause_ratio' ? '' : ` ${meta.unit}`)));
+      });
+      target.replaceChildren(panel);
+    } catch (error) {
+      if (target.dataset.request !== request) return;
+      target.replaceChildren(h.el('p', `Could not open the voice check (${error.message}).`,
+        {class: 'bl-status', 'data-state': 'error'}));
+    }
+  }
+
   function evidenceChain(h, ctx, data) {
     const section = h.el('section', '', {class: 'bl-section'});
     section.append(h.el('h2', 'Evidence'));
@@ -133,7 +165,8 @@
     if (!reasons.length) section.append(h.el('p', 'No current context evidence supplied for this assessment.', {class: 'bl-muted'}));
     reasons.forEach((r) => {
       const row = h.el('div', '', {class: 'bl-reason'});
-      const open = h.el('button', 'Open source', {type: 'button', class: 'bl-link'});
+      const open = h.el('button', 'Open source', {type: 'button', class: 'bl-link',
+        'data-evidence-id': r.evidence_id});
       const detail = h.el('div', '', {class: 'bl-source', hidden: ''});
       open.addEventListener('click', async () => {
         detail.hidden = false;
@@ -150,7 +183,8 @@
     if (!observations.length) section.append(h.el('p', 'No temperature measurement available in this view.', {class: 'bl-muted'}));
     observations.forEach((observation) => {
       const row = h.el('div', '', {class: 'bl-observation'});
-      const open = h.el('button', 'Open source', {type: 'button', class: 'bl-link bl-observation-source'});
+      const open = h.el('button', 'Open source', {type: 'button', class: 'bl-link bl-observation-source',
+        'data-evidence-id': observation.evidence_id});
       const detail = h.el('div', '', {class: 'bl-source', hidden: ''});
       open.addEventListener('click', async () => {
         detail.hidden = false;
@@ -178,11 +212,18 @@
         const p = h.el('p', s.text);
         s.evidence_ids.forEach((id) => {
           if (id.startsWith('check:')) {  // the check itself, not a source document
-            p.append(' ', h.el('span', 'check', {class: 'bl-cite', title: id}));
+            const check = h.el('button', 'check', {type: 'button', class: 'bl-cite bl-check-cite',
+              title: 'Open stored voice-check measurements', 'data-evidence-id': id});
+            check.addEventListener('click', () => {
+              sourcePanel.hidden = false;
+              openCheckEvidence(h, ctx, data, id, sourcePanel);
+            });
+            p.append(' ', check);
             return;
           }
           const chipButton = h.el('button', `source ${order.indexOf(id) + 1}`,
-                                  {type: 'button', class: 'bl-cite', title: 'Open the source quote'});
+                                  {type: 'button', class: 'bl-cite', title: 'Open the source quote',
+                                    'data-evidence-id': id});
           chipButton.addEventListener('click', () => {
             sourcePanel.hidden = false;
             openEvidence(h, ctx, id, sourcePanel);
