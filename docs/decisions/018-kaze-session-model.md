@@ -201,48 +201,11 @@ DELETE grant is added.
 - Not done here: scheduler, SMS, ack route, pages, `loud_venue` quality tolerance, and integrated
   acceptance after the PointClickCare path reaches BL-13.
 
+### BL-28 page integration
 
-### BL-26 scheduler integration (17 Oct 2026)
-
-The worker checks visible active/escalating sessions every 15 seconds (between ingestion passes).
-Level 1 is 2.5 minutes overdue, level 2 is 5 minutes overdue or an unexplained raw session
-`change`/`provisional`, and levels 3/4 wait 10 minutes after the preceding recorded step. A delayed
-worker advances at most one SMS level per pass, giving each contact its full acknowledgement
-window. No compressed demo timing is introduced while the outstanding product questions remain
-on hold.
-
-The scheduler takes the patient advisory lock then the session row lock and reads a fresh DB
-clock after waiting. It expires sessions at their original `ends_at`, keeping `delete_after`
-exactly 24 hours later. Check-in reset, acknowledgement and end serialize on the same session row;
-current state is re-read before publishing a step. Each committed episode/level/contact is unique.
-Usable normal/explained check-ins restart the due timer; unusable clips never reset it. An
-acknowledged session stays frozen until a qualifying check-in, and subsequent episodes increment
-the episode counter so old acknowledgement links cannot stop them.
-
-KAZE consumes raw change status and the session's immutable `context_tags`, independently of the
-PCC assessment verdict, context evidence, shift budget and `PM_NO_ESCALATE_PATIENTS`. Session
-assessments do not consume the PCC shift budget either. Declared `exertion`/`loud_venue` explainers
-suppress the speech-change trigger; they do not suppress missed check-ins. `escalation_enabled`
-false caps either trigger at the level-1 nudge. No speech quality threshold is changed here.
-
-BL-26's sender is strictly an offline logging adapter: no configuration enables SMS. It runs
-under the locks and its final message/hash metadata is inserted once, respecting migration 006's
-immutable event columns. This supersedes the earlier issue-comment proposal to UPDATE those
-columns. BL-27's saved `prepare_sms` / commit / `send` contract must be integrated before real
-delivery: never call a network sender from this locked adapter. Its postcommit delivery/crash
-semantics and public acknowledgement route remain BL-27 work, with no real delivery verified here.
-The six held product questions remain undecided.
-
-### BL-28/29 page integration (proposed implementation)
-
-The `/out` and `/out/session/{id}` pages use the existing session payload and standard ladder
-clock. A separately configured `PM_DEMO_KAZE_TOKEN` + `PM_DEMO_KAZE_PATIENT_ID` is selected by
-`X-PM-Role:kaze` on the same-origin demo session endpoint, verified as a self-custody importer
-in a safety tenant. No nurse fallback, URL tokens or browser credential persistence. The setup
-CLI writes only an ignored local token artifact. Ordinary resident/PSW bootstrap is unchanged.
-
-Session-only recording rechecks state across permission waits and invalidates pending callbacks
-on end/expiry. Location is an explicit opt-in; denied permission omits it. Judge readback shows
-actual delivery and time-to-ack, redacting coordinates/links and labelling log-only events.
-See [page setup and remaining acceptance](../kaze-pages.md). This does not resolve any held
-ADR018 question, implement loud-venue SNR relaxation or claim a 45-second missed-check SMS loop.
+The synthetic /out pages use the standard session clock and a separately configured self-custody
+KAZE identity. Capture cancels pending callbacks at end or expiry; explicit opt-in controls
+location. Timeline redacts links/coordinates and labels actual delivery outcomes; acknowledgement
+latency measures escalation attempts, not delivered texts. See ../kaze-pages.md. BL-27's public
+acknowledgement navigation retains origin/host and clinical-route guards (decision 023). Held
+policy questions and loud-venue SNR adjustment remain separate.

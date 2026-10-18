@@ -13,6 +13,10 @@ from patient_memory.objects import ObjectStore
 @pytest.fixture(autouse=True)
 def offline_models(monkeypatch):
     monkeypatch.setenv("PM_PROVIDER", "stub")
+    # Tests never send a real text, whatever a local .env says (decision 023).
+    monkeypatch.setenv("PM_SMS_PROVIDER", "log")
+    for name in ["PM_TWILIO_SID", "PM_TWILIO_TOKEN", "PM_TWILIO_FROM", "PM_SMS_ALLOWED_RECIPIENTS"]:
+        monkeypatch.setenv(name, "")
 
 
 MAX_DB_CLOCK_LEAD_MS = 10

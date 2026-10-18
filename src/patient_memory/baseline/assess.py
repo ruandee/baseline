@@ -69,7 +69,8 @@ def escalations_used(conn, now: datetime, cfg: Settings) -> int:
     return conn.execute(
         "SELECT count(*) AS n FROM assessments a JOIN voice_checks v ON v.tenant_id=a.tenant_id "
         "AND v.patient_id=a.patient_id AND v.id=a.check_id WHERE a.verdict='escalate' "
-        "AND v.ts>=%s AND v.ts<%s AND COALESCE((a.params->>'over_budget')::boolean,false)=false "
+        "AND v.session_id IS NULL AND v.ts>=%s AND v.ts<%s "
+        "AND COALESCE((a.params->>'over_budget')::boolean,false)=false "
         "AND COALESCE((a.params->>'no_escalate')::boolean,false)=false", (start, end)
     ).fetchone()["n"]
 

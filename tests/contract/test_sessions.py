@@ -283,6 +283,10 @@ def test_raw_session_change_survives_pcc_budget_and_profile_for_ladder_consumers
     with transaction(cfg, k["ids"]["service"]) as conn:
         now = conn.execute("SELECT clock_timestamp() AS t").fetchone()["t"]
         assert escalations_used(conn, now, cfg) == 0
+        # The narrow PSW scoring definer has the same session exclusion as ordinary reads.
+        from patient_memory.checks import scoring_context
+        with scoring_context(conn, k["patient"]):
+            assert escalations_used(conn, now, cfg) == 0
         assert conn.execute("SELECT ladder_level FROM safety_sessions WHERE id=%s",
                             (UUID(sid),)).fetchone()["ladder_level"] == 2
 

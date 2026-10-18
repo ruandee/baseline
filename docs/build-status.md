@@ -167,8 +167,8 @@ analysis cap; staff-containing temporary audio is always removed regardless of K
 Checks remain prompt-scoped; first-change marker uses the displayed prompt. Real speech/Vox
 UI remain unvalidated, and overview prompt switching stays on hold (decision016).
 
-BL-28/29 draft pages add separate self-custody KAZE bootstrap, arm form, baseline/session
-recordings, countdown/reminders and session delivery/acknowledgement timeline. Actual phone
-acceptance remains open; log-only events are not SMS delivery. Pending capture and polling
-callbacks cannot reopen a session after end. BL-26 dependency preserves session policy separate
-from PCC budget/no-escalate flags; held ADR018 questions remain undecided.
+BL-28 pages provide separate self-custody KAZE bootstrap, arming, baseline/session recording,
+countdown/reminders and delivery/acknowledgement timeline. Logged and failed escalation attempts
+are not presented as sent SMS. Phone capture and two-phone receipt/ack acceptance remain open.
+BL-27 integration preserves public acknowledgement navigation through the same-origin frontend,
+while clinical/bootstrap and cross-site POST guards remain unchanged; no real SMS is claimed.
