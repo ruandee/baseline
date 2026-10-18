@@ -5,6 +5,7 @@ from uuid import UUID
 from patient_memory.baseline.assess import COUNTING_PROMPT, escalations_used, valid_tags
 from patient_memory.baseline.engine import FEATURES
 from patient_memory.baseline.observations import documented_observations
+from patient_memory.baseline.signals import features_for, stored_modalities
 from patient_memory.baseline.verdict import (
     ACTION_LABELS,
     VERDICT_RANK,
@@ -35,14 +36,19 @@ def watch_window(tags: list[dict], now: datetime) -> dict:
     return {"open": True, "day": day, "of": WATCH_WINDOW_DAYS, "reason": latest["tag"]}
 
 
-def _latest_assessment(conn, patient_id: UUID):
+def _latest_assessment(conn, patient_id: UUID, modality: str | None = None, at=None):
+    # Non-speech adapters carry immutable signal event time in params; legacy speech rows
+    # derive it from voice_checks. Session signals never enter the resident read model.
     return conn.execute(
-        "SELECT a.*, v.ts AS check_ts, v.synthetic AS check_synthetic "
-        "FROM assessments a JOIN voice_checks v "
+        "SELECT * FROM (SELECT a.*, COALESCE((a.params->>'signal_ts')::timestamptz,v.ts)"
+        " AS check_ts, v.synthetic AS check_synthetic FROM assessments a LEFT JOIN voice_checks v "
         "ON v.tenant_id=a.tenant_id AND v.patient_id=a.patient_id AND v.id=a.check_id "
         "WHERE a.patient_id=%s AND COALESCE((a.params->>'invalidated')::boolean,false)=false "
-        "AND (a.params->>'source_revision')::bigint=(SELECT revision FROM patients WHERE id=%s) "
-        "ORDER BY v.ts DESC, a.created_at DESC LIMIT 1", (patient_id, patient_id)
+        "AND a.params->>'session_id' IS NULL AND v.session_id IS NULL "
+        "AND (%s::text IS NULL OR COALESCE(a.params->>'modality','speech')=%s) "
+        "AND (a.params->>'source_revision')::bigint=(SELECT revision FROM patients WHERE id=%s)"
+        ") eligible WHERE check_ts<=%s ORDER BY check_ts DESC,created_at DESC,id DESC LIMIT 1",
+        (patient_id, modality, modality, patient_id, at or datetime.now(UTC))
     ).fetchone()
 
 
@@ -51,12 +57,17 @@ def _assessment_payload(row, tags, change_row_features) -> dict:
     return {
         "id": str(row["id"]), "ts": row["check_ts"].isoformat(), "verdict": row["verdict"],
         "check": {"id": str(row["check_id"]), "ts": row["check_ts"].isoformat(),
-                  "synthetic": row["check_synthetic"]},
+                  "synthetic": row["check_synthetic"]}
+                 if params.get("modality", "speech") == "speech" else None,
         "over_budget": bool(params.get("over_budget")),
         "no_escalate_profile": bool(params.get("no_escalate")),
         "suggested_action": {"id": row["suggested_action"],
                              "label": ACTION_LABELS[row["suggested_action"]]},
         "reasons": row["reasons"],
+        "modality": params.get("modality", "speech"),
+        "corroborated": bool(row.get("corroborated", False)),
+        "modalities": stored_modalities(row),
+        "draft_status": params.get("draft_status", "speech"),
         "change": {"status": row["change_status"], "mode": params.get("mode"),
                    "fused_z": row["fused_z"], "per_feature": change_row_features,
                    "params": {k: v for k, v in params.items()
@@ -73,10 +84,11 @@ def overview(conn, cfg: Settings, patient: dict, days: int, now: datetime | None
     if not conn.execute("SELECT pm_care(%s) AS ok", (pid,)).fetchone()["ok"]:
         raise Problem(404, "not_found")
     tags = valid_tags(conn, pid, now)
-    latest = _latest_assessment(conn, pid)
+    latest = _latest_assessment(conn, pid, at=now)
+    latest_speech = _latest_assessment(conn, pid, "speech", at=now)
     # The chart shows one prompt's checks, the one the latest band was computed from, so free
     # conversation (Vox) points never sit on a counting-prompt band or the reverse.
-    prompt = (latest["params"].get("prompt_version") if latest else None) or COUNTING_PROMPT
+    prompt = (latest_speech["params"].get("prompt_version") if latest_speech else None) or COUNTING_PROMPT
     series = {name: {"daily": [], "checks": []} for name in FEATURES}
     for row in conn.execute(
             "SELECT time_bucket('1 day', ts) AS day, "
@@ -97,17 +109,22 @@ def overview(conn, cfg: Settings, patient: dict, days: int, now: datetime | None
     baseline = {"mode": None, "n_checks": 0, "features": {}, "prompt_version": prompt}
     assessment = None
     if latest:
-        assessment = _assessment_payload(latest, tags, latest["features"])
-        baseline = {"mode": latest["params"].get("mode"), "prompt_version": prompt,
-                    "n_checks": latest["params"].get("baseline_checks", 0),
+        assessment = _assessment_payload(latest, tags, features_for(latest["features"]))
+    if latest_speech:
+        speech_features = features_for(latest_speech["features"])
+        baseline = {"mode": latest_speech["params"].get("mode"), "prompt_version": prompt,
+                    "n_checks": latest_speech["params"].get("baseline_checks", 0),
                     "features": {n: {"median": f["median"], "scale": f["scale"]}
-                                 for n, f in latest["features"].items()}}
+                                 for n, f in speech_features.items()}}
     first = conn.execute(
         "SELECT min(v.ts) AS ts FROM assessments a JOIN voice_checks v "
         "ON v.tenant_id=a.tenant_id AND v.patient_id=a.patient_id AND v.id=a.check_id "
         "WHERE a.patient_id=%s AND a.change_status='change' AND v.prompt_version=%s "
-        "AND v.ts>=%s - make_interval(days=>%s)",
-        (pid, prompt, now, days)).fetchone()["ts"]
+        "AND COALESCE((a.params->>'invalidated')::boolean,false)=false "
+        "AND (a.params->>'source_revision')::bigint=%s "
+        "AND a.params->>'session_id' IS NULL AND v.session_id IS NULL "
+        "AND v.ts>=%s - make_interval(days=>%s) AND v.ts<=%s",
+        (pid, prompt, patient["revision"], now, days, now)).fetchone()["ts"]
     return {
         "patient_id": str(pid), "display_name": patient["external_id"], "synthetic": True,
         "watch_window": watch_window(tags, now), "features": FEATURE_META, "series": series,
@@ -131,7 +148,7 @@ def watchlist(conn, cfg: Settings, now: datetime | None = None) -> dict:
         if not conn.execute("SELECT id FROM patients WHERE id=%s AND pm_care(id)",
                             (pid,)).fetchone():
             continue
-        latest = _latest_assessment(conn, pid)
+        latest = _latest_assessment(conn, pid, at=now)
         last_check = conn.execute("SELECT max(ts) AS ts FROM voice_checks WHERE patient_id=%s",
                                   (pid,)).fetchone()["ts"]
         spark = conn.execute(
@@ -145,6 +162,8 @@ def watchlist(conn, cfg: Settings, now: datetime | None = None) -> dict:
             "patient_id": str(pid), "display_name": patient["external_id"], "synthetic": True,
             "latest_verdict": latest["verdict"] if latest else None,
             "over_budget": bool(params.get("over_budget")),
+            "corroborated": bool(latest["corroborated"]) if latest else False,
+            "modalities": stored_modalities(latest) if latest else {},
             "fused_z": latest["fused_z"] if latest else None,
             "last_check_ts": last_check.isoformat() if last_check else None,
             "watch_window": watch_window(valid_tags(conn, pid, now), now),

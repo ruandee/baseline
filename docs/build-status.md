@@ -203,3 +203,9 @@ Hosted KAZE integration (BL-26 / decision026) adds a separate runtime-role safet
 explicit contact-free bootstrap and private safety-person credentials. Consent remains unknown
 unless explicitly granted for fixtures; existing withdrawals remain preserved. Public-phone and
 real-SMS acceptance remain open.
+
+BL-30 registry review adds scoped modalities, explicit missing/stale states, corroboration and
+legacy speech compatibility. New captures reproject eligible immutable modalities at current
+revision without restoring invalidated decisions; first-change markers reject stale/session
+snapshots. Only speech is registered in this base. Decision025/migration010 track the contract;
+final exact-head CI remains authoritative after hosting/status integration.
