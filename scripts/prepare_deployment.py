@@ -7,12 +7,13 @@ import secrets
 import sys
 import tempfile
 from pathlib import Path
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 ROOT = Path(__file__).resolve().parents[1]
 HOST = re.compile(r"[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?", re.ASCII)
 LABEL = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", re.ASCII)
 TOKEN = re.compile(r"[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+", re.ASCII)
+ENV_KEY = re.compile(r"[A-Z_][A-Z_0-9]*", re.ASCII)
 
 
 def initialize(path: Path, hostname: str):
@@ -57,6 +58,10 @@ def store_credentials(path: Path, credentials: dict, *, kaze=False):
             seen.add(key)
         lines.append(line)
     lines.extend(f"{key}={value}" for key, value in updates.items() if key not in seen)
+    _write_private_env(path, lines)
+
+
+def _write_private_env(path, lines):
     descriptor, temporary = tempfile.mkstemp(prefix=".demo-env-", dir=path.parent)
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
@@ -67,6 +72,36 @@ def store_credentials(path: Path, credentials: dict, *, kaze=False):
         Path(temporary).unlink(missing_ok=True)
 
 
+def ensure_runner_profile(path: Path):
+    """Append the fixed synthetic runner to the server profile, never a client suppression flag."""
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("Initialize a regular private environment file first")
+    lines = path.read_text(encoding="utf-8").splitlines()
+    values, indexes = {}, {}
+    for index, line in enumerate(lines):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        key, separator, value = line.partition("=")
+        if not separator or not ENV_KEY.fullmatch(key) or key in values:
+            raise ValueError("Malformed or duplicate environment variable")
+        values[key], indexes[key] = value, index
+    key = "PM_NO_ESCALATE_PATIENTS"
+    raw = values.get(key, "").strip()
+    people = [str(UUID(part.strip())) for part in raw.split(",")] if raw else []
+    if len(set(people)) != len(people):
+        raise ValueError("Duplicate no-escalate patient UUID")
+    # Match scripts.seed.uid using stdlib only: this helper runs before host dependencies exist.
+    runner = str(uuid5(NAMESPACE_URL, "patient-memory/synthetic/0/runner-capture"))
+    if runner not in people:
+        people.append(runner)
+    updated = f"{key}={','.join(people)}"
+    if key in indexes:
+        lines[indexes[key]] = updated
+    else:
+        lines.append(updated)
+    _write_private_env(path, lines)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env-file", type=Path, default=ROOT / ".env.demo")
@@ -74,10 +109,13 @@ def main():
     commands.add_parser("init").add_argument("hostname")
     commands.add_parser("credentials", help="Read bootstrap JSON on stdin; never print tokens")
     commands.add_parser("kaze-credentials", help="Read private KAZE person credentials on stdin")
+    commands.add_parser("runner-profile", help="Preserve UUID profiles and add the synthetic runner")
     args = parser.parse_args()
     try:
         if args.command == "init":
             initialize(args.env_file, args.hostname)
+        elif args.command == "runner-profile":
+            ensure_runner_profile(args.env_file)
         else:
             payload = json.loads(sys.stdin.read(16 * 1024))
             if not isinstance(payload, dict):

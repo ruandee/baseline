@@ -7,7 +7,7 @@ from patient_memory import worker
 from patient_memory.auth import Identity
 from patient_memory.config import Settings
 from scripts import hosted_demo
-from scripts.prepare_deployment import initialize, store_credentials
+from scripts.prepare_deployment import ensure_runner_profile, initialize, store_credentials
 from scripts.seed import uid
 
 
@@ -78,11 +78,14 @@ def test_kaze_credentials_do_not_replace_the_nurse_or_psw_token(tmp_path):
     env = tmp_path / ".env.demo"
     initialize(env, "demo.example.com")
     store_credentials(env, {"nurse": "aaa.bbb.ccc", "psw": "ddd.eee.fff"})
+    ensure_runner_profile(env)
     store_credentials(env, {"kaze": "ggg.hhh.iii", "kaze_patient_id": str(uid("kaze-person"))},
                       kaze=True)
+    ensure_runner_profile(env)
     values = dict(line.split("=", 1) for line in env.read_text().splitlines()
                   if line and not line.startswith("#"))
     assert values["PM_DEMO_TOKEN"] == "aaa.bbb.ccc"
     assert values["PM_DEMO_PSW_TOKEN"] == "ddd.eee.fff"
     assert values["PM_DEMO_KAZE_TOKEN"] == "ggg.hhh.iii"
     assert values["PM_DEMO_KAZE_PATIENT_ID"] == str(uid("kaze-person"))
+    assert values["PM_NO_ESCALATE_PATIENTS"] == str(uid("0/runner-capture"))
