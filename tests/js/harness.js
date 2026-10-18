@@ -128,7 +128,8 @@ class FakeRecorder {
 
 // Builds a page at `url` with stubbed fetch/mic/speech. `routes` maps "METHOD path" to a
 // function returning a JSON body (or throwing {status}).
-function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients} = {}) {
+function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, storage = 'ok',
+                         consent = {}, pswToken = 'psw-t'} = {}) {
   const doc = new Document_();
   const main = doc.createElement('main');
   main.setAttribute('id', 'bl-main');
@@ -143,7 +144,13 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients} =
   const errors = [];
   const session = {token: 't', patients: patients || [
     {id: 'p1', name: 'Alex Morgan'}, {id: 'p2', name: 'Jamie Chen'}, {id: 'p3', name: 'Sam Rivera'}]};
-  const allRoutes = {'GET /demo/session': () => session, ...routes};
+  if (pswToken) session.psw_token = pswToken;
+  const consentRoutes = Object.fromEntries(session.patients.map((p) => [
+    `GET /v1/patients/${p.id}/consent`, () => ({scope: 'voice_check', state: consent[p.id] || 'granted',
+                                               decided_by: 'synthetic_fixture'})]));
+  const allRoutes = {'GET /demo/session': () => session, ...consentRoutes,
+    'GET /v1/checks/due': () => ({residents: session.patients.map((p) => ({patient_id: p.id,
+      display_name: p.name, status: 'due', consent_state: consent[p.id] || 'granted'}))}), ...routes};
   const fetch = async (p, opts = {}) => {
     const key = `${(opts.method || 'GET').toUpperCase()} ${p}`;
     calls.push({key, opts});
@@ -156,6 +163,9 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients} =
       return {ok: false, status: error.status || 500, json: async () => ({})};
     }
   };
+  const stored = new Map();
+  const localStorage = {getItem: (k) => (stored.has(k) ? stored.get(k) : null),
+                        setItem: (k, v) => stored.set(k, String(v))};
   const window = {
     document: doc, location: {pathname: parsed.pathname, search: parsed.search},
     fetch, URLSearchParams, Blob, FormData, URL, Promise, JSON, Math, Date, Object, Array, Map,
@@ -163,6 +173,7 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients} =
     console: {error: (e) => errors.push(e), log() {}, warn() {}},
     getComputedStyle: () => ({getPropertyValue: () => ''}),
     MediaRecorder: FakeRecorder,
+    stored,
     navigator: {mediaDevices: {getUserMedia: async () => {
       if (mic !== 'granted') { const e = new Error('NotAllowedError: Permission denied'); e.name = 'NotAllowedError'; throw e; }
       return {getTracks: () => [{stop() {}}]};
@@ -172,6 +183,10 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients} =
     window.speechSynthesis = {speak: (u) => spoken.push(u), cancel() {}, getVoices: () => [{lang: 'en-CA', name: 'v'}]};
     window.SpeechSynthesisUtterance = function (text) { this.text = text; };
   }
+  Object.defineProperty(window, 'localStorage', {get: () => {
+    if (storage !== 'ok') throw new Error('SecurityError: storage blocked');
+    return localStorage;
+  }});
   window.window = window;
   window.globalThis = window;
   const ctx = vm.createContext(window);

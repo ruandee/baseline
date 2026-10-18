@@ -2,13 +2,13 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {loadPage, until, exposedText} = require('./harness');
+const {loadPage, until, exposedText, FakeRecorder, tick} = require('./harness');
 
 // Anything that would reveal a score, verdict, feature or technical failure to a resident.
 const LEAKS = [/\d/, /escalat/i, /\bwatch\b/i, /explained/i, /within normal/i, /enrolling/i,
   /baseline/i, /score/i, /risk/i, /\bz\b/i, /wpm/i, /hz\b/i, /pause/i, /speech rate/i, /pitch/i,
   /error/i, /fail/i, /could not/i, /unusable/i, /noisy/i, /permission/i, /microphone/i, /4AT/i,
-  /oxybutynin/i, /\b(4|5)\d\d\b/];
+  /oxybutynin/i, /verdict/i];
 
 function assertNoLeak(main) {
   const text = exposedText(main);
@@ -17,10 +17,43 @@ function assertNoLeak(main) {
 
 const q = (page, sel) => page.main.querySelector(sel);
 const message = (page) => q(page, '.bl-resident-message').textContent;
+const posts = (page, path) => page.calls.filter((c) => c.key === `POST ${path}`);
+const cardState = (page) => q(page, '.bl-check-card') && q(page, '.bl-check-card').dataset.state;
+
+test('skip while permission is pending stops the eventual stream without recording/upload', async () => {
+  const page = loadPage('/check?mode=resident&patient=p1', {routes: {
+    'POST /v1/patients/p1/checks/skips': () => ({skip_id: 's'})}});
+  await ready(page);
+  let release;
+  let stopped = 0;
+  let asked = 0;
+  const previousRecorder = FakeRecorder.last;
+  page.window.navigator.mediaDevices.getUserMedia = () => {
+    asked += 1;
+    return new Promise((resolve) => { release = resolve; });
+  };
+  q(page, '.bl-record').click();
+  q(page, '.bl-record').click();
+  assert.equal(asked, 1, 'only one outstanding permission request');
+  q(page, '.bl-skip').click();
+  q(page, '[data-reason=declined]').click();
+  await until(() => cardState(page) === 'skipped');
+  release({getTracks: () => [{stop() { stopped += 1; }}]});
+  await tick(25);
+  assert.equal(stopped, 1);
+  assert.equal(FakeRecorder.last, previousRecorder, 'no recorder constructed after refusal');
+  assert.equal(cardState(page), 'skipped');
+  assert.equal(posts(page, '/v1/patients/p1/checks').length, 0);
+  assertNoLeak(page.main);
+});
+
+async function ready(page) {
+  await until(() => q(page, '.bl-record') && !q(page, '.bl-record').disabled);
+}
 
 async function record(page) {
   q(page, '.bl-record').click();
-  await until(() => page.main.querySelector('.bl-check-card').dataset.state === 'listening');
+  await until(() => cardState(page) === 'listening');
   assert.equal(q(page, '.bl-listening').hidden, false, 'listening indicator is visible');
   assert.match(q(page, '.bl-listening').textContent, /listening/i);
   q(page, '.bl-record').click();  // Stop
@@ -32,40 +65,42 @@ const ESCALATE = {check_id: 'c', ts: '2026-10-17T10:00:00Z', usable: true,
   words: [{w: 'one', start: 0.1, end: 0.3}], pauses: [{start: 1, end: 2}], timings_ms: {asr: 2900},
   change: {status: 'change', mode: 'rolling', fused_z: 3.1, per_feature: {}, params: {baseline_checks: 14}},
   assessment: {id: 'a', verdict: 'escalate', suggested_action: '4at_now',
-               suggested_action_label: 'Run 4AT now',
+               suggested_action_label: 'Run 4AT now', over_budget: false,
                reasons: [{kind: 'amplifier', label: 'Oxybutynin started', quote: 'oxybutynin 5 mg'}]}};
-const UNUSABLE = {...ESCALATE, usable: false, change: null, assessment: null,
-  quality: {...ESCALATE.quality, reasons: ['too_noisy']}};
 
-test('resident check with a real API escalation shows only a warm thank-you', async () => {
+test('resident check shows only a warm thank-you, as the PSW, with a stable device id', async () => {
   const page = loadPage('/check?mode=resident&patient=p1',
                         {routes: {'POST /v1/patients/p1/checks': () => ESCALATE}});
-  await until(() => q(page, '.bl-record'));
+  await ready(page);
   assert.equal(q(page, 'h1').textContent, "Let's count together");
   assert.match(q(page, '.bl-prompt').textContent, /Count from one to twenty/);
   assert.equal(q(page, '.bl-skip').hidden, false, 'Skip today is visible from the start');
   assert.equal(page.calls.filter((c) => c.key.startsWith('POST')).length, 0, 'no recording without a tap');
   await record(page);
   await until(() => !q(page, '.bl-back').hidden);
-  assert.equal(page.calls.filter((c) => c.key === 'POST /v1/patients/p1/checks').length, 1);
+  const sent = posts(page, '/v1/patients/p1/checks');
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].opts.headers.Authorization, 'Bearer psw-t', 'resident mode uses the PSW token');
+  const device = sent[0].opts.body.get('device_id');
+  assert.match(device, /^resident-device-[a-z0-9]+$/);
+  assert.equal(page.window.stored.get('bl-device-id-resident'), device, 'kept for the next check');
   assert.match(message(page), /Thank you, Alex\./);
   assert.equal(q(page, '.bl-record').hidden, true);
   assert.equal(page.doc.activeElement, q(page, 'h1'), 'focus moves to the heading for screen readers');
-  // The listening countdown has digits; once done the whole page must have none.
-  assertNoLeak(page.main);
+  assertNoLeak(page.main);  // the listening countdown had digits; the finished page has none
 });
 
 test('one retry after an unusable clip, then a second unusable clip is accepted, never looped', async () => {
   const page = loadPage('/check?mode=resident&patient=p2&mock=1&fixture=unusable,unusable');
-  await until(() => q(page, '.bl-record'));
+  await ready(page);
   await record(page);
-  await until(() => q(page, '.bl-check-card').dataset.state === 'retry');
+  await until(() => cardState(page) === 'retry');
   assert.match(message(page), /try once more/i);
   assert.equal(q(page, '.bl-record').textContent, 'Try once more');
   assertNoLeak(page.main);
   await record(page);
   await until(() => !q(page, '.bl-back').hidden);
-  assert.equal(q(page, '.bl-check-card').dataset.state, 'accepted');
+  assert.equal(cardState(page), 'accepted');
   assert.match(message(page), /Thank you, Jamie\./);
   assert.equal(q(page, '.bl-record').hidden, true, 'no third attempt is offered');
   assertNoLeak(page.main);
@@ -73,27 +108,32 @@ test('one retry after an unusable clip, then a second unusable clip is accepted,
 
 test('a usable second attempt ends with thanks', async () => {
   const page = loadPage('/check?mode=resident&patient=p1&mock=1&fixture=unusable,escalate');
-  await until(() => q(page, '.bl-record'));
+  await ready(page);
   await record(page);
-  await until(() => q(page, '.bl-check-card').dataset.state === 'retry');
+  await until(() => cardState(page) === 'retry');
   await record(page);
-  await until(() => q(page, '.bl-check-card').dataset.state === 'thanks');
+  await until(() => cardState(page) === 'thanks');
   assertNoLeak(page.main);
 });
 
-test('skip (refusal) records nothing and never asks for the microphone', async () => {
+test('skip (refusal) logs a reason, records no audio and never asks for the microphone', async () => {
   let micAsked = false;
-  const page = loadPage('/check?mode=resident&patient=p3',
-                        {routes: {'POST /v1/patients/p3/checks': () => ESCALATE}});
-  await until(() => q(page, '.bl-skip'));
+  let skipBody = null;
+  const page = loadPage('/check?mode=resident&patient=p3', {routes: {
+    'POST /v1/patients/p3/checks': () => ESCALATE,
+    'POST /v1/patients/p3/checks/skips': (opts) => { skipBody = JSON.parse(opts.body); return {skip_id: 's'}; }}});
+  await ready(page);
   const original = page.window.navigator.mediaDevices.getUserMedia;
   page.window.navigator.mediaDevices.getUserMedia = async () => { micAsked = true; return original(); };
   q(page, '.bl-skip').click();
+  assert.equal(q(page, '.bl-skip-reasons').hidden, false, 'staff choose a reason');
+  page.main.querySelectorAll('button').find((b) => b.getAttribute('data-reason') === 'declined').click();
+  await until(() => cardState(page) === 'skipped');
   assert.equal(micAsked, false);
-  assert.equal(page.calls.filter((c) => c.key.startsWith('POST')).length, 0);
+  assert.equal(posts(page, '/v1/patients/p3/checks').length, 0);
+  assert.equal(skipBody.reason, 'declined');
   assert.match(message(page), /skip today/i);
   assert.match(message(page), /Thank you, Sam\./);
-  assert.equal(q(page, '.bl-back').hidden, false);
   assert.match(q(page, '.bl-back').href, /^\/check\?mode=resident$/);
   assertNoLeak(page.main);
 });
@@ -101,20 +141,51 @@ test('skip (refusal) records nothing and never asks for the microphone', async (
 test('skip while listening discards the clip instead of uploading it', async () => {
   const page = loadPage('/check?mode=resident&patient=p1',
                         {routes: {'POST /v1/patients/p1/checks': () => ESCALATE}});
-  await until(() => q(page, '.bl-record'));
+  await ready(page);
   q(page, '.bl-record').click();
-  await until(() => q(page, '.bl-check-card').dataset.state === 'listening');
+  await until(() => cardState(page) === 'listening');
   q(page, '.bl-skip').click();
   await new Promise((r) => setTimeout(r, 30));
-  assert.equal(page.calls.filter((c) => c.key.startsWith('POST')).length, 0);
-  assert.equal(q(page, '.bl-check-card').dataset.state, 'skipped');
+  assert.equal(posts(page, '/v1/patients/p1/checks').length, 0);
+});
+
+test('a failed skip save asks for staff help and lets them choose again', async () => {
+  const page = loadPage('/check?mode=resident&patient=p1', {routes: {
+    'POST /v1/patients/p1/checks/skips': () => { throw Object.assign(new Error('x'), {status: 503}); }}});
+  await ready(page);
+  q(page, '.bl-skip').click();
+  page.main.querySelectorAll('button').find((b) => b.getAttribute('data-reason') === 'asleep').click();
+  await until(() => cardState(page) === 'help');
+  assert.equal(q(page, '.bl-skip-reasons').hidden, false);
+  assertNoLeak(page.main);
+});
+
+test('without granted consent the page never offers recording', async () => {
+  for (const state of ['unknown', 'withdrawn', 'expired']) {
+    const page = loadPage('/check?mode=resident&patient=p1', {consent: {p1: state}});
+    await until(() => cardState(page) === 'consent');
+    assert.equal(q(page, '.bl-record').hidden, true, state);
+    assert.equal(q(page, '.bl-skip').hidden, false, 'skip stays available');
+    assert.match(message(page), /check with the nurse/);
+    assertNoLeak(page.main);
+  }
+});
+
+test('a 403 consent_required during upload (withdrawn meanwhile) shows the consent view', async () => {
+  const page = loadPage('/check?mode=resident&patient=p1', {routes: {
+    'POST /v1/patients/p1/checks': () => { throw Object.assign(new Error('x'), {status: 403}); }}});
+  await ready(page);
+  await record(page);
+  await until(() => cardState(page) === 'consent');
+  assert.equal(posts(page, '/v1/patients/p1/checks').length, 1, '403 is final, never retried');
+  assertNoLeak(page.main);
 });
 
 test('microphone permission failure asks for staff help without technical detail', async () => {
   const page = loadPage('/check?mode=resident&patient=p1', {mic: 'denied'});
-  await until(() => q(page, '.bl-record'));
+  await ready(page);
   q(page, '.bl-record').click();
-  await until(() => q(page, '.bl-check-card').dataset.state === 'help');
+  await until(() => cardState(page) === 'help');
   assert.match(message(page), /ask a staff member/i);
   assert.equal(page.errors.length, 1, 'the real error goes to the console');
   assert.equal(q(page, '.bl-skip').hidden, false, 'skip stays available');
@@ -126,14 +197,14 @@ test('server errors stay hidden; staff can resend the kept clip without using th
   let fail = true;
   const page = loadPage('/check?mode=resident&patient=p1', {routes: {
     'POST /v1/patients/p1/checks': () => { if (fail) throw Object.assign(new Error('x'), {status: 422}); return ESCALATE; }}});
-  await until(() => q(page, '.bl-record'));
+  await ready(page);
   await record(page);
-  await until(() => q(page, '.bl-check-card').dataset.state === 'help');
+  await until(() => cardState(page) === 'help');
   assert.equal(q(page, '.bl-retry').hidden, false);
   assertNoLeak(page.main);
   fail = false;
   q(page, '.bl-retry').click();
-  await until(() => q(page, '.bl-check-card').dataset.state === 'thanks');
+  await until(() => cardState(page) === 'thanks');
   assertNoLeak(page.main);
 });
 
@@ -159,71 +230,137 @@ test('only languages with a prompt version are offered; unknown ?lang falls back
 
 test('keyboard: every control is a native button or link, Escape stops listening', async () => {
   const page = loadPage('/check?mode=resident&patient=p1&mock=1&fixture=normal');
-  await until(() => q(page, '.bl-record'));
+  await ready(page);
   for (const sel of ['.bl-record', '.bl-skip', '.bl-hear', '.bl-retry']) {
     const node = q(page, sel);
     assert.equal(node.tagName, 'BUTTON', sel);
     assert.equal(node.getAttribute('type'), 'button', sel);
   }
+  for (const b of q(page, '.bl-skip-reasons').querySelectorAll('button')) {
+    assert.equal(b.getAttribute('type'), 'button');
+  }
   assert.equal(q(page, '.bl-back').tagName, 'A');
   q(page, '.bl-record').click();
-  await until(() => q(page, '.bl-check-card').dataset.state === 'listening');
+  await until(() => cardState(page) === 'listening');
   assert.equal(q(page, '.bl-record').getAttribute('aria-pressed'), 'true');
   q(page, '.bl-check-card').dispatchEvent({type: 'keydown', key: 'Escape'});
-  await until(() => q(page, '.bl-check-card').dataset.state === 'thanks');
+  await until(() => cardState(page) === 'thanks');
 });
 
-test('PSW landing lists who is due now with no scores, from the real watch list', async () => {
-  const today = new Date();
-  const yesterday = new Date(today.getTime() - 36 * 3600 * 1000);
-  const page = loadPage('/check?mode=resident', {routes: {'GET /v1/watchlist': () => ({
-    shift: {start: today.toISOString(), end: today.toISOString(), escalations_used: 1, escalation_budget: 3},
-    residents: [
-      {patient_id: 'p1', display_name: 'synthetic-1', latest_verdict: 'escalate', fused_z: 3.4,
-       last_check_ts: yesterday.toISOString(), sparkline: [{day: '2026-10-16', speech_rate_wpm: 120}],
-       watch_window: {open: true, day: 2, of: 7}},
-      {patient_id: 'p2', display_name: 'synthetic-2', latest_verdict: 'within_normal', fused_z: 0.4,
-       last_check_ts: today.toISOString(), sparkline: [], watch_window: null},
-      {patient_id: 'p3', display_name: 'synthetic-3', latest_verdict: null, fused_z: null,
-       last_check_ts: null, sparkline: [], watch_window: null}]})}});
+const DUE = {day_start: '2026-10-17T04:00:00Z', residents: [
+  {patient_id: 'p1', display_name: 'synthetic-1', status: 'due', consent_state: 'granted',
+   last_check_ts: '2026-10-16T10:00:00Z', skipped_today: false, observation_helped: null},
+  {patient_id: 'p2', display_name: 'synthetic-2', status: 'done', consent_state: 'granted',
+   last_check_ts: '2026-10-17T09:00:00Z', skipped_today: false, observation_helped: null},
+  {patient_id: 'p3', display_name: 'synthetic-3', status: 'due', consent_state: 'granted',
+   last_check_ts: null, skipped_today: false, observation_helped: null},
+  {patient_id: 'p4', display_name: 'Pat Doe', status: 'consent_needed', consent_state: 'withdrawn',
+   last_check_ts: null, skipped_today: false, observation_helped: null}]};
+
+test('PSW landing reads the score-free due list, never the watch list', async () => {
+  const page = loadPage('/check?mode=resident', {routes: {'GET /v1/checks/due': () => DUE}});
   await until(() => q(page, '.bl-due-list'));
+  assert.equal(page.calls.filter((c) => c.key === 'GET /v1/watchlist').length, 0);
+  const due = page.calls.find((c) => c.key === 'GET /v1/checks/due');
+  assert.equal(due.opts.headers.Authorization, 'Bearer psw-t');
   const lists = page.main.querySelectorAll('ul');
   const names = (ul) => ul.querySelectorAll('a').map((a) => a.textContent);
   assert.deepEqual(names(lists[0]), ['Sam Rivera', 'Alex Morgan'], 'never-checked first, then oldest');
-  assert.deepEqual(names(lists[1]), ['Jamie Chen']);
   assert.equal(lists[0].querySelector('a').href, '/check?mode=resident&patient=p3');
-  assert.equal(page.main.querySelector('.bl-helped'), null, 'no unsupported "observation helped" claim');
-  assert.match(exposedText(page.main), /consent/i);
+  assert.equal(lists[1].querySelectorAll('a').length, 0, 'no check link without consent');
+  assert.match(lists[1].textContent, /Pat Doe.*Consent not recorded/);
+  assert.equal(page.main.querySelector('.bl-helped'), null, 'observation_helped null is never shown');
   const shown = exposedText(page.main).replace(/\b(One resident|\d+ residents) still to check today\./, '');
   for (const pattern of LEAKS) assert.doesNotMatch(shown, pattern);
 });
 
-test('"Your observation helped" appears only when the server says so', () => {
+test('"Your observation helped" appears only when the server says exactly true', () => {
   const page = loadPage('/check?mode=live&mock=1');
   const items = page.ctx.dueNowItems([
-    {patient_id: 'a', display_name: 'A', last_check_ts: null, observation_helped: true},
-    {patient_id: 'b', display_name: 'B', last_check_ts: null, observation_helped: 'yes'},
-    {patient_id: 'c', display_name: 'C', last_check_ts: null}], []);
+    {patient_id: 'a', display_name: 'A', status: 'due', observation_helped: true},
+    {patient_id: 'b', display_name: 'B', status: 'due', observation_helped: 'yes'},
+    {patient_id: 'c', display_name: 'C', status: 'due', observation_helped: null}], []);
   assert.deepEqual(items.map((i) => i.observation_helped), [true, false, false]);
+  assert.equal(page.ctx.dueNowItems([{patient_id: 'x', status: 'weird'}], [])[0].status,
+               'consent_needed', 'an unexpected status is treated as blocked, not due');
 });
 
 test('PSW landing load failure shows a plain message', async () => {
-  const page = loadPage('/check?mode=resident', {routes: {'GET /v1/watchlist': () => {
+  const page = loadPage('/check?mode=resident', {routes: {'GET /v1/checks/due': () => {
     throw Object.assign(new Error('boom'), {status: 500}); }}});
   await until(() => q(page, '.bl-due-status')
     && /could not be loaded/.test(q(page, '.bl-due-status').textContent));
-  assert.doesNotMatch(exposedText(page.main), /500|boom|watchlist/);
+  assert.doesNotMatch(exposedText(page.main), /500|boom|checks\/due/);
 });
 
 test('mock landing keeps the synthetic fixture path and carries mock params to each check', async () => {
   const page = loadPage('/check?mode=resident&mock=1&fixture=unusable,normal');
   await until(() => q(page, '.bl-due-list'));
-  assert.equal(page.calls.filter((c) => c.key === 'GET /v1/watchlist').length, 0);
+  assert.equal(page.calls.filter((c) => c.key.startsWith('GET /v1/')).length, 0);
   const href = q(page, '.bl-due-item').href;
   assert.equal(new URLSearchParams(href.split('?')[1]).get('fixture'), 'unusable,normal');
 });
 
-test('live mode still shows the decomposition and reads params.baseline_checks', async () => {
+test('device id: ?device= wins, runner defaults to runner-phone, blocked storage falls back', () => {
+  const page = loadPage('/check?mode=live&mock=1');
+  const id = page.ctx.checkDeviceId;
+  assert.equal(id({mode: 'live', device: 'tablet-7'}), 'tablet-7');
+  assert.equal(id({mode: 'live', device: 'bad id;<x>'}), 'badidx');
+  assert.equal(id({mode: 'runner'}), 'runner-phone');
+  assert.equal(id({mode: 'runner', device: 'runner-phone-2'}), 'runner-phone-2');
+  const first = id({mode: 'live'});
+  assert.match(first, /^live-device-/);
+  assert.equal(id({mode: 'live'}), first, 'stable within a mode');
+  assert.notEqual(id({mode: 'resident'}), first, 'separate ids per mode');
+  const blocked = loadPage('/check?mode=live&mock=1', {storage: 'blocked'});
+  assert.equal(blocked.ctx.checkDeviceId({mode: 'live'}), 'check-page');
+});
+
+test('live mode uses the runner/live device id, not a hard-coded one', async () => {
+  const page = loadPage('/check?mode=runner&patient=p1', {routes: {'POST /v1/patients/p1/checks': () => ESCALATE}});
+  await until(() => q(page, '.bl-record'));
+  q(page, '.bl-record').click();
+  await new Promise((r) => setTimeout(r, 20));
+  q(page, '.bl-record').click();
+  await until(() => posts(page, '/v1/patients/p1/checks').length === 1);
+  const sent = posts(page, '/v1/patients/p1/checks')[0];
+  assert.equal(sent.opts.body.get('device_id'), 'runner-phone');
+  assert.equal(sent.opts.headers.Authorization, 'Bearer t', 'non-resident modes keep the nurse token');
+});
+
+async function liveResult(fixtureResult) {
+  const page = loadPage('/check?mode=live&patient=p1',
+                        {routes: {'POST /v1/patients/p1/checks': () => fixtureResult}});
+  await until(() => q(page, '.bl-record'));
+  q(page, '.bl-record').click();
+  await new Promise((r) => setTimeout(r, 20));
+  q(page, '.bl-record').click();
+  await until(() => q(page, '.bl-features'));
+  return page;
+}
+
+test('live verdict: a missing assessment is shown as unknown, never within normal', async () => {
+  const page = await liveResult({...ESCALATE, assessment: null});
+  const chip = q(page, '.bl-chip');
+  assert.equal(chip.textContent, 'Verdict unavailable');
+  assert.equal(chip.dataset.verdict, 'unknown');
+  assert.doesNotMatch(q(page, '.bl-verdict').textContent, /within normal/i);
+});
+
+test('live verdict: over-budget escalation shows as watch, with the suggested action label', async () => {
+  const page = await liveResult({...ESCALATE, assessment: {...ESCALATE.assessment, over_budget: true}});
+  const chip = q(page, '.bl-chip');
+  assert.equal(chip.textContent, 'Escalate (over budget)');
+  assert.equal(chip.dataset.verdict, 'watch');
+  assert.match(q(page, '.bl-verdict').textContent, /Suggested: Run 4AT now/);
+  const plain = await liveResult(ESCALATE);
+  assert.equal(q(plain, '.bl-chip').dataset.verdict, 'escalate');
+  const none = await liveResult({...ESCALATE, assessment: {...ESCALATE.assessment,
+    verdict: 'within_normal', suggested_action: 'none', suggested_action_label: 'No action'}});
+  assert.doesNotMatch(q(none, '.bl-verdict').textContent, /Suggested/);
+});
+
+test('live mode reads params.baseline_checks for enrolment progress', async () => {
   const page = loadPage('/check?mode=live&patient=p1&mock=1&fixture=enrolling');
   await until(() => q(page, '.bl-record'));
   q(page, '.bl-record').click();

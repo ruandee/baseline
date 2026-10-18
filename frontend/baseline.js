@@ -18,7 +18,15 @@ async function api(path, options = {}) {
 }
 
 async function bootstrap() {
-  state.session = await api('/demo/session', {headers: {'X-PM-Demo': '1'}});
+  const psw = location.pathname === '/check' && typeof checkParams === 'function'
+    && checkParams().mode === 'resident';
+  state.session = await api('/demo/session', {headers: {'X-PM-Demo': '1',
+                                                      ...(psw ? {'X-PM-Role': 'psw'} : {})}});
+  // BL-31: /check resident mode acts as the PSW, whose token never receives scores.
+  if (state.session.psw_token && location.pathname === '/check'
+      && typeof checkParams === 'function' && checkParams().mode === 'resident') {
+    state.session.token = state.session.psw_token;
+  }
 }
 
 function route() {

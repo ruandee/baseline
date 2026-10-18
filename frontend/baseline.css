@@ -78,4 +78,10 @@ body.baseline{padding-top:56px}
 .bl-due-item{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;min-height:64px;padding:14px 18px;font-size:24px;font-weight:700;text-decoration:none;color:var(--ink);background:var(--white);border:2px solid var(--line);border-radius:12px}
 .bl-due-item:hover{background:var(--pale)}
 .bl-helped{font-size:15px;font-weight:600;color:var(--v-explained);background:var(--v-explained-bg);border-radius:999px;padding:3px 10px}
+.bl-chip[data-verdict=unknown]{color:var(--v-normal);background:transparent;border:1px dashed var(--v-normal)}
+.bl-action{font-weight:700}
+.bl-due-list .bl-due-blocked{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;min-height:64px;padding:14px 18px;font-size:22px;font-weight:700;border:2px dashed var(--line);border-radius:12px;color:var(--muted)}
+.bl-due-note{font-size:16px;font-weight:600}
+.bl-skip-reasons{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:16px}
+.bl-skip-reasons button{font-size:18px;min-height:56px;padding:8px 18px;border-radius:999px;border:2px solid var(--line);background:var(--white);color:var(--ink);cursor:pointer}
 @media (max-width:640px){.bl-resident-actions{flex-direction:column;align-items:stretch}.bl-check-card[data-mode=resident] .bl-record,.bl-skip,.bl-back{width:100%;min-width:0}}

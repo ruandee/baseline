@@ -3,6 +3,7 @@
 Run with python -m scripts.frontend. Hosted mode (decision 005) is opt-in through
 PM_FRONTEND_HOSTS (comma-separated public hostnames behind a TLS proxy) and
 PM_DEMO_TOKEN (a pre-minted synthetic nurse token served instead of a fresh one).
+PM_DEMO_PSW_TOKEN optionally pre-mints the PSW token used by /check resident mode.
 """
 import json
 import os
@@ -19,6 +20,7 @@ from evals.run import CORPUS, fixture_identity, load_profile
 from patient_memory.api import create_app
 from patient_memory.auth import Identity, decode_token, synthetic_token
 from patient_memory.config import Settings
+from patient_memory.consent import grant_fixture_consent
 from patient_memory.objects import ObjectStore
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,11 +43,24 @@ def prepare_demo(cfg):
         conn.execute("INSERT INTO principals(id,tenant_id,name) VALUES(%s,%s,%s) "
                      "ON CONFLICT DO NOTHING", (reader.principal_id, reader.tenant_id,
                                                 "synthetic-workspace-nurse"))
+        psw = psw_identity(reader.tenant_id)
+        conn.execute("INSERT INTO principals(id,tenant_id,name) VALUES(%s,%s,%s) "
+                     "ON CONFLICT DO NOTHING", (psw.principal_id, psw.tenant_id,
+                                                "synthetic-workspace-psw"))
         for patient in patients:
             conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,'nurse',true) "
                          "ON CONFLICT DO NOTHING",
                          (reader.tenant_id, patient["id"], reader.principal_id))
+            # The PSW records checks and skips on /check but never reads scores (decision 017).
+            conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,'psw',true) "
+                         "ON CONFLICT DO NOTHING",
+                         (reader.tenant_id, patient["id"], psw.principal_id))
+            grant_fixture_consent(conn, reader.tenant_id, patient["id"], importer.principal_id)
     return reader, patients
+
+
+def psw_identity(tenant_id):
+    return Identity(uuid5(tenant_id, "workspace-psw"), tenant_id)
 
 
 LOOPBACK = {"localhost", "127.0.0.1", "::1"}
@@ -58,12 +73,15 @@ PAGE_CSP = (
 )
 
 
-def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None):
+def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None, psw=None,
+                  psw_token=None):
+    """`psw`/`psw_token` give /check resident mode a PSW token that never receives scores."""
     app = create_app(cfg)
     if extra_hosts and not demo_token:
         raise ValueError("Hosted mode (PM_FRONTEND_HOSTS) requires PM_DEMO_TOKEN")
-    if demo_token:
-        decode_token(demo_token, cfg)  # fail at startup, not as 401s on every page
+    for token in (demo_token, psw_token):
+        if token:
+            decode_token(token, cfg)  # fail at startup, not as 401s on every page
     allowed = LOOPBACK | {h.lower() for h in extra_hosts}
 
     @app.middleware("http")
@@ -90,8 +108,13 @@ def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None):
     def session(request: Request):
         if request.headers.get("x-pm-demo") != "1":
             return JSONResponse({"error": {"message": "Workspace header required"}}, status_code=403)
-        return {"token": demo_token or synthetic_token(reader, cfg), "patients": patients,
-                "provider": cfg.provider, "as_of": "2026-01-03T00:00:00Z"}
+        # Hosted mode serves only pre-minted tokens; locally a PSW token is minted on demand.
+        minted = psw_token or (synthetic_token(psw, cfg) if psw and not extra_hosts else None)
+        is_psw = request.headers.get("x-pm-role") == "psw"
+        if is_psw and not minted:
+            return JSONResponse({"error": {"message": "PSW demo token unavailable"}}, status_code=503)
+        return {"token": minted if is_psw else demo_token or synthetic_token(reader, cfg),
+                "patients": patients, "provider": cfg.provider, "as_of": "2026-01-03T00:00:00Z"}
 
     @app.get("/", include_in_schema=False)
     def index():
@@ -113,7 +136,9 @@ def main():
     reader, patients = prepare_demo(cfg)
     hosts = tuple(h.strip() for h in os.environ.get("PM_FRONTEND_HOSTS", "").split(",")
                   if h.strip())
-    app = workspace_app(cfg, reader, patients, hosts, os.environ.get("PM_DEMO_TOKEN") or None)
+    app = workspace_app(cfg, reader, patients, hosts, os.environ.get("PM_DEMO_TOKEN") or None,
+                        psw=psw_identity(reader.tenant_id),
+                        psw_token=os.environ.get("PM_DEMO_PSW_TOKEN") or None)
     uvicorn.run(app, host="127.0.0.1", port=8001, access_log=False,
                 proxy_headers=bool(hosts), forwarded_allow_ips="127.0.0.1")
 
