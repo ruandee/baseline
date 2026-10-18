@@ -351,7 +351,7 @@ def test_form_cannot_relax_an_ordinary_or_someone_elses_recording(
     ordinary = TestClient(create_app(cfg, objects, transcriber=on_script))
     ordinary.headers["Authorization"] = "Bearer " + synthetic_token(actors["nurse"], cfg)
     response = ordinary.post(f"/v1/patients/{patient}/checks",
-                             data={"loud_venue": "true"},
+                             data={"mode": "resident", "device_id": "ordinary-phone", "loud_venue": "true"},
                              files={"audio": ("clip", b"synthetic stub", "audio/wav")})
     assert response.status_code == 200, response.text
     assert seen == [{}] and response.json()["quality"]["reasons"] == ["too_noisy"]
