@@ -10,6 +10,8 @@ tenant/patient RLS. Assigned check writers can read its score-free projection. A
 roles can replace the explicit nullable `first_name` and `preferred_locale` through
 `GET/PUT /v1/patients/{id}/check-profile`; writes take the patient lock and mint a new version
 UUID even if the language remains unchanged. The full explicitly supplied given name is kept.
+The projection includes only score-free role capabilities (`can_configure`,
+`can_record_consent`); neither grants authority beyond the existing server gates.
 Null means unconfigured; other syntactically valid locale preferences remain unsupported.
 The protocol registry recognizes exactly `en`, deriving `protocol_locale=en` and
 `prompt_version=count20-days-v1`. Regional tags are not silently normalized into support.
@@ -43,6 +45,15 @@ survive reloads. New API-created residents receive no inferred profile or consen
 volunteers need an explicit care-team configuration. KAZE session admission and the held Vox
 free-conversation protocol are unchanged. No translated protocol, language-change explainer,
 automatic language detection or baseline mixing is introduced.
+
+Non-mock nurse live/runner capture pages include a named-person setup panel. Profile and voice
+consent are separate explicit saves; saving either never implies the other. Consent uses the
+existing nurse-only view/append endpoints, an explicit decision/maker, confirmation and an SDM
+reference when applicable. Unknown/declined/withdrawn/expired consent blocks Record. The panel
+refreshes profile and standing permission before microphone access and sends the captured
+profile version with the upload. A local setup change cancels an active recording or disposes
+of a pending microphone stream. The PSW view never mounts these forms or retrieves consent
+details. The screen can display staff-facing failures without exposing them to residents.
 
 Verification covers score-free RLS and role denial, unsupported/missing predecode rejection,
 version races, append-only provenance, preserved seed choices, explicit multiword first names,

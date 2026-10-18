@@ -20,10 +20,12 @@ def project(row):
 
 
 def read_profile(conn, patient_id):
-    check_gate(conn, patient_id)
+    care = check_gate(conn, patient_id)
     row = conn.execute("SELECT * FROM resident_check_profiles WHERE patient_id=%s",
                        (patient_id,)).fetchone()
-    return project(row)
+    return {**project(row), "can_configure": care,
+            "can_record_consent": bool(conn.execute("SELECT pm_role(%s,'nurse') AS ok",
+                                                     (patient_id,)).fetchone()["ok"])}
 
 
 def write_profile(conn, identity, patient_id, body, request_id):

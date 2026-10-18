@@ -225,5 +225,9 @@ Known fixture loaders explicitly seed English with no inferred given name, prese
 choices. Volunteer capture people remain unconfigured until the care team deliberately sends,
 for example, `{"preferred_locale":"en","first_name":"Mary Ann"}` to that endpoint; this
 does not grant consent. KAZE session and Vox free-conversation contracts remain unchanged.
+Nurse live/runner capture pages provide explicit profile and standing voice-permission forms,
+so setup needs no terminal. Permission requires the actual decision, decision maker, confirmation
+and SDM reference when applicable. Missing/withdrawn permission keeps Record disabled; the PSW
+view receives no setup form or SDM details.
 Phone screenshots use synthetic loopback responses with no microphone access; real-device,
 golden-recording and clinical acceptance gates remain open.

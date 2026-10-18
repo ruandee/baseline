@@ -31,7 +31,7 @@ def feedback(sandbox):
     row = next(r for r in response.json()["residents"] if r["patient_id"] == str(sandbox[1]))
     assert not SCORE_FIELDS.intersection(row)
     assert set(row) == {"patient_id", "display_name", "status", "consent_state", "last_check_ts",
-                        "skipped_today", "observation_helped"}
+                        "skipped_today", "observation_helped", "check_profile"}
     return row["observation_helped"]
 
 

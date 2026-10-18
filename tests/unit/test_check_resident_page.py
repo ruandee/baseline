@@ -18,7 +18,8 @@ FRONTEND = ROOT / "frontend"
 @pytest.mark.skipif(shutil.which("node") is None, reason="Node.js is not installed")
 def test_resident_experience_js_suite():
     result = subprocess.run(
-        ["node", "--test", str(ROOT / "tests" / "js" / "check_resident.test.js")],
+        ["node", "--test", str(ROOT / "tests" / "js" / "check_resident.test.js"),
+         str(ROOT / "tests" / "js" / "check_setup.test.js")],
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120, cwd=ROOT)
     assert result.returncode == 0, result.stdout[-4000:] + result.stderr[-2000:]
     assert re.search(r"\bpass [1-9]\d*\b", result.stdout)  # "pass N" in spec or TAP output

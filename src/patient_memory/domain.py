@@ -412,6 +412,8 @@ class CheckProfile(Contract):
     state: Literal["ready", "unconfigured", "unsupported"]
     protocol_locale: Literal["en"] | None
     prompt_version: Literal["count20-days-v1"] | None
+    can_configure: bool = False
+    can_record_consent: bool = False
 
 
 class DueResident(Contract):

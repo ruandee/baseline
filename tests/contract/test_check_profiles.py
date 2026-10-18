@@ -26,7 +26,9 @@ def test_profile_and_due_are_score_free_and_authorized(sandbox):
         profile = client_for(sandbox, role).get(path(sandbox))
         assert profile.status_code == 200
         assert set(profile.json()) == {"first_name", "preferred_locale", "version", "state",
-                                       "protocol_locale", "prompt_version"}
+                                       "protocol_locale", "prompt_version", "can_configure", "can_record_consent"}
+        assert profile.json()["can_record_consent"] is (role == "nurse")
+        assert profile.json()["can_configure"] is (role != "psw")
     for role in ("patient", "admin"):
         assert client_for(sandbox, role).get(path(sandbox)).status_code == 404
     assert client_for(sandbox, "psw").put(path(sandbox), json={"preferred_locale": "fr"}).status_code == 404
@@ -66,7 +68,7 @@ def test_client_cannot_override_resident_protocol_or_replay_an_old_profile(sandb
     assert upload(sandbox, profile_version=str(uuid4())).status_code == 409
 
 
-def test_profile_cannot_be_read_across_tenants_even_with_same_patient_uuid(sandbox):
+def test_profile_cannot_be_read_across_tenants(sandbox):
     tenant, actor = uuid4(), uuid4()
     with psycopg.connect(sandbox[0].admin_database_url) as conn:
         conn.execute("INSERT INTO tenants(id,name) VALUES(%s,'synthetic-other')", (tenant,))

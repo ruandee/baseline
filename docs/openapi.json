@@ -2434,6 +2434,16 @@
               }
             ],
             "title": "Prompt Version"
+          },
+          "can_configure": {
+            "type": "boolean",
+            "title": "Can Configure",
+            "default": false
+          },
+          "can_record_consent": {
+            "type": "boolean",
+            "title": "Can Record Consent",
+            "default": false
           }
         },
         "additionalProperties": false,
