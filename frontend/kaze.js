@@ -115,7 +115,8 @@ async function renderKazeSession(host, base, sid, judge) {
     const due = KazeCore.countdown(session.next_due_at, new Date());
     countdown.textContent = session.status === 'arming' ? 'Record three usable baseline clips to start.' : due ? due.label : '';
     const signal = `${session.episode}/${session.ladder_level}/${session.next_due_at}`;
-    if (document.visibilityState !== 'hidden' && due && due.overdue && signal !== lastSignal) {
+    if (document.visibilityState !== 'hidden' && session.status !== 'acknowledged'
+        && due && due.overdue && signal !== lastSignal) {
       lastSignal = signal;
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
       try {

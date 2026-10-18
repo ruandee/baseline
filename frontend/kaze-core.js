@@ -20,7 +20,7 @@ const KazeCore = (() => {
   const DELIVERY_TEXT = {
     pending: 'Sending',
     logged: 'Logged by the demo sender; no SMS was sent',
-    sent: 'Sent',
+    sent: 'Accepted by SMS provider; delivery unconfirmed',
     failed: 'Could not be sent'};
   const CONTEXT_TEXT = {exertion: 'exertion', loud_venue: 'loud venue'};
 
@@ -143,7 +143,7 @@ const KazeCore = (() => {
     if (s.status === 'escalating') {
       const texts = episodeTexts(s, s.episode);
       const names = [...new Set(texts.map((e) => contactName(s, e.contact_index)))];
-      return {screen: 'status', tone: 'alert', headline: texts.some((e) => e.delivery === 'sent') ? 'Contact text sent' : 'Contact escalation recorded',
+      return {screen: 'status', tone: 'alert', headline: texts.some((e) => e.delivery === 'sent') ? 'SMS provider accepted text' : 'Contact escalation recorded',
               detail: (names.length ? `Contacts: ${names.join(', ')}. ` : '') +
                       'Check in now. A logged demo event is not a delivered SMS.'};
     }
