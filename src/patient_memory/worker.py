@@ -82,9 +82,6 @@ def main():
     identity = Identity(args.actor, args.tenant)
     logger = logging.getLogger("patient_memory.worker")
     sender = sender_from_settings(cfg)
-    if cfg.kaze_ladder_timing != "standard":
-        logger.warning("KAZE ladder uses %s timings (decision 022); stage demo only",
-                       cfg.kaze_ladder_timing)
     retired_at = scheduled_at = None
     while True:
         if retired_at is None or time.monotonic() - retired_at >= RETIRE_EVERY_S:

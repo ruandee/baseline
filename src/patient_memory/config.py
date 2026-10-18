@@ -1,4 +1,3 @@
-from typing import Literal
 from urllib.parse import urlparse
 
 from pydantic import Field, model_validator
@@ -38,10 +37,6 @@ class Settings(BaseSettings):
     shift_timezone: str = "America/Toronto"
     # Comma-separated patient UUIDs that never escalate (the demo runner).
     no_escalate_patients: str = ""
-    # KAZE ladder offsets (decision 022). "standard" is docs/06-baseline.md (2.5/5/10/10 min);
-    # "demo" compresses them for a stage run with interval_min=1. Never set "demo" off-stage.
-    kaze_ladder_timing: Literal["standard", "demo"] = "standard"
-
     @model_validator(mode="after")
     def safe_mode(self):
         if self.environment != "synthetic":

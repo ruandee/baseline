@@ -214,11 +214,11 @@ def check_gate(conn, patient_id: UUID, session_id: UUID, mode: str, is_baseline:
 
 
 def after_check(conn, row, ts: datetime, usable: bool, is_baseline: bool,
-                change_status: str | None = None, verdict: str | None = None) -> SessionSummary:
+                change_status: str | None = None) -> SessionSummary:
     """Record a stored session check: activate on the last baseline clip, note usable check-ins
-    and apply BL-26's check-in reset (decision 022)."""
+    and apply BL-26's check-in reset (decision 018)."""
     pid, sid = row["patient_id"], row["id"]
-    reset = safety.checkin_update(row["status"], usable, is_baseline, change_status, verdict, ts,
+    reset = safety.checkin_update(row["status"], usable, is_baseline, change_status, row["context_tags"], ts,
                                   row["interval_min"])
     if reset:
         conn.execute("UPDATE safety_sessions SET status=%s,ladder_level=%s,ladder_trigger=%s,"

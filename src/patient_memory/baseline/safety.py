@@ -1,7 +1,6 @@
 """KAZE scheduler: missed check-ins, speech-change trigger and the escalation ladder (BL-26).
 
-Decision 018 fixes the session states and who moves them; decision 022 fixes the timings, the
-check-in reset rule and the sender interface. Everything time-dependent takes an explicit `now`
+Decision 018 fixes the session states, timings and check-in reset rule. Everything time-dependent takes an explicit `now`
 so tests drive a deterministic clock; in the worker `now` is the database clock, the same clock
 that stamps check-ins and `next_due_at`.
 
@@ -36,14 +35,8 @@ class Timing:
 # docs/06-baseline.md, unchanged. This is the only timing outside an explicit demo setting.
 STANDARD = Timing(nudge=timedelta(minutes=2, seconds=30), sms=timedelta(minutes=5),
                   step=timedelta(minutes=10))
-# Stage demo only (PM_KAZE_LADDER_TIMING=demo, decision 022): with interval_min=1 a miss reaches
-# the first text 1.5 min after arming completes instead of 6 min. Never the default.
-DEMO = Timing(nudge=timedelta(seconds=15), sms=timedelta(seconds=30), step=timedelta(seconds=60))
-TIMINGS = {"standard": STANDARD, "demo": DEMO}
-
-
 def timing_for(cfg) -> Timing:
-    return TIMINGS[cfg.kaze_ladder_timing]
+    return STANDARD
 
 
 # ---------------------------------------------------------------------------------------------
@@ -71,9 +64,9 @@ class Step:
     contacts: tuple[int, ...]     # empty for the level-1 nudge
 
 
-def speech_trigger(change_status: str | None, verdict: str | None) -> bool:
+def speech_trigger(change_status: str | None, explainers: list[str] | tuple[str, ...]) -> bool:
     """A sharp change from tonight's baseline that no session explainer covers."""
-    return change_status in SPEECH_STATUSES and verdict != "explained"
+    return change_status in SPEECH_STATUSES and not explainers
 
 
 def level_contacts(level: int, contacts: tuple[int, ...]) -> tuple[int, ...]:
@@ -127,8 +120,8 @@ def plan(s: SessionState, now: datetime, timing: Timing, speech: bool,
 
 
 def checkin_update(status: str, usable: bool, is_baseline: bool, change_status: str | None,
-                   verdict: str | None, ts: datetime, interval_min: int) -> dict | None:
-    """Session fields a stored check-in changes (decision 018 transitions, decision 022 rule).
+                   explainers: list[str] | tuple[str, ...], ts: datetime, interval_min: int) -> dict | None:
+    """Session fields a stored check-in changes (decision 018 transitions, decision 018 rule).
 
     A usable check-in that is not an unexplained change resets the ladder and restarts the timer
     from the check's server time, in `active`, `escalating` or `acknowledged`. An unusable clip
@@ -136,7 +129,7 @@ def checkin_update(status: str, usable: bool, is_baseline: bool, change_status: 
     speech-change trigger, which the next pass turns into level 2."""
     if not usable or is_baseline or status not in ("active", "escalating", "acknowledged"):
         return None
-    if speech_trigger(change_status, verdict):
+    if speech_trigger(change_status, explainers):
         return None
     return {"status": "active", "ladder_level": 0, "ladder_trigger": None,
             "next_due_at": ts + timedelta(minutes=interval_min)}
@@ -182,8 +175,11 @@ class Delivery:
 
 
 class Sender(Protocol):
-    """Called inside the scheduler's transaction, under the patient and session locks. Must not
-    touch the database; the scheduler persists the returned Delivery."""
+    """Offline preparation only, under the patient/session locks. No network or database calls.
+
+    BL-27 must replace this adapter with prepare/commit/deliver before enabling real delivery.
+    The scheduler inserts returned immutable message/hash fields once, never updates them.
+    """
 
     def send(self, event: OutboundEvent) -> Delivery: ...
 
@@ -225,17 +221,17 @@ def checked_delivery(result, event: OutboundEvent) -> Delivery:
 # Database pass
 # ---------------------------------------------------------------------------------------------
 
-def _speech(conn, pid: UUID, sid: UUID) -> tuple[bool, datetime | None]:
+def _speech(conn, pid: UUID, sid: UUID, explainers: list[str]) -> tuple[bool, datetime | None]:
     """Is the latest usable session check-in an unexplained change? Stateless: a later normal
     check-in becomes the latest one and clears it, so repeated passes agree."""
     row = conn.execute(
-        "SELECT v.ts,a.change_status,a.verdict FROM voice_checks v LEFT JOIN assessments a "
+        "SELECT v.ts,a.change_status FROM voice_checks v LEFT JOIN assessments a "
         "ON a.tenant_id=v.tenant_id AND a.patient_id=v.patient_id AND a.check_id=v.id "
         "WHERE v.patient_id=%s AND v.session_id=%s AND v.usable AND NOT v.is_baseline "
         "ORDER BY v.ts DESC LIMIT 1", (pid, sid)).fetchone()
     if row is None:
         return False, None
-    return speech_trigger(row["change_status"], row["verdict"]), row["ts"]
+    return speech_trigger(row["change_status"], explainers), row["ts"]
 
 
 def _last_location(conn, pid: UUID, sid: UUID) -> Location | None:
@@ -245,7 +241,7 @@ def _last_location(conn, pid: UUID, sid: UUID) -> Location | None:
     return Location(row["lat"], row["lon"], row["accuracy_m"]) if row else None
 
 
-def advance(conn, pid: UUID, sid: UUID, now: datetime, timing: Timing,
+def advance(conn, pid: UUID, sid: UUID, now: datetime | None, timing: Timing,
             sender: Sender) -> Step | None:
     """One session, one transaction: lock, plan, record, send. Lock order matches check
     admission's patient lock and `pm_acknowledge_escalation`'s session row lock."""
@@ -254,13 +250,22 @@ def advance(conn, pid: UUID, sid: UUID, now: datetime, timing: Timing,
                        (pid, sid)).fetchone()
     if row is None:
         return None
+    # Evaluate expiry after waiting for both locks, never with the pass's stale clock.
+    if now is None:
+        now = conn.execute("SELECT clock_timestamp() AS t").fetchone()["t"]
+    if row["status"] != "ended" and now >= row["ends_at"]:
+        conn.execute(
+            "UPDATE safety_sessions SET status='ended',ended_at=ends_at,end_reason='expired',"
+            "delete_after=ends_at+interval '24 hours',next_due_at=NULL WHERE patient_id=%s AND id=%s",
+            (pid, sid))
+        return None
     contacts = {c["contact_index"]: c for c in conn.execute(
         "SELECT contact_index,name,phone_e164 FROM safety_contacts WHERE patient_id=%s "
         "AND session_id=%s ORDER BY contact_index", (pid, sid)).fetchall()}
     state = SessionState(row["status"], row["ends_at"], row["next_due_at"], row["ladder_level"],
                          row["episode"], row["ladder_trigger"], row["escalation_enabled"],
                          tuple(contacts))
-    speech, speech_at = _speech(conn, pid, sid)
+    speech, speech_at = _speech(conn, pid, sid, row["context_tags"])
     last_step_at = conn.execute(
         "SELECT max(sent_at) AS t FROM escalation_events WHERE patient_id=%s AND session_id=%s "
         "AND episode=%s AND level=%s", (pid, sid, state.episode, state.ladder_level)
@@ -285,16 +290,10 @@ def advance(conn, pid: UUID, sid: UUID, now: datetime, timing: Timing,
     location = _last_location(conn, pid, sid)
     missed_at = speech_at if step.trigger == "speech_change" and speech_at else row["next_due_at"]
     for index in step.contacts:
-        inserted = conn.execute(
-            "INSERT INTO escalation_events(tenant_id,patient_id,session_id,episode,level,trigger,"
-            "id,channel,contact_index,sent_at,delivery) VALUES(%s,%s,%s,%s,%s,%s,%s,'sms',%s,%s,"
-            "'pending') ON CONFLICT DO NOTHING RETURNING id",
-            (*base, uuid4(), index, now)).fetchone()
-        if inserted is None:  # this step was already recorded; never send it twice
-            continue
+        event_id = uuid4()
         contact = contacts[index]
         event = OutboundEvent(
-            event_id=inserted["id"], tenant_id=row["tenant_id"], patient_id=pid, session_id=sid,
+            event_id=event_id, tenant_id=row["tenant_id"], patient_id=pid, session_id=sid,
             episode=step.episode, level=step.level, trigger=step.trigger, contact_index=index,
             contact_name=contact["name"], phone_e164=contact["phone_e164"],
             display_name=row["display_name"], missed_at=missed_at, last_location=location,
@@ -305,10 +304,11 @@ def advance(conn, pid: UUID, sid: UUID, now: datetime, timing: Timing,
             log.exception("kaze sender failed for session %s level %s", sid, step.level)
             delivery = Delivery("failed")
         conn.execute(
-            "UPDATE escalation_events SET delivery=%s,message=%s,ack_token_hash=%s,"
-            "ack_expires_at=%s WHERE patient_id=%s AND id=%s",
-            (delivery.status, delivery.message, delivery.ack_token_hash, delivery.ack_expires_at,
-             pid, inserted["id"]))
+            "INSERT INTO escalation_events(tenant_id,patient_id,session_id,episode,level,trigger,"
+            "id,channel,contact_index,sent_at,delivery,message,ack_token_hash,ack_expires_at) "
+            "VALUES(%s,%s,%s,%s,%s,%s,%s,'sms',%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+            (*base, event_id, index, now, delivery.status, delivery.message,
+             delivery.ack_token_hash, delivery.ack_expires_at))
     return step
 
 
@@ -319,11 +319,9 @@ def run_pass(cfg, identity, sender: Sender | None = None, now: datetime | None =
     sender = sender or sender_from_settings(cfg)
     timing = timing or timing_for(cfg)
     with transaction(cfg, identity) as conn:
-        if now is None:
-            now = conn.execute("SELECT clock_timestamp() AS t").fetchone()["t"]
         due = conn.execute(
             "SELECT patient_id,id FROM safety_sessions WHERE status IN ('active','escalating') "
-            "AND next_due_at IS NOT NULL AND ends_at>%s ORDER BY next_due_at", (now,)).fetchall()
+            "AND next_due_at IS NOT NULL ORDER BY next_due_at").fetchall()
     steps = []
     for r in due:
         try:

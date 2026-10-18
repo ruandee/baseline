@@ -137,3 +137,14 @@ checked before decode and again before storage; late end requests cannot postpon
 Raw session audio is removed even when debug audio retention is enabled. See decision 018.
 The previous review head 35c7926 passed CI; the final corrective head requires independent
 review and fresh CI. Scheduler/SMS/pages and the six held questions remain outside this change.
+
+
+### BL-26 scheduler branch (pending independent review)
+
+The stacked BL-26 branch adds the 15-second worker scheduler, standard 2.5/5/10/10-minute ladder,
+raw session-change trigger, normal usable check-in reset and row-locked expiry/acknowledgement
+serialization. KAZE uses only session explainers and never PCC budget/no-escalate suppression;
+session checks are excluded from PCC budget counting. Delivery is an offline log only. Real SMS,
+BL-27 sender integration and public acknowledgement acceptance remain outstanding. Dependency
+#27 / PR #66 remains open until independently reviewed and merged. No migration is added, no
+held ADR-018 product question is resolved, and no live provider/delivery call is part of validation.

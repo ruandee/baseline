@@ -1,4 +1,4 @@
-"""Pure KAZE ladder rules (decisions 018 and 022) on a deterministic clock."""
+"""Pure KAZE ladder rules (decision 018) on a deterministic clock."""
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -6,7 +6,6 @@ from uuid import uuid4
 import pytest
 
 from patient_memory.baseline.safety import (
-    DEMO,
     STANDARD,
     Delivery,
     LogSender,
@@ -50,16 +49,7 @@ def walk(state, minutes, timing=STANDARD, speech=False):
 
 def test_standard_timings_are_the_spec_and_default():
     assert (STANDARD.nudge, STANDARD.sms, STANDARD.step) == (2.5 * MIN, 5 * MIN, 10 * MIN)
-    assert Settings().kaze_ladder_timing == "standard"
     assert timing_for(Settings()) is STANDARD
-
-
-def test_demo_timing_is_explicit_and_rejects_unknown(monkeypatch):
-    monkeypatch.setenv("PM_KAZE_LADDER_TIMING", "demo")
-    assert timing_for(Settings()) is DEMO
-    monkeypatch.setenv("PM_KAZE_LADDER_TIMING", "fast")
-    with pytest.raises(ValueError):
-        Settings()
 
 
 def test_nothing_happens_before_the_nudge_offset():
@@ -99,11 +89,6 @@ def test_level_three_waits_ten_minutes_from_the_actual_level_two_time():
     assert plan(level2, at(15), STANDARD, False, at(6)) is None
     assert plan(level2, at(16), STANDARD, False, at(6)).level == 3
     assert plan(level2, at(16), STANDARD, False, None) is None  # no recorded step: wait
-
-
-def test_demo_timing_with_one_minute_interval_texts_within_two_minutes():
-    _, seen = walk(ACTIVE, [x / 4 for x in range(0, 4 * 5)], timing=DEMO)
-    assert seen == [(0.25, 1), (0.5, 2), (1.5, 3), (2.5, 4)]
 
 
 @pytest.mark.parametrize("contacts,level,expected", [
@@ -164,43 +149,44 @@ def test_new_episode_after_a_reset():
     assert plan(reset, at(5), STANDARD, False, None).episode == 3
 
 
-@pytest.mark.parametrize("change_status,verdict,expected", [
-    ("change", "watch", True), ("change", "escalate", True), ("provisional", "watch", True),
-    ("change", "explained", False), ("provisional", "explained", False),
-    ("none", "within_normal", False), (None, None, False),
+@pytest.mark.parametrize("change_status,explainers,expected", [
+    ("change", [], True), ("provisional", [], True),
+    ("change", ["exertion"], False), ("provisional", ["exertion"], False),
+    ("change", ["loud_venue"], False),
+    ("none", [], False), (None, [], False),
 ])
-def test_speech_trigger_needs_an_unexplained_change(change_status, verdict, expected):
-    assert speech_trigger(change_status, verdict) is expected
+def test_speech_trigger_needs_an_unexplained_change(change_status, explainers, expected):
+    assert speech_trigger(change_status, explainers) is expected
 
 
 @pytest.mark.parametrize("status", ["active", "escalating", "acknowledged"])
 def test_on_time_usable_normal_check_in_resets_the_timer(status):
     ts = DUE - 3 * MIN
-    assert checkin_update(status, True, False, "none", "within_normal", ts, 45) == {
+    assert checkin_update(status, True, False, "none", [], ts, 45) == {
         "status": "active", "ladder_level": 0, "ladder_trigger": None,
         "next_due_at": ts + 45 * MIN}
 
 
 def test_late_normal_check_in_also_resets_from_its_own_time():
     ts = at(12)
-    assert checkin_update("escalating", True, False, "none", "within_normal", ts, 1)[
+    assert checkin_update("escalating", True, False, "none", [], ts, 1)[
         "next_due_at"] == ts + MIN
 
 
 def test_explained_change_resets_like_a_normal_check_in():
-    assert checkin_update("active", True, False, "change", "explained", DUE, 45) is not None
+    assert checkin_update("active", True, False, "change", ["exertion"], DUE, 45) is not None
 
 
-@pytest.mark.parametrize("usable,is_baseline,change_status,verdict,status", [
-    (False, False, None, None, "active"),           # unusable clip is not a check-in
-    (True, False, "change", "watch", "active"),     # unexplained change: trigger, not reset
-    (True, False, "provisional", "watch", "escalating"),
-    (True, True, "enrolling", "enrolling", "arming"),  # baseline clips are activation, not resets
-    (True, False, "none", "within_normal", "ended"),
-    (True, False, "none", "within_normal", "arming"),
+@pytest.mark.parametrize("usable,is_baseline,change_status,explainers,status", [
+    (False, False, None, [], "active"),           # unusable clip is not a check-in
+    (True, False, "change", [], "active"),     # unexplained change: trigger, not reset
+    (True, False, "provisional", [], "escalating"),
+    (True, True, "enrolling", [], "arming"),  # baseline clips are activation, not resets
+    (True, False, "none", [], "ended"),
+    (True, False, "none", [], "arming"),
 ])
-def test_check_ins_that_do_not_reset(usable, is_baseline, change_status, verdict, status):
-    assert checkin_update(status, usable, is_baseline, change_status, verdict, DUE, 45) is None
+def test_check_ins_that_do_not_reset(usable, is_baseline, change_status, explainers, status):
+    assert checkin_update(status, usable, is_baseline, change_status, explainers, DUE, 45) is None
 
 
 def event(**fields):

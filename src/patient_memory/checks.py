@@ -60,8 +60,7 @@ def store_check(conn, identity, patient_id: UUID, request_id: UUID, analysis: An
             "count20-days-v1", is_baseline, features, name, session_id=session_id)
     summary = sessions.after_check(
         conn, session, ts, analysis.usable, is_baseline,
-        change_status=change and change["status"],
-        verdict=assessment and assessment["verdict"]) if session else None
+        change_status=change and change["status"]) if session else None
     return CheckResult(
         session=summary,
         change=change, assessment=assessment,
