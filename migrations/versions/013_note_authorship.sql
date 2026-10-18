@@ -107,6 +107,62 @@ BEGIN
   ON v.tenant_id=a.tenant_id AND v.patient_id=a.patient_id AND v.id=a.check_id;
  -- Feedback-only freshness, not a change to verdict policy or clinical source history.
  IF signal_at IS NULL OR signal_at<current_at-interval '24 hours' THEN RETURN NULL; END IF;
+ -- Credit must not outlive any contributing capture or citation, even without a revision bump.
+ IF a.sbar IS NULL OR EXISTS(
+  SELECT FROM jsonb_each(COALESCE(a.params->'modality_results','{}'::jsonb)) m
+  WHERE m.value->>'current'='true' AND m.value->>'status' IN ('provisional','change')
+  AND (m.key NOT IN ('speech','motion','vitals') OR m.value->>'ts' IS NULL
+   OR (m.value->>'ts')::timestamptz>current_at
+   OR (m.value->>'ts')::timestamptz<current_at-interval '24 hours')
+ ) THEN RETURN NULL; END IF;
+ IF EXISTS(
+  WITH modalities AS (
+   SELECT key AS name,value FROM jsonb_each(COALESCE(a.params->'modality_results','{}'::jsonb))
+   WHERE value->>'current'='true' AND value->>'status' IN ('provisional','change')
+  ), allowed_voice AS (
+   SELECT 'check:'||a.check_id::text AS id WHERE COALESCE(a.params->>'modality','speech')='speech'
+   UNION SELECT jsonb_array_elements_text(value->'evidence_ids') FROM modalities WHERE name='speech'
+   UNION SELECT jsonb_array_elements_text(value->'params'->'baseline_evidence_ids')
+    FROM modalities WHERE name='speech'
+  ), cited AS (
+   SELECT reason->>'evidence_id' AS id FROM jsonb_array_elements(a.reasons) reason
+   UNION SELECT jsonb_array_elements_text(sentence->'evidence_ids')
+    FROM jsonb_array_elements(a.sbar->'sentences') sentence
+   UNION SELECT jsonb_array_elements_text(value->'evidence_ids') FROM modalities
+   UNION SELECT jsonb_array_elements_text(value->'params'->'baseline_evidence_ids') FROM modalities
+  )
+  SELECT FROM cited c WHERE c.id IS NOT NULL AND (
+   (c.id LIKE 'check:%' AND (c.id NOT IN (SELECT id FROM allowed_voice) OR NOT EXISTS(
+    SELECT FROM public.voice_checks v
+    WHERE v.tenant_id=public.pm_tenant() AND v.patient_id=p_patient
+    AND v.id::text=substring(c.id FROM 7) AND v.usable AND v.session_id IS NULL
+    AND v.ts<=current_at)))
+   OR (c.id NOT LIKE 'check:%' AND NOT EXISTS(
+    SELECT FROM public.facts f JOIN public.sources s ON s.tenant_id=f.tenant_id
+    AND s.patient_id=f.patient_id AND s.id=f.source_id
+    WHERE f.tenant_id=public.pm_tenant() AND f.patient_id=p_patient AND f.id::text=c.id
+    AND s.published_at IS NOT NULL AND s.published_at<=a.created_at
+    AND s.retracted_at IS NULL AND s.purged_at IS NULL AND s.recorded_at<=current_at
+    AND COALESCE(f.valid_from,s.recorded_at)<=current_at
+    AND (f.valid_to IS NULL OR f.valid_to>current_at)
+    AND ((s.payload->>'kind'='nursing_note' AND f.polarity IN ('present','uncertain')
+     AND f.experiencer IN ('patient','unspecified'))
+     OR (f.polarity='present' AND f.experiencer='patient'))
+    AND NOT EXISTS(SELECT FROM public.sources newer WHERE newer.tenant_id=s.tenant_id
+     AND newer.patient_id=s.patient_id AND newer.supersedes=s.id
+     AND newer.published_at IS NOT NULL AND newer.retracted_at IS NULL AND newer.purged_at IS NULL)
+   )))
+ ) THEN RETURN NULL; END IF;
+ IF EXISTS(
+  WITH cited_context AS (
+   SELECT reason->>'context_tag_id' AS id FROM jsonb_array_elements(a.reasons) reason
+   UNION SELECT jsonb_array_elements_text(a.params->'draft_context_ids')
+  )
+  SELECT FROM cited_context c WHERE c.id IS NOT NULL AND NOT EXISTS(
+   SELECT FROM public.context_tags t WHERE t.tenant_id=public.pm_tenant()
+   AND t.patient_id=p_patient AND t.id::text=c.id AND t.valid_from<=signal_at
+   AND (t.valid_to IS NULL OR (t.valid_to>signal_at AND t.valid_to>current_at)))
+ ) THEN RETURN NULL; END IF;
  IF EXISTS(
   WITH cited AS (
    SELECT reason->>'evidence_id' AS id FROM jsonb_array_elements(a.reasons) reason
@@ -119,6 +175,7 @@ BEGIN
   JOIN public.source_authors n ON n.tenant_id=s.tenant_id AND n.patient_id=s.patient_id
    AND n.source_id=s.id
   WHERE f.tenant_id=public.pm_tenant() AND f.patient_id=p_patient
+  AND f.polarity IN ('present','uncertain') AND f.experiencer IN ('patient','unspecified')
   AND n.author_principal_id=public.pm_actor() AND n.author_role='psw'
   AND n.asserted_at<=a.created_at
   AND s.published_at IS NOT NULL AND s.published_at<=a.created_at

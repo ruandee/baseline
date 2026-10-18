@@ -13,6 +13,7 @@ from patient_memory.storage import transaction
 from tests.contract.test_api import client_for, import_note, source_payload
 from tests.contract.test_resident_checks import SCORE_FIELDS
 from tests.integration.test_assessments import SLOW, seed_checks, store
+from tests.integration.test_vitals_signal import overview, rr_payload
 
 
 def authored(sandbox, role="psw", **changes):
@@ -234,3 +235,33 @@ def test_shared_latest_helper_preserves_the_original_overview_eligibility(sandbo
                 (pid, modality, modality, pid, at)).fetchone()
             new = _latest_assessment(conn, pid, modality, at)
             assert (new and new["id"]) == (old and old["id"])
+
+
+def test_feedback_expires_with_another_contributing_modality_fact_without_revision_change(sandbox):
+    import_note(sandbox, authored(sandbox))
+    seed_checks(sandbox, 6)
+    store(sandbox, SLOW)
+    import_note(sandbox, rr_payload(datetime.now(UTC)))
+    latest = overview(sandbox)["latest_assessment"]
+    assert latest["verdict"] == "escalate" and latest["corroborated"] and latest["sbar"]
+    assert feedback(sandbox) is True
+    fact = latest["modalities"]["vitals"]["evidence_ids"][0]
+    with psycopg.connect(sandbox[0].admin_database_url) as admin:
+        admin.execute("UPDATE facts SET valid_to=valid_from+interval '1 microsecond' WHERE id=%s",
+                      (fact,))
+        assert admin.execute("SELECT valid_to<clock_timestamp() FROM facts WHERE id=%s",
+                             (fact,)).fetchone()[0]
+    assert overview(sandbox)["latest_assessment"]["sbar"] is None
+    assert client_for(sandbox).get(
+        f"/v1/patients/{sandbox[1]}/assessments/{latest['id']}/note").status_code == 409
+    assert feedback(sandbox) is None
+
+
+@pytest.mark.parametrize("column,value", [("polarity", "absent"), ("experiencer", "other")])
+def test_negated_or_other_person_fact_cannot_earn_own_note_credit(sandbox, column, value):
+    imported, _ = escalated(sandbox)
+    assert feedback(sandbox) is True
+    with psycopg.connect(sandbox[0].admin_database_url) as admin:
+        admin.execute(f"UPDATE facts SET {column}=%s WHERE source_id=%s",
+                      (value, imported["source_version_id"]))
+    assert feedback(sandbox) is None
