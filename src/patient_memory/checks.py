@@ -92,7 +92,9 @@ def _store_check(conn, identity, patient_id, request_id, analysis, mode, device_
         change, assessment = assess_check(
             conn, cfg, patient_id, identity.tenant_id, check_id, ts, device_id,
             "count20-days-v1", is_baseline, features, name, session_id=session_id)
-    summary = sessions.after_check(conn, session, ts, analysis.usable, is_baseline) if session else None
+    summary = sessions.after_check(
+        conn, session, ts, analysis.usable, is_baseline,
+        change_status=change and change["status"]) if session else None
     return CheckResult(
         session=summary,
         change=change, assessment=assessment,

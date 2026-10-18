@@ -268,6 +268,22 @@ def test_raw_session_change_survives_pcc_budget_and_profile_for_ladder_consumers
     # BL-26 must consume this raw session change plus session explainers, not the PCC verdict.
     status = client(k).get(f"/v1/patients/{k['patient']}/sessions/{sid}").json()
     assert status["context_tags"] == [] and status["checks"][-1]["change_status"] == "change"
+    from uuid import UUID
+
+    from patient_memory.baseline.safety import run_pass
+    steps = run_pass(cfg, k["ids"]["service"])
+    assert [(str(session_id), step.level, step.trigger) for session_id, step in steps] == [
+        (sid, 2, "speech_change")]
+    # A repeated worker pass neither sends another level nor consumes the PCC shift budget.
+    assert run_pass(cfg, k["ids"]["service"]) == []
+    from patient_memory.baseline.assess import escalations_used
+    from patient_memory.storage import transaction
+    with transaction(cfg, k["ids"]["service"]) as conn:
+        now = conn.execute("SELECT clock_timestamp() AS t").fetchone()["t"]
+        assert escalations_used(conn, now, cfg) == 0
+        assert conn.execute("SELECT ladder_level FROM safety_sessions WHERE id=%s",
+                            (UUID(sid),)).fetchone()["ladder_level"] == 2
+
 
 
 def test_another_persons_session_id_is_404(kaze_sandbox):

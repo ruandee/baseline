@@ -37,7 +37,6 @@ class Settings(BaseSettings):
     shift_timezone: str = "America/Toronto"
     # Comma-separated patient UUIDs that never escalate (the demo runner).
     no_escalate_patients: str = ""
-
     @model_validator(mode="after")
     def safe_mode(self):
         if self.environment != "synthetic":

@@ -200,3 +200,35 @@ DELETE grant is added.
 - Migration 006 chains directly off BL-10's 005 (`note_context_runs`), so alembic has one head.
 - Not done here: scheduler, SMS, ack route, pages, `loud_venue` quality tolerance, and integrated
   acceptance after the PointClickCare path reaches BL-13.
+
+
+### BL-26 scheduler integration (17 Oct 2026)
+
+The worker checks visible active/escalating sessions every 15 seconds (between ingestion passes).
+Level 1 is 2.5 minutes overdue, level 2 is 5 minutes overdue or an unexplained raw session
+`change`/`provisional`, and levels 3/4 wait 10 minutes after the preceding recorded step. A delayed
+worker advances at most one SMS level per pass, giving each contact its full acknowledgement
+window. No compressed demo timing is introduced while the outstanding product questions remain
+on hold.
+
+The scheduler takes the patient advisory lock then the session row lock and reads a fresh DB
+clock after waiting. It expires sessions at their original `ends_at`, keeping `delete_after`
+exactly 24 hours later. Check-in reset, acknowledgement and end serialize on the same session row;
+current state is re-read before publishing a step. Each committed episode/level/contact is unique.
+Usable normal/explained check-ins restart the due timer; unusable clips never reset it. An
+acknowledged session stays frozen until a qualifying check-in, and subsequent episodes increment
+the episode counter so old acknowledgement links cannot stop them.
+
+KAZE consumes raw change status and the session's immutable `context_tags`, independently of the
+PCC assessment verdict, context evidence, shift budget and `PM_NO_ESCALATE_PATIENTS`. Session
+assessments do not consume the PCC shift budget either. Declared `exertion`/`loud_venue` explainers
+suppress the speech-change trigger; they do not suppress missed check-ins. `escalation_enabled`
+false caps either trigger at the level-1 nudge. No speech quality threshold is changed here.
+
+BL-26's sender is strictly an offline logging adapter: no configuration enables SMS. It runs
+under the locks and its final message/hash metadata is inserted once, respecting migration 006's
+immutable event columns. This supersedes the earlier issue-comment proposal to UPDATE those
+columns. BL-27's saved `prepare_sms` / commit / `send` contract must be integrated before real
+delivery: never call a network sender from this locked adapter. Its postcommit delivery/crash
+semantics and public acknowledgement route remain BL-27 work, with no real delivery verified here.
+The six held product questions remain undecided.
