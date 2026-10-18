@@ -20,6 +20,8 @@ test('live resident route: charts, actual evidence, action, editable preliminary
     [`GET /v1/patients/${pid}/overview?days=30`]: () => {
       if (readback === 'revoked') throw {status: 404};
       const data = overview();
+      if (readback === 'check-changed') return {...data,
+        latest_assessment: {...data.latest_assessment, check: {...data.latest_assessment.check, id: 'other-check'}}};
       return readback === 'changed'
         ? {...data, latest_assessment: {...data.latest_assessment, id: 'new-assessment'}} : data;
     },
@@ -35,6 +37,8 @@ test('live resident route: charts, actual evidence, action, editable preliminary
   page = loadPage(`/resident/${pid}`, {routes, patients: [{id: pid, name: 'Mrs. K'}]});
   await until(() => page.main.querySelector('.bl-parameters'));
   assert.equal(page.main.querySelectorAll('.bl-chart').length, 4);
+  assert.equal(page.main.querySelectorAll('.bl-band').length, 4);
+  assert.equal(page.main.querySelectorAll('.bl-marker').length, 4);
   assert(!page.main.textContent.includes('[object Object]'));
   assert.match(page.main.querySelector('.bl-parameters').textContent, /z_threshold/);
   const action = page.main.querySelector('.bl-action');
@@ -76,12 +80,12 @@ test('live resident route: charts, actual evidence, action, editable preliminary
   assert.match(page.main.textContent, /Human-edited, unverified/);
   assert(page.calls.every((c) => c.key.startsWith('GET ')));
   assert(page.calls.some((c) => c.key.includes('/overview?days=30')));
-  for (const state of ['changed', 'revoked']) {
+  for (const state of ['changed', 'check-changed', 'revoked']) {
     readback = state;
     page.main.querySelector('.bl-check-cite').click();
     await until(() => !page.main.querySelector('.bl-check-evidence')
       && page.main.textContent.includes('Could not open the voice check'));
-    assert.match(page.main.textContent, state === 'changed' ? /reload the resident/ : /404/);
+    assert.match(page.main.textContent, state === 'revoked' ? /404/ : /reload the resident/);
   }
   assert.equal(page.errors.length, 0);
 });
