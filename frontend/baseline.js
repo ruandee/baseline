@@ -236,6 +236,20 @@ async function render() {
     await renderPage(current, renderCheck);
     return;
   }
+  if (current.name === 'resident') {
+    document.querySelectorAll('[data-route]').forEach((a) => a.removeAttribute('aria-current'));
+    const main = document.getElementById('bl-main');
+    try {
+      const mock = new URLSearchParams(location.search).get('mock') === '1';
+      if (!mock) await bootstrap();
+      await window.renderResident(main, current.id,
+        {api, el, svgEl, chip, formatTime, VERDICT_LABELS, mock});
+    } catch (error) {
+      main.replaceChildren(el('h1', current.title),
+        el('div', `API check failed: ${error.message}`, {class: 'bl-status', 'data-state': 'error'}));
+    }
+    return;
+  }
   document.querySelectorAll('[data-route]').forEach((a) => {
     if (a.dataset.route === current.name) a.setAttribute('aria-current', 'page');
   });
