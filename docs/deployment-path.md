@@ -97,8 +97,9 @@ Use a reset script for subsequent demos. Never use `docker compose down -v` to r
 that may contain consenting teammate recordings. A plain cohort reload is not a destructive reset
 and deliberately refuses to overwrite unrelated checks.
 
-The current loader supports explicit historical prefixes or full history; the planned current-date
-reset must make the intended demo states coherent before claiming stage readiness. See decision 008.
+The loader supports explicit historical prefixes or full history. The merged current-date reset
+below restores the intended twelve scripted states and separately provisions live/runner people.
+Hosted timing and stage acceptance remain unverified. See decision 008.
 
 ## Verification and audio handoff
 
@@ -141,7 +142,7 @@ bash deploy/reset-demo.sh
 bash deploy/reset-demo.sh 2026-10-18T14:00:00Z
 ```
 
-This refreshes both private role tokens to 48 hours, restores the twelve scripted story prefixes
+This refreshes private nurse, PSW and KAZE tokens to 48 hours, restores the twelve scripted story prefixes
 at one current/chosen UTC instant, verifies their actual canonical outcomes, and prints `/unit`,
 the PSW `/check` and a dedicated live-check URL. A separate runner URL is also printed. The unit
 roster can include the two explicitly named capture volunteers in addition to the twelve scripted
@@ -158,7 +159,9 @@ volunteer's actual decision through the existing consent endpoint. Reset never g
 that consent. The authored, non-audio cohort uses explicit synthetic fixture consent separately.
 Use the printed live/runner URLs to keep new recordings outside the scripted identities.
 
-API and worker are stopped before reset to prevent concurrent admissions. If validation or strict
+API and the resident worker are stopped before reset to prevent concurrent admissions. The
+separate safety worker continues its tenant's retention work and is recreated with the rebuilt
+image at startup. If validation or strict
 outcome checks fail, they remain stopped; inspect the safe error and ignored reset report, resolve
 the discrepancy and rerun. Do not wipe volumes, bypass fixture validation, or restart a partial
 reset as though it passed. Same explicit-anchor reruns preserve data counts and are idempotent.
