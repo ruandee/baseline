@@ -1,5 +1,7 @@
 import hashlib
 import json
+from email.parser import BytesParser
+from email.policy import default
 from uuid import uuid4
 
 import httpx
@@ -38,6 +40,15 @@ def client_for(handler):
     return httpx.Client(base_url="https://demo.test", transport=httpx.MockTransport(handler))
 
 
+def multipart_fields(request):
+    body = (f"Content-Type: {request.headers['content-type']}\r\nMIME-Version: 1.0\r\n\r\n".encode()
+            + request.content)
+    message = BytesParser(policy=default).parsebytes(body)
+    assert message.is_multipart()
+    return {part.get_param("name", header="content-disposition"): part.get_payload(decode=True).decode()
+            for part in message.iter_parts() if part.get_filename() is None}
+
+
 def test_five_distinct_takes_use_existing_api_and_preserve_receipts(clips, tmp_path):
     posts = []
 
@@ -58,6 +69,10 @@ def test_five_distinct_takes_use_existing_api_and_preserve_receipts(clips, tmp_p
     assert [check["input_sha256"] for check in report["checks"]] == [
         hashlib.sha256(path.read_bytes()).hexdigest() for path in clips]
     for request in posts:
+        fields = multipart_fields(request)
+        assert fields["profile_version"] == PROFILE_VERSION
+        assert fields["protocol_locale"] == "en"
+        assert fields["is_baseline"] == "true" and fields["mode"] == "runner"
         assert b'name="is_baseline"\r\n\r\ntrue' in request.content
         assert b'name="mode"\r\n\r\nrunner' in request.content
         assert b'name="device_id"\r\n\r\ndee-demo-phone' in request.content
@@ -248,7 +263,8 @@ def test_changed_profile_stops_partial_enrollment_without_retry_or_silent_adopti
                 profile_reads.append(request)
             return get_response(request)
         posted.append(request)
-        assert b'name="profile_version"\r\n\r\n' + PROFILE_VERSION.encode() in request.content
+        fields = multipart_fields(request)
+        assert fields["profile_version"] == PROFILE_VERSION and fields["protocol_locale"] == "en"
         if len(posted) == 2:
             return httpx.Response(409, json={"error": {"code": "check_profile_changed"}})
         return httpx.Response(200, json={"check_id": str(uuid4()), "ts": "2026-10-18T12:00:00Z", "usable": True})

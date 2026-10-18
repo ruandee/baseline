@@ -277,3 +277,10 @@ BL-31 attribution follow-up adds importer-asserted, patient-scoped immutable not
 true-or-unknown own-note credit in the score-free due list. Ordinary PSW clinical retrieval stays
 denied; legacy source serialization/reset hashes are preserved. Decision033/migration013 record
 the feedback-only freshness and exact current-citation gates. Exact-head CI remains required.
+
+Live capture integration: explicit English profile/version preflight now precedes baseline decode;
+each helper POST binds that version/locale and preserves partial receipts on409. Canonical PCM
+uniqueness prevents metadata-only duplicate takes. A distinct setup-mutation epoch invalidates
+old nurse upload/retry closures even after regrant or failed saves; reads alone preserve retries.
+Late resident microphone failures after page exit are discarded. Golden/phone/host acceptance
+remains external; no personal audio or live provider call was used for these integration checks.
