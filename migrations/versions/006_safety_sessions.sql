@@ -2,6 +2,15 @@
 -- so residents and people going out never share a tenant. Every new table is patient-owned:
 -- composite tenant/patient keys, forced RLS, and session-scoped foreign keys so contacts, checks,
 -- locations and acknowledgements cannot point at another person's session.
+
+-- The SECURITY DEFINER functions below must bypass forced RLS to scope by token or tenant
+-- themselves. That only holds when their owner (the migration role) is superuser or BYPASSRLS.
+DO $$
+BEGIN
+ IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname = current_user AND (rolsuper OR rolbypassrls)) THEN
+  RAISE EXCEPTION 'migration 006 must run as a superuser or BYPASSRLS role (decision 018)';
+ END IF;
+END $$;
 ALTER TABLE tenants ADD COLUMN safety_mode boolean NOT NULL DEFAULT false;
 
 CREATE FUNCTION pm_safety_tenant() RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
@@ -37,6 +46,7 @@ CREATE TABLE safety_sessions(
  CHECK (ends_at > created_at AND ends_at <= created_at + interval '24 hours'),
  CHECK ((status = 'ended') = (ended_at IS NOT NULL)),
  CHECK ((status = 'ended') = (end_reason IS NOT NULL AND delete_after IS NOT NULL)),
+ CHECK (delete_after IS NULL OR delete_after = ended_at + interval '24 hours'),
  CHECK (status <> 'arming' OR (activated_at IS NULL AND next_due_at IS NULL AND ladder_level = 0)),
  CHECK (status IN ('arming','ended') OR activated_at IS NOT NULL),
  CHECK (status <> 'active' OR ladder_level <= 1),
@@ -46,6 +56,17 @@ CREATE TABLE safety_sessions(
 -- One open session per person; a second arm is a 409.
 CREATE UNIQUE INDEX safety_sessions_one_open ON safety_sessions(tenant_id, patient_id)
  WHERE status <> 'ended';
+-- Ended is terminal: nobody, including the runtime role, can reopen a session or move its
+-- deletion time. Retention deletes ended rows; it never updates them.
+CREATE FUNCTION pm_safety_session_terminal() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ IF OLD.status = 'ended' THEN
+  RAISE EXCEPTION 'an ended safety session cannot be changed' USING ERRCODE = '42501';
+ END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER safety_sessions_terminal BEFORE UPDATE ON safety_sessions
+ FOR EACH ROW EXECUTE FUNCTION pm_safety_session_terminal();
 CREATE INDEX safety_sessions_due ON safety_sessions(tenant_id, next_due_at)
  WHERE status IN ('active','escalating');
 
@@ -123,8 +144,12 @@ CREATE POLICY care_insert ON escalation_events FOR INSERT WITH CHECK(
 CREATE POLICY care_update ON escalation_events FOR UPDATE USING(tenant_id=pm_tenant() AND pm_care(patient_id))
  WITH CHECK(tenant_id=pm_tenant() AND pm_care(patient_id));
 
-GRANT SELECT, INSERT, UPDATE ON safety_sessions, escalation_events TO pm_runtime;
-GRANT SELECT, INSERT ON safety_contacts TO pm_runtime;
+GRANT SELECT, INSERT ON safety_sessions, safety_contacts, escalation_events TO pm_runtime;
+-- Column-level UPDATE: ladder/lifecycle state only. Identity, schedule, contacts, the stored
+-- message, token hash and ack time are written on insert or by the SECURITY DEFINER functions.
+GRANT UPDATE (status, activated_at, next_due_at, last_checkin_at, ladder_level, episode,
+ ladder_trigger, acknowledged_at, ended_at, end_reason, delete_after) ON safety_sessions TO pm_runtime;
+GRANT UPDATE (delivery, sent_at) ON escalation_events TO pm_runtime;
 
 -- Public acknowledgement (BL-27's /ack/{token} has no bearer identity). Takes the SHA-256 of the
 -- token, never the token. Locks the session before the event, matching the scheduler's order.
@@ -177,6 +202,9 @@ BEGIN
   DELETE FROM voice_checks WHERE tenant_id = r.tenant_id AND patient_id = r.patient_id AND session_id = r.id;
   DELETE FROM escalation_events WHERE tenant_id = r.tenant_id AND patient_id = r.patient_id AND session_id = r.id;
   DELETE FROM safety_contacts WHERE tenant_id = r.tenant_id AND patient_id = r.patient_id AND session_id = r.id;
+  -- The arm idempotency snapshot copies contacts and the session; it goes too.
+  DELETE FROM operations WHERE tenant_id = r.tenant_id AND patient_id = r.patient_id
+   AND operation = 'arm_session' AND result->>'id' = r.id::text;
   DELETE FROM safety_sessions WHERE tenant_id = r.tenant_id AND patient_id = r.patient_id AND id = r.id;
   INSERT INTO audit(tenant_id, patient_id, principal_id, action, result, request_id)
    VALUES (r.tenant_id, r.patient_id, pm_actor(), 'purge_safety_session', 'ok', gen_random_uuid());

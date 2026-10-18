@@ -85,6 +85,13 @@ def test_which_check_ins_each_state_accepts(status, mode, is_baseline, expected)
     assert (None if problem is None else (problem.status, problem.code)) == expected
 
 
+@pytest.mark.parametrize("status,is_baseline", [("arming", True), ("active", False),
+                                                ("escalating", False), ("acknowledged", False)])
+def test_a_session_past_its_end_takes_no_check_ins(status, is_baseline):
+    problem = check_problem(status, "live", is_baseline, past_end=True)
+    assert (problem.status, problem.code) == (409, "session_ended")
+
+
 def test_phones_are_masked_to_the_last_four_digits():
     assert mask_phone("+14165550101") == "+*******0101"
     assert "416555" not in mask_phone("+14165550101")

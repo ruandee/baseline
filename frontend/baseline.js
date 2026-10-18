@@ -1,5 +1,5 @@
 // Baseline shell: path router, shared demo-session bootstrap and API health check.
-// /unit lives here (BL-18); /resident/:id and /check land with BL-19 and BL-17.
+// /unit lives here (BL-18); /check is in check.js (BL-17); /resident/:id lands with BL-19.
 const POLL_MS = 10000;
 const VERDICT_LABELS = {escalate: 'Escalate', watch: 'Watch', explained: 'Explained',
                         within_normal: 'Within normal', enrolling: 'Enrolling'};
@@ -9,7 +9,11 @@ async function api(path, options = {}) {
   const headers = {...(state.session ? {Authorization: `Bearer ${state.session.token}`} : {}),
                    ...options.headers};
   const response = await fetch(path, {...options, headers});
-  if (!response.ok) throw new Error(`${response.status} ${path}`);
+  if (!response.ok) {
+    const error = new Error(`${response.status} ${path}`);
+    error.status = response.status;
+    throw error;
+  }
   return response.json();
 }
 
@@ -155,7 +159,7 @@ async function renderUnit(main) {
       try {
         data = await api('/v1/watchlist');
       } catch (error) {
-        if (!error.message.startsWith('401')) throw error;
+        if (error.status !== 401) throw error;
         await bootstrap();  // the demo token expired while the page stayed open
         data = await api('/v1/watchlist');
       }
@@ -193,20 +197,28 @@ async function renderUnit(main) {
   if (document.visibilityState === 'visible') timer = setInterval(refresh, POLL_MS);
 }
 
+async function renderPage(current, renderer) {
+  document.querySelectorAll('[data-route]').forEach((a) => {
+    if (a.dataset.route === current.name) a.setAttribute('aria-current', 'page');
+  });
+  const main = document.getElementById('bl-main');
+  try {
+    await bootstrap();
+    await renderer(main);
+  } catch (error) {
+    main.replaceChildren(el('h1', current.title),
+      el('div', `API check failed: ${error.message}`, {class: 'bl-status', 'data-state': 'error'}));
+  }
+}
+
 async function render() {
   const current = route();
   if (current.name === 'unit') {
-    document.querySelectorAll('[data-route]').forEach((a) => {
-      if (a.dataset.route === current.name) a.setAttribute('aria-current', 'page');
-    });
-    const main = document.getElementById('bl-main');
-    try {
-      await bootstrap();
-      await renderUnit(main);
-    } catch (error) {
-      main.replaceChildren(el('h1', current.title),
-        el('div', `API check failed: ${error.message}`, {class: 'bl-status', 'data-state': 'error'}));
-    }
+    await renderPage(current, renderUnit);
+    return;
+  }
+  if (current.name === 'check') {
+    await renderPage(current, renderCheck);
     return;
   }
   document.querySelectorAll('[data-route]').forEach((a) => {

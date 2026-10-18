@@ -133,7 +133,8 @@ Transitions:
 - `POST /v1/patients/{id}/sessions/{sid}/end` (importer) body `{}` → 200 ended session.
 - `POST /v1/patients/{id}/checks` adds optional form fields `session_id`, `lat`, `lon`,
   `accuracy_m`. With a session: mode must be `live`; `arming` takes only `is_baseline=true`, other
-  open states only `is_baseline=false` (422 `invalid_request`); `ended` is 409 `session_ended`;
+  open states only `is_baseline=false` (422 `invalid_request`); `ended` or past `ends_at` is 409
+  `session_ended`;
   unknown/foreign session is 404. Session checks are scored only against the same session's history
   (tonight's baseline), and checks outside a session never use session clips. Session check-ins
   never go to a model provider for SBAR drafting. The response gains
@@ -144,12 +145,44 @@ Transitions:
 
 `pm_retire_safety_sessions()` (SECURITY DEFINER, scoped to `pm_tenant()`, any active member) marks
 sessions past `ends_at` as `ended/expired`, then deletes every session whose `delete_after` passed,
-with its checks (and therefore locations), their assessments, contacts and events, writing one
-audit row per deleted session. The worker loop calls it at most once a minute. `voice_checks`
-stays append-only for the runtime role: no DELETE grant is added.
+with its checks (and therefore locations), their assessments, contacts, events and the arm
+idempotency snapshot (`operations` row `arm_session` whose result id is the session), writing one
+audit row per deleted session. The worker loop calls it at most once a minute. For `kaze-demo`,
+retention runs in the worker started as the `kaze-service` principal
+(`python -m patient_memory.worker --tenant <kaze-demo> --actor <kaze-service>`); a worker for a
+resident tenant never touches KAZE rows. `voice_checks` stays append-only for the runtime role: no
+DELETE grant is added.
+
+### Write restrictions (amended after review, before merge)
+
+- `ended` is terminal. A `BEFORE UPDATE` trigger rejects any update of an ended session (SQLSTATE
+  42501), and `delete_after` must equal `ended_at + 24 h`, so nobody can reopen a session or postpone
+  its deletion. Retention deletes ended rows; it never updates them.
+- The runtime role has column-level UPDATE only. `safety_sessions`: `status, activated_at,
+  next_due_at, last_checkin_at, ladder_level, episode, ladder_trigger, acknowledged_at, ended_at,
+  end_reason, delete_after`. `escalation_events`: `delivery, sent_at`. Everything else
+  (identity, `ends_at`, `interval_min`, contacts, `escalation_enabled`, `message`,
+  `ack_token_hash`, `ack_expires_at`, `ack_at`) is set on INSERT or only by the SECURITY DEFINER
+  functions. BL-27 therefore renders `message` and the token hash before inserting the event row,
+  and records the provider outcome by updating `delivery`/`sent_at`.
+- A session whose `ends_at` has passed is over even before retention marks it: check-ins get 409
+  `session_ended`, and arming again first closes it as `ended/expired`.
+  This is checked before decoding and again under the storage lock. An end request after planned
+  expiry records `ended_at=ends_at` and `end_reason=expired`, preserving deletion at the original
+  expiry plus 24 hours rather than postponing it until the late request.
+- Raw session audio is always removed in the upload handler's `finally` block, on both success
+  and failure, even if `PM_KEEP_AUDIO=true`. Temporary files have no session retention index and
+  therefore cannot be retained safely for the later database deletion job. Non-session debug
+  retention keeps its existing behavior; no real recordings are included in validation.
+- The SECURITY DEFINER functions bypass forced RLS only because their owner (the migration role)
+  is superuser or BYPASSRLS; migration 006 raises if it is not. Never move ownership of these
+  functions to `pm_runtime` or another RLS-bound role.
 
 ### Interfaces for dependent tickets
 
+- Session assessments are not gated by the PointClickCare shift escalation budget or
+  `PM_NO_ESCALATE_PATIENTS`: BL-26 must decide the speech-change trigger from the change status and
+  session explainers, never from `over_budget`, `no_escalate` or the care-home verdict.
 - BL-26 reads open sessions (`status IN ('active','escalating')`, `next_due_at`) as `kaze-service`
   and updates `ladder_level`, `ladder_trigger`, `episode`, `next_due_at`, `status` under row lock
   (`SELECT … FOR UPDATE`), taking the patient advisory lock (`lock_patient`) first, as check
@@ -167,3 +200,35 @@ stays append-only for the runtime role: no DELETE grant is added.
 - Migration 006 chains directly off BL-10's 005 (`note_context_runs`), so alembic has one head.
 - Not done here: scheduler, SMS, ack route, pages, `loud_venue` quality tolerance, and integrated
   acceptance after the PointClickCare path reaches BL-13.
+
+
+### BL-26 scheduler integration (17 Oct 2026)
+
+The worker checks visible active/escalating sessions every 15 seconds (between ingestion passes).
+Level 1 is 2.5 minutes overdue, level 2 is 5 minutes overdue or an unexplained raw session
+`change`/`provisional`, and levels 3/4 wait 10 minutes after the preceding recorded step. A delayed
+worker advances at most one SMS level per pass, giving each contact its full acknowledgement
+window. No compressed demo timing is introduced while the outstanding product questions remain
+on hold.
+
+The scheduler takes the patient advisory lock then the session row lock and reads a fresh DB
+clock after waiting. It expires sessions at their original `ends_at`, keeping `delete_after`
+exactly 24 hours later. Check-in reset, acknowledgement and end serialize on the same session row;
+current state is re-read before publishing a step. Each committed episode/level/contact is unique.
+Usable normal/explained check-ins restart the due timer; unusable clips never reset it. An
+acknowledged session stays frozen until a qualifying check-in, and subsequent episodes increment
+the episode counter so old acknowledgement links cannot stop them.
+
+KAZE consumes raw change status and the session's immutable `context_tags`, independently of the
+PCC assessment verdict, context evidence, shift budget and `PM_NO_ESCALATE_PATIENTS`. Session
+assessments do not consume the PCC shift budget either. Declared `exertion`/`loud_venue` explainers
+suppress the speech-change trigger; they do not suppress missed check-ins. `escalation_enabled`
+false caps either trigger at the level-1 nudge. No speech quality threshold is changed here.
+
+BL-26's sender is strictly an offline logging adapter: no configuration enables SMS. It runs
+under the locks and its final message/hash metadata is inserted once, respecting migration 006's
+immutable event columns. This supersedes the earlier issue-comment proposal to UPDATE those
+columns. BL-27's saved `prepare_sms` / commit / `send` contract must be integrated before real
+delivery: never call a network sender from this locked adapter. Its postcommit delivery/crash
+semantics and public acknowledgement route remain BL-27 work, with no real delivery verified here.
+The six held product questions remain undecided.
