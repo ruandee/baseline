@@ -228,7 +228,7 @@ def test_session_raw_audio_is_removed_even_with_keep_audio_enabled(kaze_sandbox,
     k = {**kaze_sandbox, "cfg": kaze_sandbox["cfg"].model_copy(update={"keep_audio": True})}
     sid = arm(k).json()["id"]
     directories = []
-    def analyze(upload, work, **kwargs):
+    def analyze(upload, work, transcriber=None, **kwargs):
         directories.append(work)
         assert upload.exists()
         if fail:
