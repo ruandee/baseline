@@ -250,6 +250,59 @@ class CheckReceipt(Contract):
     usable: bool
 
 
+class MotionFeatures(Contract):
+    sit_to_stand_s: FiniteFloat | None = Field(default=None, gt=0, le=10)
+    trunk_sway: FiniteFloat | None = Field(default=None, ge=0, le=5)
+    step_cadence_spm: FiniteFloat | None = Field(default=None, gt=0, le=360)
+
+
+class MotionQuality(Contract):
+    duration_s: FiniteFloat = Field(ge=0, le=12)
+    total_frames: int = Field(ge=0, le=1000)
+    confident_frames: int = Field(ge=0, le=1000)
+
+    @model_validator(mode="after")
+    def frame_counts(self):
+        if self.confident_frames > self.total_frames:
+            raise ValueError("confident frame count exceeds total frames")
+        return self
+
+
+class MotionInput(Contract):
+    device_id: str = Field(min_length=1, max_length=128)
+    device_ts: AwareDatetime | None = None
+    prompt_version: Literal["pose-chair-steps-v1"] = "pose-chair-steps-v1"
+    is_baseline: bool = False
+    features: MotionFeatures
+    quality: MotionQuality
+
+    @model_validator(mode="after")
+    def event_within_capture(self):
+        if (self.features.sit_to_stand_s is not None
+                and self.features.sit_to_stand_s > self.quality.duration_s):
+            raise ValueError("rise time exceeds capture duration")
+        return self
+
+
+class MotionQualityOut(MotionQuality):
+    confident_fraction: float = Field(ge=0, le=1)
+    reasons: list[str]
+    producer: Literal["client-derived"]
+    protocol: Literal["pose-chair-steps-v1"]
+
+
+class MotionResult(Contract):
+    check_id: UUID
+    ts: AwareDatetime
+    usable: bool
+    quality: MotionQualityOut
+    features: MotionFeatures
+    source_id: UUID | None = None
+    evidence_ids: list[UUID] = []
+    change: dict | None = None
+    assessment: dict | None = None
+
+
 class DocumentedObservation(Contract):
     evidence_id: UUID
     source_id: UUID
@@ -277,7 +330,7 @@ class ResidentOverview(Contract):
     documented_observations: list[DocumentedObservation]
 
 
-ConsentScope = Literal["voice_check", "vox_encounter"]
+ConsentScope = Literal["voice_check", "vox_encounter", "motion_check"]
 ConsentState = Literal["granted", "declined", "withdrawn", "expired", "unknown"]
 
 

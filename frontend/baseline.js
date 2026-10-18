@@ -226,7 +226,8 @@ async function render() {
     return;
   }
   if (current.name === 'check') {
-    await renderPage(current, renderCheck);
+    const motion = new URLSearchParams(location.search).get('type') === 'motion';
+    await renderPage(current, motion ? window.renderMotion : renderCheck);
     return;
   }
   if (current.name === 'resident') {

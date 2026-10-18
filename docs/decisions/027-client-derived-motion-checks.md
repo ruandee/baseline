@@ -1,6 +1,6 @@
 # 027: Client-derived motion captures and scoped observation publication
 
-Status: implementation in progress (BL-34); migration 011 schema milestone only.
+Status: implemented for engineering review (BL-34); exact-head integrated CI and camera acceptance required.
 
 Motion uses a separate motion_check consent scope. No consent row means unknown and blocks
 capture admission. The plain motion_checks table follows decision 004: composite tenant/patient
@@ -33,3 +33,32 @@ The planned browser path uses a pinned, self-hosted MediaPipe package/WASM/model
 worker, with no remote asset load or video upload. Synthetic landmark tests and mocked camera
 lifecycle checks establish engineering behavior only. Actual camera/browser performance and the
 judge obtaining three measurements in under 15seconds remain external acceptance gates.
+
+
+Browser measurement protocol pose-chair-steps-v1 uses a 10-second capture, at most 30 processed
+frames per second, and visibility/presence 0.5 for both shoulders, hips and ankles. Initial/final
+0.8-second hip medians define travel; travel below 0.05 normalized image height is incomplete.
+Rise time is from the 10% to 50% travel crossings after the seated lead-in. Standing shoulder
+midpoint SD is divided by median shoulder width (minimum 0.03 image width). Smoothed ankle-height
+peaks require 0.01 prominence and 0.25s per-ankle separation; at least three distinct peaks are
+needed for cadence. These are engineering extraction assumptions, not validated movement tests.
+
+The motion page offers explicit person/SDM granted/declined/withdrawn consent recording to care
+team roles only; PSWs cannot record consent or enroll baseline captures. Readiness is rechecked
+before camera permission and measurements are rechecked at storage. Cancellation, patient
+switching, page exit, errors and the 10-second limit stop tracks; permission/model responses from
+cancelled operations cannot restart capture. No MediaRecorder, image upload or video blob is
+created. Low quality and incomplete actions have explicit null measurements and no assessment.
+
+MediaPipe tasks-vision 1.1.1 is pinned by the NPM archive SHA512 and a committed per-file SHA256
+manifest. The official pose_landmarker_lite float16/v1 task is pinned by SHA256. JS, all WASM
+variants and the model are served from assets/vendor/mediapipe. The page keeps its existing
+script restriction; Emscripten/WASM compilation is allowed only by the isolated local worker's
+response CSP, whose connections and scripts remain same-origin. No CDN is configured at runtime.
+Model preparation occurs before the timed capture; device cold-start and live performance are
+separate acceptance measurements, never inferred from package installation or geometry tests.
+
+Source purge's protected trigger removes the matching duplicate raw motion row and its own
+assessment. No direct runtime capture UPDATE/DELETE capability is introduced. Standard source
+retraction/supersession/visibility checks withhold capture readback and future corroboration.
+OpenAPI is regenerated; LF normalization of the prior CRLF export is included.

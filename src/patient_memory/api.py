@@ -47,6 +47,8 @@ from patient_memory.domain import (
     ContextInput,
     ContextTagOut,
     DueList,
+    MotionInput,
+    MotionResult,
     NoteExtractionResult,
     PatientInput,
     Question,
@@ -76,6 +78,8 @@ from patient_memory.lifecycle import (
     rate_limit,
     scope_hash,
 )
+from patient_memory.motion import read as read_motion
+from patient_memory.motion import store as store_motion
 from patient_memory.objects import ObjectStore
 from patient_memory.providers import generator_for
 from patient_memory.resident_checks import (
@@ -363,6 +367,30 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             return change_source(conn, actor, patient_id, source_id, "visibility", idempotency_key,
                                  body.model_dump(), request.state.request_id)
 
+    @app.get("/v1/patients/{patient_id}/motion-checks/readiness")
+    def motion_ready(patient_id: UUID, request: Request, actor=actor_dep):
+        admit_check(cfg, actor, patient_id, request.state.request_id, "motion_check")
+        return {"ready": True}
+
+    @app.post("/v1/patients/{patient_id}/motion-checks",
+              response_model=MotionResult | CheckReceipt)
+    def motion_check(patient_id: UUID, body: MotionInput, request: Request, actor=actor_dep):
+        admit_check(cfg, actor, patient_id, request.state.request_id, "motion_check")
+        try:
+            with transaction(cfg, actor) as conn:
+                return store_motion(conn, cfg, actor, patient_id, body, app.state.objects,
+                                    request.state.request_id)
+        except ConsentRequired:
+            audit_consent_block(cfg, actor, patient_id, request.state.request_id)
+            raise
+
+    @app.get("/v1/patients/{patient_id}/motion-checks/{check_id}", response_model=MotionResult)
+    def motion_evidence(patient_id: UUID, check_id: UUID, request: Request, actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            result = read_motion(conn, patient_id, check_id)
+            audit(conn, actor, patient_id, "motion_evidence", request.state.request_id)
+            return result
+
     @app.post("/v1/patients/{patient_id}/checks", response_model=CheckResult | CheckReceipt)
     def create_check(patient_id: UUID, audio: UploadFile, mode: Annotated[CheckMode, Form()],
                      device_id: Annotated[str, Form(min_length=1, max_length=128)],
@@ -492,7 +520,7 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             return record_skip(conn, actor, patient_id, body, request.state.request_id)
 
     @app.get("/v1/patients/{patient_id}/consent", response_model=ConsentView)
-    def get_consent(patient_id: UUID, scope: Literal["voice_check", "vox_encounter"] = "voice_check",
+    def get_consent(patient_id: UUID, scope: Literal["voice_check", "vox_encounter", "motion_check"] = "voice_check",
                     actor=actor_dep):
         with transaction(cfg, actor) as conn:
             care_gate(conn, patient_id)

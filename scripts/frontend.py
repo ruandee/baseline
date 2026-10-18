@@ -81,7 +81,7 @@ PAGE_ROUTES = {"/", "/demo/session", *SHELL_ROUTES}
 PAGE_CSP = (
     "default-src 'self'; script-src 'self'; style-src 'self'; "
     "img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; "
-    "frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+    "frame-ancestors 'none'; base-uri 'none'; form-action 'self'; worker-src 'self'"
 )
 
 
@@ -127,6 +127,11 @@ def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None, psw=No
         page = getattr(request.scope.get("route"), "path", None) in PAGE_ROUTES
         response.headers["Content-Security-Policy"] = PAGE_CSP if page else (
             response.headers.get("Content-Security-Policy", "frame-ancestors 'none'"))
+        if request.url.path == "/assets/motion-worker.js":
+            # Emscripten bindings compile inside this isolated worker, never in page scripts.
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'none'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; "
+                "connect-src 'self'; worker-src 'self' blob:; base-uri 'none'")
         return response
 
     @app.get("/demo/session", include_in_schema=False)

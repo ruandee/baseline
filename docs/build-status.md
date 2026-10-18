@@ -187,3 +187,10 @@ BL-30 registry review adds scoped per-modality assessments, explicit unavailable
 corroboration, flat speech compatibility and source-safe first-change markers. Speech charts and
 check citations retain their original contract; non-speech drafts stay unavailable. Only speech
 is registered at runtime. Migration010 follows009; decision025 and exact-head CI track acceptance.
+
+BL-34 motion-check implementation adds a separately consented numeric-only endpoint, immutable
+plain-table captures and exact client-derived observation facts under forced RLS. Current-revision
+registry projections preserve source invalidation and PSW responses contain no measurements or
+scores. The browser runs pinned self-hosted pose assets in a local worker; no video/landmarks
+are uploaded. Synthetic geometry/cancellation tests do not satisfy real camera or under 15-second
+judge acceptance. Exact integrated CI remains required before merge.
