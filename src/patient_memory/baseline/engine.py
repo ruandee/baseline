@@ -1,6 +1,7 @@
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from math import isfinite
 from statistics import mean, median
 from typing import Literal
 
@@ -29,11 +30,13 @@ class FeatureSpec:
     modality: str
     direction: Literal[-1, 0, 1]
     abs_floor: float
+    label: str | None = None
+    unit: str | None = None
 
     def __post_init__(self):
         if self.direction not in (-1, 0, 1):
             raise ValueError(f"invalid direction for {self.name}")
-        if not self.abs_floor > 0:
+        if not isfinite(self.abs_floor) or not self.abs_floor > 0:
             raise ValueError(f"absolute floor must be positive for {self.name}")
 
 
@@ -99,6 +102,7 @@ class Check:
     usable: bool
     features: dict[str, float | None]
     modality: str = "speech"
+    evidence_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -255,6 +259,8 @@ class ModalityResult:
     modality: str
     ts: datetime
     assessment: Assessment
+    check_id: str | None = None
+    evidence_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -308,7 +314,9 @@ def combined_payload(combined: Combined) -> dict:
         "corroboration_hours": CORROBORATION_WINDOW.total_seconds() / 3600,
         "modalities": {
             name: {"status": r.assessment.status, "ts": r.ts.isoformat(),
+                   "check_id": r.check_id, "evidence_ids": list(r.evidence_ids),
                    "current": name in combined.current, "fused_z": r.assessment.fused,
+                   "params": r.assessment.params,
                    "baseline_checks": r.assessment.params.get("baseline_checks"),
                    "per_feature": {f: {"value": v.value, "median": v.median, "scale": v.scale,
                                        "z": v.z, "ewma": v.ewma, "cusum": v.cusum}
