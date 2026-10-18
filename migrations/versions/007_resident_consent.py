@@ -3,7 +3,7 @@ from pathlib import Path
 from alembic import op
 
 revision = "007"
-down_revision = "005"
+down_revision = "006"
 
 
 def upgrade():

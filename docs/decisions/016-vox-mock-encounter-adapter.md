@@ -77,14 +77,16 @@ The response is `VoxEncounterResult`: `usable`, `reasons`, `resident_speech_s`, 
 
 ## Interaction with BL-31 / decision 017
 
-There are two consent gates with distinct errors. The per-request `consent` part above (422
-`consent_not_given`) records that this one encounter was captured with consent. Stored resident
-consent from BL-31 (#64, decision 017) is a separate standing decision; when it is denied or
-missing, `POST /checks` returns 403 `consent_required`. Once #64 lands, this route must also
-require stored granted consent (scope `vox_encounter`) through the shared helper. It must check
-right after the care gate, before the per-request consent check and any audio work, and again
-inside `store_check`. It must return the same 403 `consent_required` as `POST /checks`. Until then
-only the per-request gate applies. That is acceptable only because the data is synthetic.
+There are two consent gates with distinct errors. Standing resident consent is now integrated
+from decision017 (migration007 after006): after the care-team gate, the route requires stored
+granted consent for `vox_encounter` before decoding, then rechecks inside locked `store_check`.
+Unknown, declined, withdrawn or expired standing consent returns403 `consent_required` and
+commits a separate `check_blocked_consent` audit row. A withdrawal during analysis rolls back
+publication. Existing `voice_check` consent never substitutes for encounter consent. PSWs remain
+forbidden from the Vox route even though the shared check writer supports their ordinary checks.
+The separate per-request consent part records permission for this encounter; only one literal
+`true` passes, otherwise audited422 `consent_not_given`. Contract tests exercise the two error
+classes, expiry, scope isolation, withdrawal during analysis and unchanged allowed capture.
 
 ## Not done
 

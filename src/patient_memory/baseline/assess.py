@@ -74,12 +74,15 @@ def escalations_used(conn, now: datetime, cfg: Settings) -> int:
     ).fetchone()["n"]
 
 
-def _history(conn, patient_id: UUID, before: datetime, prompt_version: str) -> list[Check]:
+def _history(conn, patient_id: UUID, before: datetime, prompt_version: str,
+             session_id: UUID | None = None) -> list[Check]:
+    # A KAZE session is compared only with its own arm-time baseline; checks outside a session
+    # never use session clips (decision 018).
     rows = conn.execute(
         "SELECT id,ts,device_id,prompt_version,is_baseline,usable,speech_rate_wpm,pause_ratio,"
         "mean_pause_s,f0_median_hz FROM voice_checks WHERE patient_id=%s AND usable AND ts<%s "
-        "AND prompt_version=%s ORDER BY ts DESC",
-        (patient_id, before, prompt_version)).fetchall()
+        "AND prompt_version=%s AND session_id IS NOT DISTINCT FROM %s ORDER BY ts DESC",
+        (patient_id, before, prompt_version, session_id)).fetchall()
     return [Check(str(r["id"]), r["ts"], r["device_id"], r["prompt_version"], r["is_baseline"],
                   r["usable"], {n: r[n] for n in FEATURES}) for r in rows]
 
@@ -94,12 +97,13 @@ def change_payload(assessment, mode: str) -> dict:
 
 def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_id: UUID,
                  ts: datetime, device_id: str, prompt_version: str, is_baseline: bool,
-                 features: dict, display_name: str) -> tuple[dict, dict]:
+                 features: dict, display_name: str,
+                 session_id: UUID | None = None) -> tuple[dict, dict]:
     """Returns the (change, assessment) payloads of POST /checks and stores the assessment row."""
-    check_writer_access(conn, patient_id)  # PSW-submitted checks are scored too
+    check_writer_access(conn, patient_id)
     lock_assessment(conn, tenant_id, patient_id)
-    check_writer_access(conn, patient_id)  # PSW-submitted checks are scored too
-    history = _history(conn, patient_id, ts, prompt_version)
+    check_writer_access(conn, patient_id)
+    history = _history(conn, patient_id, ts, prompt_version, session_id)
     mode = "enrolled" if sum(c.is_baseline for c in history) >= MIN_BASELINE else "rolling"
     check = Check(str(check_id), ts, device_id, prompt_version, is_baseline, True, dict(features))
     result = evaluate(check, history, mode, engine_settings(cfg, prompt_version))
@@ -122,8 +126,7 @@ def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_i
         "INSERT INTO assessments(tenant_id,patient_id,id,check_id,change_status,fused_z,features,"
         "params,verdict,reasons,suggested_action,sbar) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (tenant_id, patient_id, assessment_id, check_id, result.status, result.fused,
-         Jsonb(change["per_feature"]), Jsonb({**result.params, "mode": mode,
-                                                "prompt_version": prompt_version,
+         Jsonb(change["per_feature"]), Jsonb({**result.params, "mode": mode, "prompt_version": prompt_version,
                                                 "source_revision": source_revision,
                                                 "source_ids": [t["source_id"] for t in tags], **flags}),
          decision.verdict, Jsonb(reasons), decision.action, Jsonb(sbar) if sbar else None))

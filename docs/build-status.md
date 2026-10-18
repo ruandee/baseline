@@ -41,14 +41,12 @@ No real-data integration is authorized by these implemented milestones.
 | Evidence lifecycle | Source revision/provenance, atomic stale quote/SBAR scrubbing, read withholding, supersession and serialized admission | [Decision 015](decisions/015-assessment-evidence-lifecycle.md); authorization rechecked on return/publication |
 | BL-12 SBAR | Grounded sentence assembly, exact standard action, strict IDs/numbers/sections, template fallback and post-commit enrichment | [Decision 014](decisions/014-validated-sbar-drafts.md); provider work occurs outside DB transactions |
 | BL-14 loader | Twelve deterministic fictional residents, immutable published sources, authored synthetic checks, real runtime-role scoring and strict reports | [Decision 008](decisions/008-baseline-storyline-preparation.md), [loader guide](../fixtures/synthetic/baseline_storylines.README.md); approved +35% Mr. T scenario |
-| BL-32 Vox mock adapter | MOCK encounter route: per-request consent, resident-only extraction, free-conversation-v1 checks through the shared pipeline | [Decision 016](decisions/016-vox-mock-encounter-adapter.md); not a PointClickCare/Vox integration; stored consent (BL-31) still to wire |
 | F01 / BL-16 frontend | Local evidence workspace plus Baseline shell and same-origin session/host guards | [Decision 003](decisions/003-local-patient-workspace.md), [Decision 005](decisions/005-baseline-frontend-location.md); full capture/resident readback needs frontend verification |
 
 Only care-team roles can write voice checks; unauthorized patients/roles return 404 before audio
-work. Multipart is allowed only on POST to the check route and the mock Vox encounter route, with a
-2 MB whole-body limit; other routes remain JSON-only. Check upload decoding stops at 30 s; product
-capture is 15 s. Temporary check audio is deleted unless PM_KEEP_AUDIO=true; Vox encounter audio
-(which contains staff speech) is always deleted. Unusable clips are stored for audit and receive neither
+work. Multipart is allowed only on the check route, with a 2 MB whole-body limit; other routes
+remain JSON-only. Upload duration is bounded at 30 s; product capture is 15 s. Temporary audio is
+deleted unless PM_KEEP_AUDIO=true. Unusable clips are stored for audit and receive neither
 change nor assessment. Usable clips run the actual engine/verdict service and return both.
 Whisper startup warming, browser-format contracts and extraction tests are implemented; installing
 FFmpeg or passing synthetic audio tests does not establish real-recording quality or host p95.
@@ -75,19 +73,6 @@ commits its verdict and template before optional enrichment. Enrichment then rec
 access, source revision and check eligibility; a source change returns 409 memory_changed with the
 original check preserved, and revoked access returns 404. Generated prose remains a draft for
 verification; consistency with supplied data is not clinical truth or completeness.
-
-`POST /v1/integrations/vox/encounters` is a MOCK adapter (every response says `mock: true`). After
-the care-team gate (404 before consent or audio work), the per-request `consent` part must be
-exactly `true` and appear once; otherwise 422 `consent_not_given`, an audited
-`vox_encounter`/`consent_refused` row, and nothing else stored. Resident segments minus any
-staff/other overlap are cut from one decode bounded at 120 s (at most 60 s analyzed) and stored
-as `free-conversation-v1` checks, scored with `PM_Z_THRESHOLD_FREE` (2.5) against that prompt's
-history only. Under 8 s of resident speech gives `too_little_resident_speech` without ASR. Segment
-text is never stored. The overview charts the latest assessment's prompt; the watch-list sparkline
-the counting prompt (pending Dee's review). Once BL-31 (#64, decision 017) lands, this route must
-also require stored granted consent (scope `vox_encounter`) after the care gate and again inside
-`store_check`, returning the same 403 `consent_required` as `POST /checks`. No Vox UI exists yet;
-tests use synthetic tones on the fixture timeline, not real speech.
 
 ## Loader acceptance and presentation
 
@@ -134,7 +119,7 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
   full UI evidence/SBAR readback remain separate acceptance work.
 - Current-time/reset presentation, consuming the full 12-patient roster in hosting/frontend,
   and displaying Mrs. K's documented 37.1 C observation in overview/UI remain outstanding.
-- KAZE sessions/SMS/acknowledgement, Vox UI/stored-consent wiring, experience/export feedback and stretch modalities are
+- KAZE sessions/SMS/acknowledgement, Vox/experience/export feedback and stretch modalities are
   separate planned features; this handoff does not mark those tickets complete. Submission,
   backup video and two rehearsals are also tracked separately in the build tracker.
 
@@ -169,3 +154,14 @@ ordinary PSW transactions cannot retrieve scoring data, records or evidence. Res
 pending-permission refusal, uses stable per-mode devices and retains the one-retry/warm-close flow.
 See decision 017. Real-browser/nontechnical tester acceptance, additional language protocols and
 source-submitter attribution for ?Your observation helped? remain open. This is synthetic only.
+
+KAZE session model, expiry/retention hardening and synthetic engineering tests from decision 018
+are integrated. Migration 007 follows 006; explicit synthetic session fixtures record consent.
+Scheduler, delivery and real-device acceptance remain separate work.
+
+BL-32 Vox mock adapter integration: care-team authorization, standing `vox_encounter` consent
+before decode and locked publication (403 consent_required), plus exactly one raw true request
+consent part (422 consent_not_given). Resident-only VAD speech must reach8seconds after the
+analysis cap; staff-containing temporary audio is always removed regardless of KEEP_AUDIO.
+Checks remain prompt-scoped; first-change marker uses the displayed prompt. Real speech/Vox
+UI remain unvalidated, and overview prompt switching stays on hold (decision016).

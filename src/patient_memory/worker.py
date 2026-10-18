@@ -1,16 +1,22 @@
 import argparse
+import logging
 import time
 from uuid import UUID, uuid4
+
+import psycopg
 
 from patient_memory.auth import Identity
 from patient_memory.baseline.context import store_tags, structured_tags
 from patient_memory.baseline.notes import note_tags, publish_note_tags
+from patient_memory.baseline.sessions import retire as retire_sessions
 from patient_memory.config import Settings
 from patient_memory.domain import SourceInput
 from patient_memory.extraction import extract, store_facts, store_relations
 from patient_memory.ingestion import bump, claim_job, lock_patient
 from patient_memory.objects import ObjectStore
 from patient_memory.storage import audit, patient_access, transaction
+
+RETIRE_EVERY_S = 60
 
 
 def run_once(cfg: Settings, identity: Identity, objects=None):
@@ -73,7 +79,14 @@ def main():
     args = parser.parse_args()
     cfg = Settings()
     identity = Identity(args.actor, args.tenant)
+    retired_at = None
     while True:
+        if retired_at is None or time.monotonic() - retired_at >= RETIRE_EVERY_S:
+            try:  # KAZE 24 h retention; a no-op outside safety tenants
+                retire_sessions(cfg, identity)
+            except psycopg.Error:
+                logging.getLogger("patient_memory.worker").exception("session retention failed")
+            retired_at = time.monotonic()
         worked = run_once(cfg, identity)
         if args.once:
             return
