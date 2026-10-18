@@ -37,6 +37,11 @@ def test_fewer_than_three_baseline_checks_is_enrolling_without_scores():
     assessment = evaluate(check(), daily(2), "rolling", CFG)
     assert assessment.status == "enrolling"
     assert assessment.features == {}
+    assert assessment.params["baseline_checks"] == 2
+    assert assessment.params["min_baseline"] == 3
+    # The current clip is not an earlier eligible baseline point. Three prior checks unlock it.
+    completed = evaluate(check(), daily(3), "rolling", CFG)
+    assert completed.params["baseline_checks"] == 3 and completed.status == "none"
 
 
 def test_stable_speech_against_a_rolling_baseline_is_none():

@@ -4,6 +4,20 @@ const {test} = require('node:test');
 const {readFileSync} = require('node:fs');
 const {loadPage, until} = require('./harness');
 
+test('missing current assessment stays unknown even when historical checks exist', async () => {
+  let page;
+  page = loadPage('/resident/mrs-k', {routes: {
+    'GET /v1/patients/mrs-k/overview?days=30': () => ({
+      ...page.window.RESIDENT_FIXTURES['mrs-k'], latest_assessment: null}),
+  }});
+  await until(() => page.main.textContent.includes('No current assessment is available'));
+  assert.equal(page.main.querySelectorAll('.bl-chart').length, 4);
+  assert.equal(page.main.querySelectorAll('.bl-action').length, 0);
+  assert.equal(page.main.querySelectorAll('.bl-cite').length, 0);
+  assert.equal(page.main.querySelector('.bl-chip').getAttribute('data-verdict'), 'unknown');
+  assert(!page.main.textContent.includes('Waiting for enough voice checks'));
+});
+
 test('live resident route: charts, actual evidence, action, editable preliminary export', async () => {
   const captured = process.env.RESIDENT_LIVE_FIXTURE
     ? JSON.parse(readFileSync(process.env.RESIDENT_LIVE_FIXTURE, 'utf8')) : null;

@@ -183,13 +183,19 @@ and refreshed authorization. All reason, observation and SBAR citation buttons a
 including withheld readback after assessment change/revocation. Headless Chrome renders desktop
 and phone-width synthetic fixtures; this does not claim physical-phone or live-audio acceptance.
 
-BL-30 registry review adds scoped per-modality assessments, explicit unavailable/stale states,
-corroboration, flat speech compatibility and source-safe first-change markers. Speech charts and
-check citations retain their original contract; non-speech drafts stay unavailable. Only speech
-is registered at runtime. Migration010 follows009; decision025 and exact-head CI track acceptance.
+BL-28 pages add separate KAZE bootstrap, arming, baseline/session recording, countdown/reminders
+and a delivery/acknowledgement timeline. Logged/failed attempts never claim sent SMS. Latest
+SMS integration preserves public acknowledgement navigation and clinical/bootstrap guards.
+Physical phone/SMS/rehearsal gates remain open; page setup is in docs/kaze-pages.md.
 
-BL-35 review adds explicit resting HR/RR observation projection and nurse source readback, with
-an isolated synthetic Mrs. K RR-rise example. Missing rest/time/units remain unavailable. Vitals
-uses documented engineering-only feature declarations (decision028); speech policy and canonical
-cohort are unchanged. Migration012 preserves private PSW scoring while ordinary evidence stays
-denied. Exact-head DB-backed CI and live/human acceptance remain separate gates.
+BL-25 loud-venue follow-up scopes the specified 3 dB SNR tolerance to authorized stored session
+context and adds the open-session quiet-place hint. All other quality gates remain unchanged;
+synthetic checks do not establish real venue or golden-recording acceptance.
+
+BL-30 registry review adds scoped modalities and fresh immutable-capture reprojection without
+restoring invalidated decisions, flat speech compatibility and source-safe first-change markers.
+Decision025/migration010 and exact-head CI track acceptance.
+BL-35 review adds explicit resting HR/RR observations, an isolated synthetic Mrs. K RR-rise
+example and nurse source readback. Unknown rest/time/units stay unavailable; engineering-only
+vitals parameters are documented in decision028. Speech/canonical cohort are unchanged.012
+preserves private PSW scoring while ordinary evidence remains denied. Final CI remains required.

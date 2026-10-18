@@ -87,3 +87,7 @@ and its explicit check ID to match before showing the recorded time and measured
 Authored synthetic checks explicitly have no audio/source-document quote. A changed assessment
 or revoked access withholds the signal readback and asks for reload. Check IDs are never sent
 to the fact-only evidence endpoint. The DOM acceptance exercises every evidence button.
+
+A missing current assessment is explicitly unavailable, without assuming incomplete baseline
+enrollment. Source-revision invalidation can withhold an assessment while historical checks
+still exist, so the empty-state message does not infer calibration state from that absence.
