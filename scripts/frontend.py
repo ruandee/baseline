@@ -208,7 +208,8 @@ def main():
     app = workspace_app(cfg, reader, patients, hosts, os.environ.get("PM_DEMO_TOKEN") or None,
                         psw=psw_identity(reader.tenant_id),
                         psw_token=os.environ.get("PM_DEMO_PSW_TOKEN") or None)
-    uvicorn.run(app, host="127.0.0.1", port=8001, access_log=False,
+    uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PM_FRONTEND_PORT", "8001")),
+                access_log=False,
                 proxy_headers=bool(hosts), forwarded_allow_ips="127.0.0.1")
 
 
