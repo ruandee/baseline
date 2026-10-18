@@ -104,3 +104,12 @@ tabs, empty/error/retry states and handoff to the guarded recorder.
 Deployment is a separate operator action. No live upgrade, physical iPhone/Android/LTE capture,
 chair timing, screen-reader/user study or rehearsal is established here. Existing external gates
 remain open, as does the distinction between authored demo outcomes and real measurements.
+
+
+### Typography feedback ? 18 October 2026
+
+The user accepted the revised visual direction and resident illustration, requesting slightly
+more warmth and a rounder font. The static concept previews now use locally served Nunito
+(variable weight), with its SIL Open Font License in `docs/design/fonts/OFL.txt`. Resident
+buttons have a restrained 8px corner radius; the flat staff layout stays intact. This is a
+concept revision, with no runtime recording, consent, scoring or deployment change.
