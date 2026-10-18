@@ -334,6 +334,28 @@ def test_retention_refuses_an_unknown_identity(kaze_sandbox):
         retire(kaze_sandbox["cfg"], Identity(uuid4(), kaze_sandbox["tenant"]))
 
 
+def test_security_definer_owners_can_bypass_forced_rls(admin):
+    # Forced RLS would silently hide rows inside retention/ack if ownership were transferred
+    # to the ordinary runtime role. The migration assertion and actual owner must agree.
+    functions = ["pm_safety_tenant", "pm_acknowledge_escalation", "pm_retire_safety_sessions"]
+    rows = admin.execute(
+        "SELECT p.proname,p.prosecdef,r.rolsuper OR r.rolbypassrls AS bypass "
+        "FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace "
+        "JOIN pg_roles r ON r.oid=p.proowner WHERE n.nspname='public' "
+        "AND p.proname=ANY(%s)", (functions,)).fetchall()
+    assert sorted(rows) == sorted((name, True, True) for name in functions)
+
+
+def test_migration_owner_guard_refuses_runtime_role(kaze_sandbox):
+    from pathlib import Path
+    migration = Path(__file__).parents[2] / "migrations/versions/006_safety_sessions.sql"
+    # Execute only the migration's pre-DDL ownership guard under the real runtime role.
+    guard = migration.read_text(encoding="utf-8").split("ALTER TABLE tenants", 1)[0]
+    with pytest.raises(psycopg.errors.RaiseException, match="superuser or BYPASSRLS"):
+        with transaction(kaze_sandbox["cfg"], kaze_sandbox["ids"]["service"]) as conn:
+            conn.execute(guard)
+
+
 def test_ended_is_terminal_and_deletion_cannot_be_postponed(kaze_sandbox, admin):
     k = kaze_sandbox
     sid = add_session(admin, k["tenant"], k["patient"], status="ended")

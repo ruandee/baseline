@@ -367,7 +367,8 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             except DecoderUnavailable as exc:
                 raise Problem(503, "dependency_unavailable") from exc
         finally:
-            if not cfg.keep_audio:
+            # Session audio has no retention index: never leave raw files behind for KAZE.
+            if session_id is not None or not cfg.keep_audio:
                 shutil.rmtree(work, ignore_errors=True)
         with transaction(cfg, actor) as conn:
             result = store_check(conn, actor, patient_id, request.state.request_id, analysis,

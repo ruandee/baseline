@@ -41,7 +41,6 @@ No real-data integration is authorized by these implemented milestones.
 | Evidence lifecycle | Source revision/provenance, atomic stale quote/SBAR scrubbing, read withholding, supersession and serialized admission | [Decision 015](decisions/015-assessment-evidence-lifecycle.md); authorization rechecked on return/publication |
 | BL-12 SBAR | Grounded sentence assembly, exact standard action, strict IDs/numbers/sections, template fallback and post-commit enrichment | [Decision 014](decisions/014-validated-sbar-drafts.md); provider work occurs outside DB transactions |
 | BL-14 loader | Twelve deterministic fictional residents, immutable published sources, authored synthetic checks, real runtime-role scoring and strict reports | [Decision 008](decisions/008-baseline-storyline-preparation.md), [loader guide](../fixtures/synthetic/baseline_storylines.README.md); approved +35% Mr. T scenario |
-| BL-25 KAZE sessions | Migration 006: safety-mode tenants, sessions/contacts/escalation events, session check-ins with location, activation on the third usable baseline clip, hashed-token ack function and 24 h retention | [Decision 018](decisions/018-kaze-session-model.md); runtime-role RLS, column grants and retention tested; scheduler/SMS/pages are BL-26/27/28 |
 | F01 / BL-16 frontend | Local evidence workspace plus Baseline shell and same-origin session/host guards | [Decision 003](decisions/003-local-patient-workspace.md), [Decision 005](decisions/005-baseline-frontend-location.md); full capture/resident readback needs frontend verification |
 
 Only care-team roles can write voice checks; unauthorized patients/roles return 404 before audio
@@ -74,13 +73,6 @@ commits its verdict and template before optional enrichment. Enrichment then rec
 access, source revision and check eligibility; a source change returns 409 memory_changed with the
 original check preserved, and revoked access returns 404. Generated prose remains a draft for
 verification; consistency with supplied data is not clinical truth or completeness.
-
-KAZE sessions exist only in tenants with `safety_mode` (`scripts/kaze_demo.py` creates
-`kaze-demo`). The person is importer on their own row and alone arms, ends and checks in; the
-`kaze-service` principal (nurse) runs the worker, scheduler and sender. Session checks are scored
-only against that session's baseline and never go to a model provider. Ended sessions cannot be
-reopened or have their deletion time moved; the worker deletes them with their checks, locations,
-assessments, contacts, events and arm idempotency snapshot 24 h after they end.
 
 ## Loader acceptance and presentation
 
@@ -127,12 +119,21 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
   full UI evidence/SBAR readback remain separate acceptance work.
 - Current-time/reset presentation, consuming the full 12-patient roster in hosting/frontend,
   and displaying Mrs. K's documented 37.1 C observation in overview/UI remain outstanding.
-- KAZE: the BL-25 session model and endpoints landed (PR #66, decision 018). The scheduler
-  (BL-26), SMS/acknowledgement route (BL-27), pages (BL-28), two-phone loop and integrated
-  acceptance remain open. Vox/experience/export feedback and stretch modalities are separate
-  planned features; this handoff does not mark those tickets complete. Submission,
+- KAZE sessions/SMS/acknowledgement, Vox/experience/export feedback and stretch modalities are
+  separate planned features; this handoff does not mark those tickets complete. Submission,
   backup video and two rehearsals are also tracked separately in the build tracker.
 
 Follow README/operations and the exact CI order before claiming a new integrated milestone done.
 Do not introduce real patient data before source permissions, hosting, provider handling and
 clinical ownership are decided.
+
+
+## BL-25 session privacy review (PR #66, pending merge)
+
+Migration 006 and session arm/status/end/check-in contracts are prepared with forced RLS,
+immutable ended rows, fixed 24-hour deletion and restricted UPDATE columns. Retention deletes
+checks, locations, assessments, contacts, events and the idempotent arm snapshot. Expiry is
+checked before decode and again before storage; late end requests cannot postpone deletion.
+Raw session audio is removed even when debug audio retention is enabled. See decision 018.
+The previous review head 35c7926 passed CI; the final corrective head requires independent
+review and fresh CI. Scheduler/SMS/pages and the six held questions remain outside this change.

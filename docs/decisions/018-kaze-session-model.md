@@ -167,6 +167,13 @@ DELETE grant is added.
   and records the provider outcome by updating `delivery`/`sent_at`.
 - A session whose `ends_at` has passed is over even before retention marks it: check-ins get 409
   `session_ended`, and arming again first closes it as `ended/expired`.
+  This is checked before decoding and again under the storage lock. An end request after planned
+  expiry records `ended_at=ends_at` and `end_reason=expired`, preserving deletion at the original
+  expiry plus 24 hours rather than postponing it until the late request.
+- Raw session audio is always removed in the upload handler's `finally` block, on both success
+  and failure, even if `PM_KEEP_AUDIO=true`. Temporary files have no session retention index and
+  therefore cannot be retained safely for the later database deletion job. Non-session debug
+  retention keeps its existing behavior; no real recordings are included in validation.
 - The SECURITY DEFINER functions bypass forced RLS only because their owner (the migration role)
   is superuser or BYPASSRLS; migration 006 raises if it is not. Never move ownership of these
   functions to `pm_runtime` or another RLS-bound role.

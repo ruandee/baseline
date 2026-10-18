@@ -173,11 +173,14 @@ def end(conn, identity, patient_id: UUID, session_id: UUID, request_id: UUID) ->
     owner_gate(conn, patient_id)
     row = _row(conn, patient_id, session_id, lock=True)
     if row["status"] != "ended":
-        ended_at = conn.execute("SELECT clock_timestamp() AS t").fetchone()["t"]
+        # A late end request cannot extend the retention window past the planned expiry.
+        ended_at = (row["ends_at"] if row["past_end"] else
+                    conn.execute("SELECT clock_timestamp() AS t").fetchone()["t"])
+        reason = "expired" if row["past_end"] else "user"
         conn.execute(
-            "UPDATE safety_sessions SET status='ended',end_reason='user',ended_at=%s,"
+            "UPDATE safety_sessions SET status='ended',end_reason=%s,ended_at=%s,"
             "delete_after=%s,next_due_at=NULL WHERE patient_id=%s AND id=%s",
-            (ended_at, ended_at + RETENTION, patient_id, session_id))
+            (reason, ended_at, ended_at + RETENTION, patient_id, session_id))
         audit(conn, identity, patient_id, "end_session", request_id)
         row = _row(conn, patient_id, session_id)
     return describe(conn, row)
