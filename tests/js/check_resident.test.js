@@ -90,6 +90,20 @@ test('resident check shows only a warm thank-you, as the PSW, with a stable devi
   assertNoLeak(page.main);  // the listening countdown had digits; the finished page has none
 });
 
+test('an honorific or anonymized initial gets a warm close without a guessed given name', async () => {
+  for (const name of ['Mrs. K', 'Mr T', 'Dr. Lee', 'K.', '']) {
+    const page = loadPage('/check?mode=resident&patient=p1&mock=1&fixture=escalate', {
+      patients: [{id: 'p1', name}],
+    });
+    await ready(page);
+    await record(page);
+    await until(() => cardState(page) === 'thanks');
+    assert.match(message(page), /^Thank you\./);
+    assert.doesNotMatch(message(page), /Thank you,/);
+    assertNoLeak(page.main);
+  }
+});
+
 test('one retry after an unusable clip, then a second unusable clip is accepted, never looped', async () => {
   const page = loadPage('/check?mode=resident&patient=p2&mock=1&fixture=unusable,unusable');
   await ready(page);

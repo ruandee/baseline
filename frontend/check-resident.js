@@ -34,7 +34,11 @@ function residentLanguage(code) {
 function firstNameOf(patientId) {
   const patients = (state.session && state.session.patients) || [];
   const found = patients.find((p) => p.id === patientId);
-  return found && found.name ? found.name.trim().split(/\s+/)[0] : null;
+  const first = found && found.name ? found.name.trim().split(/\s+/)[0] : '';
+  // An honorific or anonymized initial is not a given name. Keep the close warm without
+  // addressing someone as "Mrs." or guessing a name that the roster does not supply.
+  return !first || /^(?:mr|mrs|ms|miss|mx|dr)\.?$/i.test(first)
+    || /^\p{L}\.?$/u.test(first) ? null : first;
 }
 
 // One-retry rule (docs/06-baseline.md): first unusable clip earns one more try, a second
