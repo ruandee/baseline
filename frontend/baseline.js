@@ -233,6 +233,12 @@ async function render() {
     return;
   }
   if (current.name === 'check') {
+    const query = new URLSearchParams(location.search);
+    if (query.get('mode') === 'live' && query.get('demo') === 'days') {
+      // Public fictional presentation only: no session bootstrap, retrieval or API writes.
+      window.renderDemoDays(document.getElementById('bl-main'), {el, chip, maxSeconds: CHECK_MAX_S});
+      return;
+    }
     const motion = new URLSearchParams(location.search).get('type') === 'motion';
     await renderPage(current, motion ? window.renderMotion : renderCheck);
     return;
