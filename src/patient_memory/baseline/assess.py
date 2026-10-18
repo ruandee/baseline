@@ -95,10 +95,14 @@ def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_i
     result = evaluate(check, history, mode, cfg)
     tags = valid_tags(conn, patient_id, ts)
     decision = decide(result.status, result.fused, [(t["kind"], t["tag"]) for t in tags])
-    no_escalate = str(patient_id) in {p.strip() for p in cfg.no_escalate_patients.split(",")}
-    decision, flags = apply_profile(
-        decision, escalations_used=escalations_used(conn, ts, cfg),
-        budget=cfg.escalation_budget, no_escalate=no_escalate)
+    # KAZE has its own explicit escalation_enabled/session-explainer policy. PCC's
+    # interrupt budget and resident profile must not label or downgrade session assessments.
+    flags = {"over_budget": False, "no_escalate": False, "would_escalate": False}
+    if session_id is None:
+        no_escalate = str(patient_id) in {p.strip() for p in cfg.no_escalate_patients.split(",")}
+        decision, flags = apply_profile(
+            decision, escalations_used=escalations_used(conn, ts, cfg),
+            budget=cfg.escalation_budget, no_escalate=no_escalate)
     change = change_payload(result, mode)
     reasons = [t for t in tags if t["kind"] == "amplifier"] if decision.verdict in (
         "escalate", "watch") and any(t["kind"] == "amplifier" for t in tags) else (
