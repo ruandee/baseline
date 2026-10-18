@@ -70,7 +70,8 @@ def escalations_used(conn, now: datetime, cfg: Settings) -> int:
     return conn.execute(
         "SELECT count(*) AS n FROM assessments a JOIN voice_checks v ON v.tenant_id=a.tenant_id "
         "AND v.patient_id=a.patient_id AND v.id=a.check_id WHERE a.verdict='escalate' "
-        "AND v.ts>=%s AND v.ts<%s AND COALESCE((a.params->>'over_budget')::boolean,false)=false "
+        "AND v.session_id IS NULL AND v.ts>=%s AND v.ts<%s "
+        "AND COALESCE((a.params->>'over_budget')::boolean,false)=false "
         "AND COALESCE((a.params->>'no_escalate')::boolean,false)=false", (start, end)
     ).fetchone()["n"]
 
@@ -114,10 +115,13 @@ def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_i
     started = perf_counter()
     tags = valid_tags(conn, patient_id, ts)
     decision = decide(result.status, result.fused, [(t["kind"], t["tag"]) for t in tags])
-    no_escalate = str(patient_id) in {p.strip() for p in cfg.no_escalate_patients.split(",")}
-    decision, flags = apply_profile(
-        decision, escalations_used=escalations_used(conn, ts, cfg),
-        budget=cfg.escalation_budget, no_escalate=no_escalate)
+    # Session assessments use KAZE policy, never PCC interruption/profile suppression.
+    flags = {"over_budget": False, "no_escalate": False, "would_escalate": False}
+    if session_id is None:
+        no_escalate = str(patient_id) in {p.strip() for p in cfg.no_escalate_patients.split(",")}
+        decision, flags = apply_profile(
+            decision, escalations_used=escalations_used(conn, ts, cfg),
+            budget=cfg.escalation_budget, no_escalate=no_escalate)
     verdict_ms = round((perf_counter() - started) * 1000)
     if timings_ms is not None:
         timings_ms.update(engine=engine_ms, verdict=verdict_ms)

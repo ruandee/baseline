@@ -182,3 +182,8 @@ BL-19 follow-up makes every check citation interactive with matching assessment/
 and refreshed authorization. All reason, observation and SBAR citation buttons are exercised,
 including withheld readback after assessment change/revocation. Headless Chrome renders desktop
 and phone-width synthetic fixtures; this does not claim physical-phone or live-audio acceptance.
+
+BL-26 scheduler integration records the standard missed-check/speech-change ladder with
+serialized reset/acknowledgement/expiry and independent KAZE assessment/profile rules. Session
+checks do not consume the resident shift budget. Exact integrated CI and phone gates remain
+required; no live SMS is enabled by this scheduler-only branch.

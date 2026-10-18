@@ -8,6 +8,7 @@ import psycopg
 from patient_memory.auth import Identity
 from patient_memory.baseline.context import store_tags, structured_tags
 from patient_memory.baseline.notes import note_tags, publish_note_tags
+from patient_memory.baseline.safety import PASS_EVERY_S, run_pass, sender_from_settings
 from patient_memory.baseline.sessions import retire as retire_sessions
 from patient_memory.config import Settings
 from patient_memory.domain import SourceInput
@@ -79,14 +80,22 @@ def main():
     args = parser.parse_args()
     cfg = Settings()
     identity = Identity(args.actor, args.tenant)
-    retired_at = None
+    logger = logging.getLogger("patient_memory.worker")
+    sender = sender_from_settings(cfg)
+    retired_at = scheduled_at = None
     while True:
         if retired_at is None or time.monotonic() - retired_at >= RETIRE_EVERY_S:
             try:  # KAZE 24 h retention; a no-op outside safety tenants
                 retire_sessions(cfg, identity)
             except psycopg.Error:
-                logging.getLogger("patient_memory.worker").exception("session retention failed")
+                logger.exception("session retention failed")
             retired_at = time.monotonic()
+        if scheduled_at is None or time.monotonic() - scheduled_at >= PASS_EVERY_S:
+            try:  # KAZE ladder (BL-26); finds nothing outside a safety tenant
+                run_pass(cfg, identity, sender)
+            except psycopg.Error:
+                logger.exception("KAZE scheduler pass failed")
+            scheduled_at = time.monotonic()
         worked = run_once(cfg, identity)
         if args.once:
             return
