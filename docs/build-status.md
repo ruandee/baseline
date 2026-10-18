@@ -145,16 +145,19 @@ loader writes the cohort to `uid("tenant-0")`. A default local `/unit` therefore
 workspace patients with no voice checks; it shows the cohort only when `PM_DEMO_TOKEN` is set
 to the loader's `artifacts/baseline-demo/session.json` nurse token (BL-21 reset work).
 
-## Resident / PSW workflow (BL-31)
+## BL-25 session model integration
 
-Migration 007 adds append-only scoped resident/SDM consent and check skips. Unknown, declined,
-withdrawn or expired consent blocks capture with audited 403 consent_required before decode/ASR
-and is checked again under the patient admission lock. PSWs use score-free due/skip/check receipts;
-ordinary PSW transactions cannot retrieve scoring data, records or evidence. Resident capture fixes
-pending-permission refusal, uses stable per-mode devices and retains the one-retry/warm-close flow.
-See decision 017. Real-browser/nontechnical tester acceptance, additional language protocols and
-source-submitter attribution for ?Your observation helped? remain open. This is synthetic only.
+Review fixes cover session expiry before capture and after locking, immutable ended-state retention,
+24-hour deletion including idempotent arm snapshots, constrained runtime grants, and unconditional
+session-audio cleanup. Session-model tests pass locally; final combined service CI remains required.
+Scheduler/SMS/pages and the held ADR 018 policy questions remain separate work.
 
-KAZE session model, expiry/retention hardening and synthetic engineering tests from decision 018
-are integrated. Migration 007 follows 006; explicit synthetic session fixtures record consent.
-Scheduler, delivery and real-device acceptance remain separate work.
+
+### BL-26/BL-27 branches (pending review)
+
+The stacked scheduler and SMS branches implement the standard KAZE 15-second polling loop,
+2.5/5/10/10-minute ladder, raw session change triggers and usable check-in resets. SMS is prepared
+inside the locked publication transaction and delivery occurs after commit. Log delivery is the
+default; no real text/model/audio call is part of validation. Consent migration 007 remains owned
+by BL-31; migration 008 hardens public acknowledgement and durable delivery claims. Dependencies
+#27/#28 remain open until reviewed and merged. The six held ADR018 questions remain undecided.
