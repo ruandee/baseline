@@ -40,7 +40,19 @@ Test the experience with consenting volunteers and care professionals, especiall
 
 ## How we built it
 
-We built a browser app for recording voice checks and reviewing results. Behind the scenes, a Python backend processes the recordings and brings the results together with care notes. A database keeps each resident's history, and the app runs on Google Cloud.
+```mermaid
+flowchart TD
+    A["Record a 30-second voice check in the browser"] --> B["Check the audio and turn speech into text"]
+    B --> C["Measure speech patterns"]
+    C --> D["Compare with the resident's usual range"]
+    H[("Earlier voice checks")] --> D
+    C --> H
+    D --> E["Show changes alongside relevant care notes"]
+    N[("Care notes")] --> E
+    E --> F["Nurse reviews the evidence and decides what to do next"]
+```
+
+The app runs on Google Cloud. If the audio is unusable or there is too little history, it asks for another check or shows that more information is needed.
 
 Built with Python, FastAPI, PostgreSQL, TimescaleDB, FFmpeg, Whisper, HTML, CSS, JavaScript, Docker, and Caddy.
 
