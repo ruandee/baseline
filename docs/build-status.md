@@ -178,6 +178,17 @@ loader writes the cohort to `uid("tenant-0")`. A default local `/unit` therefore
 workspace patients with no voice checks; it shows the cohort only when `PM_DEMO_TOKEN` is set
 to the loader's `artifacts/baseline-demo/session.json` nurse token (BL-21 reset work).
 
+That token is a different identity from the workspace nurse, which is deliberate authorization.
+With `PM_DEMO_TOKEN` set, three things follow:
+
+- `/unit?demo=handoff` shows "404 /demo/handoff", because only the workspace nurse may create a
+  room. Run a second server without the token for anything under `?demo=handoff`:
+  `env -u PM_DEMO_TOKEN PM_FRONTEND_PORT=8004 uv run python -m scripts.frontend`.
+- `/` lists the notes-corpus residents (Alex Morgan, SYNTHETIC-01 to 08) and their records fail
+  to load ("unavailable or no longer assigned"), because the notes roster is the workspace
+  tenant's. Without the token `/` works and `/unit` shows no voice checks.
+- Keep the token-enabled server for `/unit` and `/resident/{id}`.
+
 ## Resident / PSW workflow (BL-31)
 
 Migration 007 adds append-only scoped resident/SDM consent and check skips. Unknown, declined,

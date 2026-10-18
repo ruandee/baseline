@@ -84,3 +84,20 @@ test('cancel during consent preflight prevents delayed model initialization or c
   assert.ok(button(h, 'Start').disabled);
   assert.match(h.main.textContent, /Camera off/);
 });
+
+test('saved result with a missing or non-numeric feature shows Unknown instead of a failure', async () => {
+  const h = loadPage('/check?type=motion&patient=p1', {routes: {
+    'GET /v1/patients/p1/motion-checks/readiness': () => ({ready: true}),
+    'POST /v1/patients/p1/motion-checks': () => ({usable: false,
+      features: {sit_to_stand_s: 1.2, trunk_sway: 'n/a'}})}});
+  h.window.MotionCapture = CaptureStub;
+  await until(() => button(h, 'Get ready'));
+  button(h, 'Get ready').click(); await until(() => !button(h, 'Start').disabled);
+  button(h, 'Start').click();
+  await until(() => /Step cadence/.test(h.main.textContent));
+  assert.match(h.main.textContent, /Trunk sway: Unknown/);
+  assert.match(h.main.textContent, /Step cadence: Unknown/);
+  assert.match(h.main.textContent, /Measurements saved/);
+  assert.doesNotMatch(h.main.textContent, /could not continue/);
+  for (const f of h.window.listeners.pagehide || []) f();
+});

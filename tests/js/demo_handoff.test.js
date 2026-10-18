@@ -59,6 +59,18 @@ test('retry retains the same receipt ID, sends metadata only and clears audio on
   exit(page);
 });
 
+test('a dropped network shows the friendly retry message, not the browser error', async () => {
+  const page = loadPage(url);
+  await record(page);
+  page.window.fetch = async () => { throw new TypeError('Failed to fetch'); };
+  q(page, '.bl-handoff-submit').click();
+  await until(() => page.main.textContent.includes('Connection failed'));
+  assert(!page.main.textContent.includes('Failed to fetch'));
+  assert(q(page, 'audio'));
+  assert(!q(page, '.bl-handoff-submit').disabled);
+  exit(page);
+});
+
 test('nurse receives runner and must explicitly apply context to explain it', async () => {
   let revision = 1;
   const data = () => ({revision, exertion: revision === 2, capture_keys: {runner: 'r', resident: 'd'},
@@ -77,6 +89,28 @@ test('nurse receives runner and must explicitly apply context to explain it', as
   assert.equal(post.opts.body, '{"tag":"exertion"}');
   assert.equal(post.opts.headers.Authorization, 'Bearer nurse-key');
   assert(!page.calls.some(c => c.key.includes('/v1/') || c.key.includes('/demo/session')));
+  exit(page);
+});
+
+test('nurse screen says Reconnecting on a dropped network and recovers, without phone wording', async () => {
+  const data = {revision: 1, exertion: false, capture_keys: {runner: 'r', resident: 'd'},
+    checks: [{resident: 'runner', take: 1, received_at: '2026-10-18T03:00:00Z', verdict: 'watch'}]};
+  const page = loadPage('/unit?demo=handoff#room=room1&key=nurse-key', {routes: {
+    'GET /demo/handoff/room1': () => data,
+    'POST /demo/handoff/room1/context': () => data,
+  }});
+  await until(() => page.main.textContent.includes('Connected'));
+  const working = page.window.fetch;
+  page.window.fetch = async () => { throw new TypeError('Failed to fetch'); };
+  await until(() => page.main.textContent.includes('Reconnecting'), 5000);
+  assert(!page.main.textContent.includes('Failed to fetch'));
+  assert(!page.main.textContent.includes('check-in will not be duplicated'));
+  // A dropped network while applying context gets nurse wording, not the phone's retry text.
+  q(page, '[data-resident=runner]').querySelector('button').click();
+  await until(() => page.main.textContent.includes('Connection failed. Try again.'));
+  assert(!page.main.textContent.includes('check-in will not be duplicated'));
+  page.window.fetch = working;
+  await until(() => page.main.textContent.includes('Connected'), 5000);
   exit(page);
 });
 

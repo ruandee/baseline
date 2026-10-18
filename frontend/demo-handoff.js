@@ -25,10 +25,11 @@
       {class: 'demo-introduction'});
     main.replaceChildren(disclosure, title, introduction, info, status, content);
     async function request(path = '', method = 'GET', body) {
+      // A dropped network rejects fetch; show the same retry message as a failed response.
       const response = await fetch('/demo/handoff' + (room ? '/' + room : '') + path, {
         method, headers: {Authorization: 'Bearer ' + key,
           ...(body === undefined ? {} : {'Content-Type': 'application/json'})},
-        ...(body === undefined ? {} : {body: JSON.stringify(body)})});
+        ...(body === undefined ? {} : {body: JSON.stringify(body)})}).catch(() => ({ok: false, status: 0}));
       if (!response.ok) {
         const error = new Error(response.status === 404
         ? 'This demo link expired or is invalid. Ask the nurse for a new link.'
@@ -39,6 +40,9 @@
       }
       return response.json();
     }
+    // The "same check-in will not be duplicated" text is for the phone; a dropped network on the
+    // nurse screen (status 0) gets its own wording.
+    const nurseMessage = (error, offline) => error.status === 0 ? offline : error.message;
     function release() {
       generation++;
       clearTimeout(timer);
@@ -74,7 +78,7 @@
         reset.addEventListener('click', async () => {
           reset.disabled = true;
           try { await request('', 'DELETE'); location.replace('/unit?demo=handoff'); }
-          catch (error) { status.textContent = error.message; reset.disabled = false; }
+          catch (error) { status.textContent = nurseMessage(error, 'Connection failed. Try again.'); reset.disabled = false; }
         });
         content.append(links, cards, reset);
         let revision = -1;
@@ -126,7 +130,7 @@
               apply.addEventListener('click', async () => {
                 apply.disabled = true;
                 try { draw(await request('/context', 'POST', {tag: select.value})); status.textContent = 'Context added. Runner check-in is Explained.'; }
-                catch (error) { status.textContent = error.message; apply.disabled = false; }
+                catch (error) { status.textContent = nurseMessage(error, 'Connection failed. Try again.'); apply.disabled = false; }
               });
               context.append(label, apply); card.append(context);
             }
@@ -148,7 +152,7 @@
         async function poll() {
           try { const data = await request(); if (!stopped) { draw(data); status.textContent = 'Connected · checking for new submissions every 2 seconds'; } }
           catch (error) {
-            if (!stopped) status.textContent = error.message;
+            if (!stopped) status.textContent = nurseMessage(error, 'Reconnecting…');
             if (error.status === 404) {
               cards.replaceChildren(); links.replaceChildren(); reset.disabled = true;
               content.append(h.el('a', 'Start a new demo room', {href: '/unit?demo=handoff'}));

@@ -128,7 +128,7 @@ window.renderMotion = async function(host) {
         for (const [name, label, unit] of [['sit_to_stand_s', 'Time to half-rise', 's'],
           ['trunk_sway', 'Trunk sway', 'ratio'], ['step_cadence_spm', 'Step cadence', 'steps/min']]) {
           const value = data.features[name];
-          result.append(el('p', `${label}: ${value === null ? 'Unknown' : value.toFixed(2) + ' ' + unit}`));
+          result.append(el('p', `${label}: ${Number.isFinite(value) ? value.toFixed(2) + ' ' + unit : 'Unknown'}`));
         }
         if (!data.usable) result.append(el('p', 'Incomplete or insufficient-quality movement. No change assessment was made.'));
       }

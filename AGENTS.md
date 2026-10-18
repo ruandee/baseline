@@ -8,7 +8,7 @@ The Baseline hackathon build (voice checks, change engine, watch list, KAZE safe
 
 ### Baseline build: where the repo differs from `docs/06-baseline.md`
 
-- **Frontend lives in `frontend/`, not `web/`** ([decision 005](docs/decisions/005-baseline-frontend-location.md)). Baseline pages share `frontend/baseline.html` + `baseline.js` + `baseline.css`, served same-origin by `scripts/frontend.py`. Off-loopback hosting is opt-in via `PM_FRONTEND_HOSTS` and a pre-minted `PM_DEMO_TOKEN`; never serve the workspace publicly without them. Do not create `web/`.
+- **Frontend lives in `frontend/`, not `web/`** ([decision 005](docs/decisions/005-baseline-frontend-location.md)). Baseline pages share `frontend/baseline.html` + `baseline.js` + `baseline.css`, served same-origin by `scripts/frontend.py`. Off-loopback hosting is opt-in via `PM_FRONTEND_HOSTS` and a pre-minted `PM_DEMO_TOKEN`; never serve the workspace publicly without them. Do not create `web/`. With `PM_DEMO_TOKEN` set, `?demo=handoff` 404s and `/` loads no records; see `docs/build-status.md` (BL-18 known gap) for the two-server workaround.
 - **Multipart is blocked.** The body-limit middleware in `api.py` (the `PayloadLimit` middleware) returns 415 for any non-`application/json` body and 413 over its limit. BL-07 (`POST /checks`, 2 MB audio upload) must exempt that route (or raise its limit) and add `python-multipart`; keep the guard on every other route.
 - **Claiming and branches:** assign yourself on the GitHub issue first; branch `bl/bl-<nn>-<slug>`; commit subject starts with the ticket ID; PR body says `Closes #<n>`. Check blockers with the `gh api .../dependencies/blocked_by` call in `docs/agents/issue-tracker.md`.
 
