@@ -113,3 +113,8 @@ more warmth and a rounder font. The static concept previews now use locally serv
 (variable weight), with its SIL Open Font License in `docs/design/fonts/OFL.txt`. Resident
 buttons have a restrained 8px corner radius; the flat staff layout stays intact. This is a
 concept revision, with no runtime recording, consent, scoring or deployment change.
+
+The next review found excessive blank space in the unit concept. Desktop rows now use a
+78px minimum (previously 108px), with tighter heading/summary spacing, 3% outer gutters and
+a closer 320px context pane. Text contrast and secondary type size were increased rather
+than shrinking text to achieve density. Phone rows retain an 88px minimum and 44px controls.
