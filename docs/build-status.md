@@ -159,3 +159,14 @@ source-submitter attribution for ?Your observation helped? remain open. This is 
 KAZE session model, expiry/retention hardening and synthetic engineering tests from decision 018
 are integrated. Migration 007 follows 006; explicit synthetic session fixtures record consent.
 Scheduler, delivery and real-device acceptance remain separate work.
+
+
+### BL-21 reset branch (pending review and combined CI)
+
+An explicit one-command fixture-only reset translates copied scenario prefixes to one UTC demo
+anchor, requires all twelve actual canonical outcomes, privately refreshes 48-hour nurse/PSW
+tokens and prints unit/PSW/live URLs. Dedicated live/runner people preserve recordings outside
+the scripted allowlist. Exact identity/hash/measurement validation, scoped ID cleanup and a
+resumable marker reject unrecognized data; consent/revocations and other patients remain intact.
+Historical loader modes/fixture values remain unchanged. DB/image validation and the public
+hosting/phone/latency gates remain outstanding; issue23/issue22 are not closed by this branch.
