@@ -12,7 +12,13 @@ Help care teams notice when someone is different from their usual self.
 
 ## Inspiration
 
-"She seems a little different today." A familiar caregiver may notice a change immediately, but a nurse covering a busy unit may not know that resident as well. We built Baseline to help share that observation, with the person's own history as the starting point.
+In older adults, an infection often shows up first as confusion, not fever. Fever may be absent in 20 to 30 percent of older adults with a serious infection, according to a [1996 review in *Infectious Disease Clinics of North America*](https://pubmed.ncbi.nlm.nih.gov/8698997/). When researchers [studied 817 older adults](https://repository.escholarship.umassmed.edu/entities/publication/bfe49db9-5f80-4016-86da-d1d24c655811) who came to U.S. emergency departments with COVID-19, 28 percent were delirious on arrival. More than a third of those had none of the usual signs, such as fever or shortness of breath, the 2020 study in *JAMA Network Open* found.
+
+That confusion (delirium) is easy to miss. In a [2001 study in *Archives of Internal Medicine*](https://dash.harvard.edu/entities/publication/73120378-e168-6bd4-e053-0100007fdf3b), nurses recognized delirium in only 31 percent of the hospitalized older patients who had it. It is even harder to spot in people with dementia. A [2008 study of long-term care residents with dementia](https://pmc.ncbi.nlm.nih.gov/articles/PMC2277396) found that 71.5 percent had delirium, yet nurses detected it in just 13 percent of cases.
+
+Care aides often notice that someone "seems off" days before anything reaches the chart. In one nursing-home study [published in the *Journal of the American Geriatrics Society*](https://pubmed.ncbi.nlm.nih.gov/10983908/), aides documented signs of illness an average of five days before the chart did. But "seems off" is not something a system can track. On a night shift one nurse may cover a whole unit: [Ontario's Auditor General found](https://www.auditor.on.ca/en/content/news/23_summaries/ag_AR_LTCresidential_en23.pdf) evening and overnight ratios as high as one nurse to 80 residents. And agency staff do not know what anyone's normal looks like. Their share of hours worked in Ontario long-term care nearly doubled in a single year, from 7.6 to 14.9 percent, according to [Ministry of Health figures obtained by The Canadian Press](https://www.cbc.ca/1.7154329).
+
+PointClickCare's "Catch It Early" challenge asked for a way to catch a confused moment early and to explain *why* something was flagged. We built around that last part.
 
 ## What it does
 
