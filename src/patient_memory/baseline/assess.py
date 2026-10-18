@@ -4,8 +4,20 @@ from uuid import UUID, uuid4
 
 from psycopg.types.json import Jsonb
 
-from patient_memory.baseline.engine import FEATURES, MIN_BASELINE, Check, evaluate
+from patient_memory.baseline.engine import (
+    FEATURES,
+    MIN_BASELINE,
+    REGISTRY,
+    Assessment,
+    Check,
+    FeatureScore,
+    ModalityResult,
+    combine,
+    combined_payload,
+    evaluate,
+)
 from patient_memory.baseline.sbar import sbar_template
+from patient_memory.baseline.signals import features_for
 from patient_memory.baseline.verdict import (
     ACTION_LABELS,
     TAG_LABELS,
@@ -99,39 +111,116 @@ def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_i
                  ts: datetime, device_id: str, prompt_version: str, is_baseline: bool,
                  features: dict, display_name: str,
                  session_id: UUID | None = None) -> tuple[dict, dict]:
-    """Returns the (change, assessment) payloads of POST /checks and stores the assessment row."""
+    """Speech adapter: scoped immutable voice history enters the shared signal assessment."""
+    check = Check(str(check_id), ts, device_id, prompt_version, is_baseline, True, dict(features),
+                  evidence_ids=("check:" + str(check_id),))
+    return assess_modality(conn, cfg, patient_id, tenant_id, check, display_name,
+                           lambda scoped: _history(scoped, patient_id, ts, prompt_version, session_id),
+                           session_id=session_id)
+
+
+def _latest_modalities(conn, patient_id, check, revision):
+    """Latest known result per other modality, not the latest *flagged* result.
+
+    Event time, not assessment creation time, controls the as-of boundary. The current revision
+    and RLS protect source lifecycle and tenant/patient access. KAZE sessions never corroborate
+    a care assessment; legacy flat rows derive event time/session identity from voice_checks.
+    """
+    rows = conn.execute(
+        "SELECT DISTINCT ON (modality) * FROM (SELECT a.*,"
+        " COALESCE(a.params->>'modality','speech') AS modality,"
+        " COALESCE((a.params->>'signal_ts')::timestamptz,v.ts) AS signal_ts"
+        " FROM assessments a LEFT JOIN voice_checks v ON v.tenant_id=a.tenant_id"
+        " AND v.patient_id=a.patient_id AND v.id=a.check_id WHERE a.patient_id=%s"
+        " AND a.check_id<>%s AND COALESCE(a.params->>'modality','speech')<>%s"
+        " AND a.params->>'session_id' IS NULL AND v.session_id IS NULL"
+        " AND COALESCE((a.params->>'invalidated')::boolean,false)=false"
+        " AND (a.params->>'source_revision')::bigint=%s) eligible"
+        " WHERE signal_ts<=%s AND modality=ANY(%s)"
+        " ORDER BY modality,signal_ts DESC,created_at DESC,id DESC",
+        (patient_id, UUID(check.id), check.modality, revision, check.ts, list(REGISTRY))).fetchall()
+    results = []
+    for row in rows:
+        modality = row["modality"]
+        specs = {f.name: f for f in REGISTRY[modality].features}
+        scores = {}
+        for name, raw in features_for(row["features"], modality).items():
+            if name not in specs:
+                continue
+            z = raw["z"]
+            direction = specs[name].direction
+            scores[name] = FeatureScore(raw["value"], raw["median"], raw["scale"], z,
+                                        abs(z) if direction == 0 else direction * z,
+                                        raw["ewma"], raw["cusum"])
+        params = row["params"]
+        results.append(ModalityResult(modality, row["signal_ts"], Assessment(
+            params.get("modality_status", row["change_status"]), scores,
+            params.get("modality_fused_z", row["fused_z"]), (),
+            params.get("engine_params", params)), str(row["check_id"]),
+            tuple(params.get("signal_evidence_ids", ()))))
+    return results
+
+
+def assess_modality(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check: Check,
+                    display_name: str, history_loader, *, session_id: UUID | None = None):
+    """Adapter admission hook: authorize/lock before loading history and publish atomically.
+
+    Capture adapters own immutable check storage and scoped history retrieval. There is no
+    generic public ingestion route. Evidence IDs must refer to actually resolvable stored
+    evidence; absence withholds a non-speech draft, never invents a citation.
+    """
     check_writer_access(conn, patient_id)
     lock_assessment(conn, tenant_id, patient_id)
     check_writer_access(conn, patient_id)
-    history = _history(conn, patient_id, ts, prompt_version, session_id)
+    if check.ts.tzinfo is None:
+        raise ValueError("signal event time must be timezone-aware")
+    if session_id is not None and check.modality != "speech":
+        raise ValueError("KAZE sessions use only the speech protocol")
+    history = history_loader(conn)
     mode = "enrolled" if sum(c.is_baseline for c in history) >= MIN_BASELINE else "rolling"
-    check = Check(str(check_id), ts, device_id, prompt_version, is_baseline, True, dict(features))
-    result = evaluate(check, history, mode, engine_settings(cfg, prompt_version))
-    tags = valid_tags(conn, patient_id, ts)
-    decision = decide(result.status, result.fused, [(t["kind"], t["tag"]) for t in tags])
+    result = evaluate(check, history, mode, engine_settings(cfg, check.prompt_version))
+    source_revision = conn.execute("SELECT revision FROM patients WHERE id=%s",
+                                   (patient_id,)).fetchone()["revision"]
+    other = _latest_modalities(conn, patient_id, check, source_revision) if session_id is None else []
+    combined = combine([*other, ModalityResult(check.modality, check.ts, result, check.id,
+                                               check.evidence_ids)], check.ts)
+    modal = combined_payload(combined)
+    tags = valid_tags(conn, patient_id, check.ts)
+    decision = decide(combined.verdict_status, combined.fused, [(t["kind"], t["tag"]) for t in tags])
     no_escalate = str(patient_id) in {p.strip() for p in cfg.no_escalate_patients.split(",")}
     decision, flags = apply_profile(
-        decision, escalations_used=escalations_used(conn, ts, cfg),
+        decision, escalations_used=escalations_used(conn, check.ts, cfg),
         budget=cfg.escalation_budget, no_escalate=no_escalate)
     change = change_payload(result, mode)
+    change.update(modal)
     reasons = [t for t in tags if t["kind"] == "amplifier"] if decision.verdict in (
         "escalate", "watch") and any(t["kind"] == "amplifier" for t in tags) else (
         tags if decision.verdict == "explained" else [])
-    sbar = sbar_template(display_name, result.status, decision, str(check_id),
-                         change["per_feature"], reasons)
-    source_revision = conn.execute("SELECT revision FROM patients WHERE id=%s",
-                                   (patient_id,)).fetchone()["revision"]
+    non_speech_flag = check.modality != "speech" or any(
+        name != "speech" and entry["current"] and entry["status"] in ("provisional", "change")
+        for name, entry in modal["modalities"].items())
+    sbar = None if non_speech_flag else sbar_template(
+        display_name, combined.verdict_status, decision, check.id, change["per_feature"], reasons)
+    params = {**result.params, "mode": mode, "prompt_version": check.prompt_version,
+              "signal_ts": check.ts.isoformat(), "session_id": str(session_id) if session_id else None,
+              "modality_status": result.status, "modality_fused_z": result.fused,
+              "signal_evidence_ids": list(check.evidence_ids), "engine_params": result.params,
+              "verdict_status": combined.verdict_status,
+              "modality_results": {name: {k: v for k, v in entry.items() if k != "per_feature"}
+                                   for name, entry in modal["modalities"].items()},
+              "draft_status": "unavailable_multimodal_evidence" if non_speech_flag else "speech",
+              "source_revision": source_revision, "source_ids": [t["source_id"] for t in tags], **flags}
     assessment_id = uuid4()
     conn.execute(
         "INSERT INTO assessments(tenant_id,patient_id,id,check_id,change_status,fused_z,features,"
-        "params,verdict,reasons,suggested_action,sbar) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-        (tenant_id, patient_id, assessment_id, check_id, result.status, result.fused,
-         Jsonb(change["per_feature"]), Jsonb({**result.params, "mode": mode, "prompt_version": prompt_version,
-                                                "source_revision": source_revision,
-                                                "source_ids": [t["source_id"] for t in tags], **flags}),
-         decision.verdict, Jsonb(reasons), decision.action, Jsonb(sbar) if sbar else None))
+        "params,verdict,reasons,suggested_action,sbar,corroborated)"
+        " VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        (tenant_id, patient_id, assessment_id, UUID(check.id), combined.status, combined.fused,
+         Jsonb({name: entry["per_feature"] for name, entry in modal["modalities"].items()}), Jsonb(params),
+         decision.verdict, Jsonb(reasons), decision.action, Jsonb(sbar) if sbar else None,
+         combined.corroborated))
     payload = {"id": str(assessment_id), "verdict": decision.verdict,
                "suggested_action": decision.action,
                "suggested_action_label": ACTION_LABELS[decision.action], "reasons": reasons,
-               **flags}
+               "corroborated": combined.corroborated, "draft_status": params["draft_status"], **flags}
     return change, payload
