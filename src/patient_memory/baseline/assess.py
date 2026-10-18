@@ -240,7 +240,14 @@ def assess_modality(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, chec
         raise ValueError("KAZE sessions use only the speech protocol")
     if check.modality != "speech" and not conn.execute(
             "SELECT pm_care(%s) AS ok", (patient_id,)).fetchone()["ok"]:
-        raise Problem(404, "not_found")
+        # The shipped motion endpoint may score an already admitted immutable capture for a
+        # PSW inside the trusted context. Other generic adapters remain care-team only.
+        motion_capture = check.modality == "motion" and conn.execute(
+            "SELECT pm_check_scoring(%s) AND EXISTS(SELECT FROM motion_checks "
+            "WHERE patient_id=%s AND id=%s AND usable) AS ok",
+            (patient_id, patient_id, UUID(check.id))).fetchone()["ok"]
+        if not motion_capture:
+            raise Problem(404, "not_found")
     source_ids = signal_sources(conn, patient_id, check) if check.modality != "speech" else set()
     history = [c for c in history_loader(conn) if c.modality == check.modality
                and c.prompt_version == check.prompt_version and c.usable and c.ts < check.ts]

@@ -209,3 +209,10 @@ legacy speech compatibility. New captures reproject eligible immutable modalitie
 revision without restoring invalidated decisions; first-change markers reject stale/session
 snapshots. Only speech is registered in this base. Decision025/migration010 track the contract;
 final exact-head CI remains authoritative after hosting/status integration.
+
+BL-34 motion-check implementation adds a separately consented numeric-only endpoint, immutable
+plain-table captures and exact client-derived observation facts under forced RLS. Current-revision
+registry projections preserve source invalidation and PSW responses contain no measurements or
+scores. The browser runs pinned self-hosted pose assets in a local worker; no video/landmarks
+are uploaded. Synthetic geometry/cancellation tests do not satisfy real camera or under 15-second
+judge acceptance. Exact integrated CI remains required before merge.
