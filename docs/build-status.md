@@ -1,5 +1,15 @@
 # Implementation status and remaining gates
 
+BL-15 personal-phone follow-up is implemented locally (decision038): the dedicated live capture
+identity has explicit rested-baseline/check-in modes and repeated genuine recording; the personal
+nurse overview refreshes every two seconds while visible. No scoring or temporal override is
+introduced. Deployment, five real usable baseline takes and physical-phone/nurse rehearsal remain
+pending. This work is rebased onto Danny's overnight polish in `4bf714c`, deployed on 2026-10-18
+at 13:06 UTC after merged-main CI passed (690 unit and 383 service-backed tests). VM access is
+restored. All 25 public rollout checks passed and stored voice-check fingerprints were preserved.
+The hosted live capture identity had an unconfigured profile, unknown consent and zero baseline
+checks when inspected. No recording or permission write was performed.
+
 Frontend redesign is deployed, including Unit resident search. All seven areas/fifteen screen
 types have an implementation and screenshot pass. The initial deployed source `20be74b` passed
 backend/image CI and twelve public HTTPS checks; stored recording identifiers/counts were

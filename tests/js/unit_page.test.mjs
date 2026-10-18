@@ -64,7 +64,7 @@ class FakeNode {
   querySelectorAll(selector) { return [...this.walk()].filter((n) => n.matches(selector)); }
 }
 
-function harness({visible = true, responses = [FIXTURE], patients = []} = {}) {
+function harness({visible = true, responses = [FIXTURE], patients = [], search = ''} = {}) {
   const main = new FakeNode('main');
   const root = new FakeNode('body');
   root.append(main);
@@ -99,7 +99,7 @@ function harness({visible = true, responses = [FIXTURE], patients = []} = {}) {
     return {ok: false, status: 404, json: async () => ({})};
   };
   const context = vm.createContext({
-    document, fetch, console, location: {pathname: '/unit'},
+    document, fetch, console, URLSearchParams, location: {pathname: '/unit', search},
     setInterval: (fn, ms) => { intervals.set(nextId, {fn, ms}); return nextId++; },
     clearInterval: (id) => { intervals.delete(id); },
   });
@@ -337,6 +337,21 @@ test('polls every 10 s while visible, stops when hidden and resumes when visible
   await page.tick();
   assert.equal(page.watchlistCalls(), 4);
   assert.equal(page.listenerCount(), 1);
+});
+
+test('personal demo polls the genuine watchlist every two seconds and pauses while hidden', async () => {
+  const page = harness({search: '?demo=personal'});
+  await page.settle();
+  assert.equal(page.constant('POLL_MS'), 2000);
+  assert.deepEqual([...page.intervals.values()].map((i) => i.ms), [2000]);
+  await page.tick();
+  assert.equal(page.watchlistCalls(), 2);
+  await page.setVisibility('hidden');
+  assert.equal(page.intervals.size, 0);
+  await page.tick();
+  assert.equal(page.watchlistCalls(), 2);
+  await page.setVisibility('visible');
+  assert.equal(page.watchlistCalls(), 3);
 });
 
 test('a page opened in a background tab loads once and does not poll until visible', async () => {

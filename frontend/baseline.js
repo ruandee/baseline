@@ -1,6 +1,6 @@
 // Baseline shell: path router, shared demo-session bootstrap and API health check.
 // /unit lives here (BL-18); /check is in check.js (BL-17); /resident/:id lands with BL-19.
-const POLL_MS = 10000;
+const POLL_MS = new URLSearchParams(location.search).get('demo') === 'personal' ? 2000 : 10000;
 const VERDICT_LABELS = {escalate: 'Escalate', watch: 'Watch', explained: 'Explained',
                         within_normal: 'Within normal', enrolling: 'Enrolling'};
 const UNIT_COLUMNS = ['Resident', 'Status', 'Follow-up window', 'Change score',
@@ -230,7 +230,18 @@ function renderUnitData(body, data) {
   body.querySelector('[data-unit=count-total]').textContent = String(data.residents.length);
 }
 
+function personalDemoDisclosure() {
+  const disclosure = document.getElementById('nav-disclosure');
+  if (!disclosure) return;
+  const summary = disclosure.querySelector('summary');
+  const description = disclosure.querySelector('div');
+  if (!summary || !description) return;
+  summary.textContent = 'Live volunteer demo';
+  description.textContent = 'Volunteer check-ins use real voice analysis and report when a personal baseline is unavailable. Other residents and records are fictional. Research prototype; no clinical validation.';
+}
+
 async function renderUnit(main) {
+  if (new URLSearchParams(location.search).get('demo') === 'personal') personalDemoDisclosure();
   if (state.unitStop) state.unitStop();
   main.replaceChildren();
   const body = document.createElement('section');
@@ -327,7 +338,7 @@ async function renderUnit(main) {
       renderUnitData(body, data);
       loaded = true;
       notice.hidden = true;
-      freshness.textContent = `Updated ${new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} · refreshes every 10 seconds while visible`;
+      freshness.textContent = `Updated ${new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} · refreshes every ${POLL_MS / 1000} seconds while visible`;
     } catch (error) {
       if (stopped) return;
       if ([401, 403, 404].includes(error.status)) {

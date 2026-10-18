@@ -146,6 +146,14 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, s
   const link = doc.createElement('a');
   link.setAttribute('data-route', 'check');
   nav.append(link);
+  const disclosure = doc.createElement('details');
+  disclosure.setAttribute('id', 'nav-disclosure');
+  const summary = doc.createElement('summary');
+  summary.textContent = 'Demo scenario';
+  const description = doc.createElement('div');
+  description.textContent = 'Fictional residents. Baselines, findings and records are authored for this demo; nothing here is clinically validated.';
+  disclosure.append(summary, description);
+  nav.append(disclosure);
   doc.body.append(nav, main);
   const parsed = new URL(url, 'https://demo.test');
   const calls = [];

@@ -10,6 +10,16 @@ const overview = {baseline: {n_checks: 5}, latest_assessment: {
 const path = '/check?nurse=1&patient=p1';
 const overviewRoute = {'GET /v1/patients/p1/overview?days=30': () => overview};
 
+test('only the dedicated live capture person gets the personal-demo enrollment link', async () => {
+  const page = loadPage(path, {patients: [
+    {id: 'p1', name: 'Volunteer', capture_mode: 'live', scripted_cohort: false},
+  ], routes: overviewRoute});
+  await until(() => page.main.textContent.includes('Personal demo: baseline and repeat checks'));
+  assert(page.main.querySelectorAll('a').some((a) =>
+    a.href === '/check?mode=live&patient=p1&from=nurse&demo=personal'));
+  assert.equal(page.window.mediaCalls, 0);
+});
+
 test('nurse workspace requests nurse identity and shows evidence-based preparation without microphone', async () => {
   const page = loadPage(path, {pswToken: 'psw-private', routes: overviewRoute});
   await until(() => page.main.textContent.includes('Open recorder'));
