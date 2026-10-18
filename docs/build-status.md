@@ -153,19 +153,15 @@ session-audio cleanup. Session-model tests pass locally; final combined service 
 Scheduler/SMS/pages and the held ADR 018 policy questions remain separate work.
 
 
-### BL-26/BL-27 branches (pending review)
+### BL-26/BL-27 stacked branches (pending review)
 
-The stacked scheduler and SMS branches implement the standard KAZE 15-second polling loop,
-2.5/5/10/10-minute ladder, raw session change triggers and usable check-in resets. SMS is prepared
-inside the locked publication transaction and delivery occurs after commit. Log delivery is the
-default; no real text/model/audio call is part of validation. Consent migration 007 remains owned
-by BL-31; migration 008 hardens public acknowledgement and durable delivery claims. Dependencies
-#27/#28 remain open until reviewed and merged. The six held ADR018 questions remain undecided.
-
-
-BL-27 adds fixed neutral Twilio/log messages, hash-only token storage, the specified public GET
-acknowledgement with minimal HTML, fresh-clock expiry checks and durable at-most-once delivery
-claims (migration 008 after consent 007). All sender I/O occurs after commit and lock release.
-Timeout/crash uncertainty remains pending, failed steps are not retried, and sent means provider
-acceptance only. Default log delivery retains no live tokens/coordinates. Real verified-phone
-receipt and public-link acknowledgement acceptance remain unrun; issue #29 must stay open.
+The KAZE scheduler polls every 15 seconds, uses standard 2.5/5/10/10-minute ladder timings and
+raw session change plus immutable session explainers independently of PCC suppression. Normal
+usable check-ins reset the timer. BL-27 prepares immutable messages under lock, then claims each
+delivery once and releases all locks before sender I/O. Migration 008 (after consent 007) adds
+internal delivery_started_at plus fresh-clock public-ack expiry; API GET acknowledgement returns
+minimal HTML without PHI. Defaults are redacted offline logging, no live token/coordinate outbox.
+Timeout/crash uncertainty remains pending; failed events are not resent, and sent means provider
+acceptance only. Tests use stubs/mock HTTP. Real verified-phone receipt/public ack acceptance
+remain unrun, dependencies #27/#28 are pending review/merge, and issue #29 must remain open.
+The six held ADR018 product questions remain undecided; see decision 023 for delivery mechanics.
