@@ -159,3 +159,13 @@ source-submitter attribution for ?Your observation helped? remain open. This is 
 KAZE session model, expiry/retention hardening and synthetic engineering tests from decision 018
 are integrated. Migration 007 follows 006; explicit synthetic session fixtures record consent.
 Scheduler, delivery and real-device acceptance remain separate work.
+
+## Draft note export (BL-33)
+
+The care-team-only note endpoint projects the current stored SBAR as an unsigned preliminary
+FHIR R4 DocumentReference with exact UTF-8 attachment and citation/provenance metadata. Source
+revision/lifecycle or authorization changes withhold the old note. The separate note-export.js
+mount hook previews the payload and supports explicitly unverified local human edits, revalidating
+before each edited preview and removing inherited evidence claims. No model, external queue, EHR
+write or human-edit persistence is involved. See decision 020. Resident-page wiring and integrated
+frontend/nontechnical tester acceptance remain open; default tests are synthetic.
