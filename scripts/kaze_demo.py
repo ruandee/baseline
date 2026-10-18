@@ -10,6 +10,7 @@ import psycopg
 
 from patient_memory.auth import Identity, synthetic_token
 from patient_memory.config import Settings
+from patient_memory.consent import grant_fixture_consent
 from scripts.seed import uid
 
 PEOPLE = 2
@@ -32,6 +33,7 @@ def kaze_demo(cfg=None) -> dict:
             for principal, role in [(person, "importer"), (service, "nurse")]:
                 conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,%s,true) "
                              "ON CONFLICT DO NOTHING", (tenant, person, principal, role))
+            grant_fixture_consent(conn, tenant, person, person)
     people = [uid(f"kaze-demo/person-{n}") for n in range(PEOPLE)]
     return {
         "tenant_id": str(tenant),
