@@ -77,7 +77,7 @@ def test_display_name_cannot_inject_lines_or_control_characters():
 
 
 def test_log_sender_logs_the_stored_copy_not_the_live_link(caplog):
-    sender = sms.LogSender()
+    sender = sms.LogSender(keep=1)
     message = outbound()
     with caplog.at_level(logging.INFO, logger="patient_memory.kaze.sms"):
         assert sms.deliver(sender, message) == "logged"
@@ -87,18 +87,12 @@ def test_log_sender_logs_the_stored_copy_not_the_live_link(caplog):
     assert "live-token" not in repr(message) and APPROVED not in repr(message)
 
 
-def test_log_sender_can_show_live_links_for_a_local_demo(caplog):
-    with caplog.at_level(logging.INFO, logger="patient_memory.kaze.sms"):
-        sms.LogSender(log_links=True).send(outbound())
-    assert "live-token" in caplog.text
-
-
-def test_a_raising_or_misbehaving_sender_is_recorded_as_failed():
+def test_a_raising_or_misbehaving_sender_is_recorded_as_failed(caplog):
     class Broken:
         name = "broken"
 
         def send(self, message):
-            raise RuntimeError("boom")
+            raise RuntimeError("live-token secret phone")
 
     class Liar:
         name = "liar"
@@ -108,6 +102,7 @@ def test_a_raising_or_misbehaving_sender_is_recorded_as_failed():
 
     assert sms.deliver(Broken(), outbound()) == "failed"
     assert sms.deliver(Liar(), outbound()) == "failed"
+    assert "live-token" not in caplog.text and "secret phone" not in caplog.text
 
 
 def twilio(handler):
@@ -120,7 +115,7 @@ def test_twilio_posts_one_form_request_with_basic_auth():
 
     def handler(request):
         seen.append(request)
-        return httpx.Response(201, json={"sid": "SM1", "status": "queued", "to": APPROVED})
+        return httpx.Response(201, json={"sid": "SM" + "a" * 32, "status": "queued", "to": APPROVED})
 
     assert twilio(handler).send(outbound()) == "sent"
     (request,) = seen
@@ -135,7 +130,7 @@ def test_twilio_messaging_service_sender():
     seen = []
     sender = sms.TwilioSender(SID, "t", "MG" + "a" * 32, frozenset({APPROVED}),
                               httpx.Client(transport=httpx.MockTransport(
-                                  lambda r: seen.append(r) or httpx.Response(201))))
+                                  lambda r: seen.append(r) or httpx.Response(201, json={"sid": "SM" + "a" * 32, "status": "accepted"}))))
     assert sender.send(outbound()) == "sent"
     assert "MessagingServiceSid" in dict(httpx.QueryParams(seen[0].content.decode()))
 
@@ -155,11 +150,11 @@ def test_twilio_rejections_are_failed_and_not_logged_verbatim(response, caplog):
     assert "unverified" not in caplog.text and "secret-auth" not in caplog.text
 
 
-def test_twilio_transport_errors_are_failed():
+def test_twilio_timeouts_remain_unknown_without_retry():
     def handler(request):
         raise httpx.ConnectTimeout("slow")
 
-    assert twilio(handler).send(outbound()) == "failed"
+    assert twilio(handler).send(outbound()) == "pending"
     assert "secret-auth" not in repr(twilio(handler))
 
 
@@ -214,12 +209,13 @@ def public(monkeypatch):
     return TestClient(create_app(Settings(), objects=object())), calls, results
 
 
-def test_opening_the_link_shows_a_button_and_changes_nothing(public):
-    client, calls, _ = public
+def test_get_records_acknowledgement_per_contract(public):
+    client, calls, results = public
     token = ack.new_token().token
+    results.append("acknowledged")
     response = client.get(f"/ack/{token}")
-    assert response.status_code == 200 and calls == []
-    assert '<form method="post">' in response.text and "I'm on it" in response.text
+    assert response.status_code == 200 and calls == [token]
+    assert "following up" in response.text
     for header, value in ack.HEADERS.items():
         assert response.headers[header] == value
     assert token not in response.text
@@ -256,3 +252,15 @@ def test_a_database_outage_asks_the_contact_to_retry(public, monkeypatch):
     monkeypatch.setattr(ack, "acknowledge", down)
     response = client.post(f"/ack/{ack.new_token().token}")
     assert response.status_code == 503 and "<form" in response.text
+
+
+def test_log_sender_keeps_no_live_tokens_by_default():
+    sender = sms.LogSender()
+    assert sender.send(outbound()) == "logged"
+    assert list(sender.outbox) == []
+
+
+@pytest.mark.parametrize("response", [httpx.Response(201), httpx.Response(201, json={}),
+                                      httpx.Response(201, json={"sid": "SM1", "status": "queued"})])
+def test_twilio_unconfirmed_success_is_pending(response):
+    assert twilio(lambda _: response).send(outbound()) == "pending"

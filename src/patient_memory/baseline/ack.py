@@ -6,9 +6,8 @@ stored. `pm_acknowledge_escalation(hash)` checks expiry, episode and session sta
 and answers only `acknowledged`, `recorded` or `invalid`; a replay of a used token is `recorded`
 and changes nothing.
 
-`GET /ack/{token}` never changes state: SMS apps and link scanners fetch links to build previews,
-and a preview must not stop the ladder. The page holds a single button that POSTs to the same URL.
-Neither page names the person, the contact or the session.
+`GET /ack/{token}` records acknowledgement and returns a minimal result page, per the
+specified KAZE contract. POST is equivalent. No page names a person, contact or session.
 """
 import hashlib
 import html
@@ -52,7 +51,7 @@ def acknowledge(cfg, token: str) -> str:
     with no tenant set: RLS hides every row and only the SECURITY DEFINER function can act."""
     if not well_formed(token):
         return "invalid"
-    with psycopg.connect(cfg.database_url) as conn:
+    with psycopg.connect(cfg.database_url, connect_timeout=5) as conn:
         conn.execute("SET LOCAL statement_timeout='5s'")
         result = conn.execute("SELECT pm_acknowledge_escalation(%s)",
                               (token_hash(token),)).fetchone()[0]

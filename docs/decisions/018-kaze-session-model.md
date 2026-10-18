@@ -232,3 +232,10 @@ columns. BL-27's saved `prepare_sms` / commit / `send` contract must be integrat
 delivery: never call a network sender from this locked adapter. Its postcommit delivery/crash
 semantics and public acknowledgement route remain BL-27 work, with no real delivery verified here.
 The six held product questions remain undecided.
+
+
+BL-27 replaces the offline adapter with prepared immutable messages, a durable once-only
+postcommit delivery claim, and network I/O outside all transactions/locks. Migration 008 adds
+only delivery_started_at and acknowledgement expiry hardening; migration 007 remains consent.
+See [decision 023](023-kaze-sms-delivery.md). GET acknowledgement retains the specified mutation
+contract; no scanner/confirmation policy change is introduced.

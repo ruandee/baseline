@@ -19,6 +19,7 @@ runs in tests or CI. The text never mentions drinks, drugs, intoxication or a di
 service never calls 911 itself: the level-4 text asks the contact to.
 """
 import logging
+import re
 import unicodedata
 from collections import deque
 from dataclasses import dataclass, field
@@ -31,12 +32,13 @@ import httpx
 
 from patient_memory.baseline.ack import ack_link, new_token
 from patient_memory.baseline.sessions import mask_phone
+from patient_memory.ingestion import lock_patient
 from patient_memory.storage import transaction
 
 log = logging.getLogger("patient_memory.kaze.sms")
 
-Delivery = Literal["logged", "sent", "failed"]
-DELIVERIES = ("logged", "sent", "failed")
+Delivery = Literal["logged", "sent", "failed", "pending"]
+DELIVERIES = ("logged", "sent", "failed", "pending")
 TRIGGERS = ("missed_checkin", "speech_change")
 
 # Fixed wording (docs/06-baseline.md). Only the name, time and links vary.
@@ -159,7 +161,7 @@ def deliver(sender: SmsSender, message: OutboundSms) -> Delivery:
     try:
         result = sender.send(message)
     except Exception:  # a sender bug must not stop the ladder from recording the step
-        log.exception("sms sender=%s event=%s raised", sender.name, message.event_id)
+        log.warning("sms sender=%s event=%s raised", sender.name, message.event_id)
         return "failed"
     return result if result in DELIVERIES else "failed"
 
@@ -167,11 +169,53 @@ def deliver(sender: SmsSender, message: OutboundSms) -> Delivery:
 def record_delivery(conn, message: OutboundSms, delivery: Delivery) -> bool:
     return conn.execute(
         "UPDATE escalation_events SET delivery=%s WHERE patient_id=%s AND id=%s "
-        "AND delivery='pending'", (delivery, message.patient_id, message.event_id)).rowcount == 1
+        "AND delivery='pending' AND delivery_started_at IS NOT NULL",
+        (delivery, message.patient_id, message.event_id)).rowcount == 1
+
+
+def claim_delivery(conn, message: OutboundSms) -> bool:
+    """Claim once under the same lock order as admission/ack. No external I/O here."""
+    lock_patient(conn, message.patient_id)
+    session = conn.execute(
+        "SELECT * FROM safety_sessions WHERE patient_id=%s AND id=%s FOR UPDATE",
+        (message.patient_id, message.session_id)).fetchone()
+    if session is None:
+        return False
+    now = conn.execute("SELECT clock_timestamp() AS t").fetchone()["t"]
+    if session["status"] != "ended" and session["ends_at"] <= now:
+        conn.execute("UPDATE safety_sessions SET status='ended',ended_at=ends_at,end_reason='expired',"
+                     "delete_after=ends_at+interval '24 hours',next_due_at=NULL WHERE id=%s",
+                     (message.session_id,))
+        session = {**session, "status": "ended"}
+    event = conn.execute(
+        "SELECT * FROM escalation_events WHERE patient_id=%s AND session_id=%s AND id=%s FOR UPDATE",
+        (message.patient_id, message.session_id, message.event_id)).fetchone()
+    if event is None or event["delivery"] != "pending" or event["delivery_started_at"] is not None:
+        return False
+    allowed = (session["status"] == "escalating" and session["escalation_enabled"]
+               and event["episode"] == session["episode"]
+               and event["channel"] == "sms" and event["contact_index"] == message.contact_index
+               and event["level"] == message.level)
+    conn.execute("UPDATE escalation_events SET delivery_started_at=%s,delivery=%s WHERE id=%s",
+                 (now, "pending" if allowed else "failed", message.event_id))
+    return allowed
 
 
 def send(cfg, identity, message: OutboundSms, sender: SmsSender | None = None) -> Delivery:
-    """Send after the step's row is committed, then record the outcome as `identity`."""
+    """Durably claim after publication, release every DB lock, then call the sender once.
+
+    No automatic retry: a crash after claim leaves pending, a known failure stays failed. An
+    acknowledgement/end after claim cannot recall an in-flight provider request.
+    """
+    if message.tenant_id != identity.tenant_id:
+        return "failed"
+    with transaction(cfg, identity) as conn:
+        claimed = claim_delivery(conn, message)
+        if not claimed:
+            existing = conn.execute(
+                "SELECT delivery FROM escalation_events WHERE patient_id=%s AND id=%s",
+                (message.patient_id, message.event_id)).fetchone()
+            return existing["delivery"] if existing else "failed"
     delivery = deliver(sender or sender_for(cfg), message)
     with transaction(cfg, identity) as conn:
         record_delivery(conn, message, delivery)
@@ -180,19 +224,17 @@ def send(cfg, identity, message: OutboundSms, sender: SmsSender | None = None) -
 
 class LogSender:
     """Default sender: logs the stored copy (links replaced) and keeps a short in-memory outbox.
-    With `log_links` (PM_SMS_LOG_LINKS, local synthetic demos only) it logs the live text so a
-    presenter can open the ack link without a phone."""
+    Logs never contain raw acknowledgement links or coordinates."""
 
     name = "log"
 
-    def __init__(self, log_links: bool = False, keep: int = 50):
-        self.log_links = log_links
+    def __init__(self, keep: int = 0):
         self.outbox: deque[OutboundSms] = deque(maxlen=keep)
 
     def send(self, message: OutboundSms) -> Delivery:
         self.outbox.append(message)
         log.info("sms logged event=%s level=%d to=%s text=%s", message.event_id, message.level,
-                 mask_phone(message.to), message.body if self.log_links else message.record)
+                 mask_phone(message.to), message.record)
         return "logged"
 
 
@@ -223,11 +265,25 @@ class TwilioSender:
                 f"{self.API}/2010-04-01/Accounts/{self.account_sid}/Messages.json",
                 data={"To": message.to, origin: self.sender, "Body": message.body},
                 auth=self.auth)
+        except httpx.TimeoutException:
+            log.warning("sms twilio event=%s timed out; delivery unknown", message.event_id)
+            return "pending"
         except httpx.HTTPError as exc:
             log.warning("sms twilio event=%s transport error %s", message.event_id,
                         type(exc).__name__)
             return "failed"
         if 200 <= response.status_code < 300:
+            try:
+                accepted = response.json()
+                valid = (isinstance(accepted, dict)
+                         and isinstance(accepted.get("sid"), str)
+                         and re.fullmatch(r"SM[0-9a-fA-F]{32}", accepted["sid"])
+                         and accepted.get("status") in {"accepted", "queued", "sending", "sent", "delivered"})
+            except ValueError:
+                valid = False
+            if not valid:
+                log.warning("sms twilio event=%s acceptance unconfirmed", message.event_id)
+                return "pending"
             log.info("sms twilio event=%s accepted to=%s", message.event_id,
                      mask_phone(message.to))
             return "sent"
@@ -244,4 +300,4 @@ def sender_for(cfg) -> SmsSender:
     if cfg.sms_provider == "twilio":
         return TwilioSender(cfg.twilio_sid, cfg.twilio_token, cfg.twilio_from,
                             allowed_recipients(cfg.sms_allowed_recipients))
-    return LogSender(cfg.sms_log_links)
+    return LogSender()

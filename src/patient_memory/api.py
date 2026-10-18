@@ -135,7 +135,7 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
                     "Whisper failed to load; voice checks retry on first use")
         yield
 
-    app = FastAPI(title="Patient Memory â€” synthetic prototype", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="Patient Memory — synthetic prototype", version="0.1.0", lifespan=lifespan)
     app.state.cfg = cfg
     app.state.objects = objects or ObjectStore(cfg)
     app.state.generator = generator or generator_for(cfg)
@@ -451,12 +451,9 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
         code = {"invalid": 404, "unavailable": 503}.get(kind, 200)
         return HTMLResponse(ack.page(kind), status_code=code, headers=ack.HEADERS)
 
-    # Public acknowledgement links from KAZE texts (decision 023): no bearer identity, the token
-    # is the only credential. GET only shows a button, so link previews cannot acknowledge.
+    # Public token-scoped acknowledgement: GET mutates per the specified KAZE contract.
+    # POST is equivalent; neither response exposes session/contact details.
     @app.get("/ack/{token}", response_class=HTMLResponse)
-    def ack_page(token: str):
-        return ack_response("confirm" if ack.well_formed(token) else "invalid")
-
     @app.post("/ack/{token}", response_class=HTMLResponse)
     def ack_submit(token: str):
         if not ack.well_formed(token):

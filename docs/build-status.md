@@ -161,3 +161,11 @@ inside the locked publication transaction and delivery occurs after commit. Log 
 default; no real text/model/audio call is part of validation. Consent migration 007 remains owned
 by BL-31; migration 008 hardens public acknowledgement and durable delivery claims. Dependencies
 #27/#28 remain open until reviewed and merged. The six held ADR018 questions remain undecided.
+
+
+BL-27 adds fixed neutral Twilio/log messages, hash-only token storage, the specified public GET
+acknowledgement with minimal HTML, fresh-clock expiry checks and durable at-most-once delivery
+claims (migration 008 after consent 007). All sender I/O occurs after commit and lock release.
+Timeout/crash uncertainty remains pending, failed steps are not retried, and sent means provider
+acceptance only. Default log delivery retains no live tokens/coordinates. Real verified-phone
+receipt and public-link acknowledgement acceptance remain unrun; issue #29 must stay open.

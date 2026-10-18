@@ -42,10 +42,9 @@ class Settings(BaseSettings):
     no_escalate_patients: str = ""
     # KAZE escalation texts (decision 023). "log" never sends; "twilio" needs every field below.
     sms_provider: str = "log"
-    sms_log_links: bool = False  # local synthetic demos only: log the live ack link
     sms_allowed_recipients: str = ""  # comma-separated E.164 numbers Twilio may text
     twilio_sid: str = ""
-    twilio_token: str = ""
+    twilio_token: str = Field(default="", repr=False)
     twilio_from: str = ""  # E.164 number or a Messaging Service SID (MG...)
     ack_base_url: str = "http://127.0.0.1:8000"
     ack_ttl_min: int = Field(default=360, ge=5, le=1440)
