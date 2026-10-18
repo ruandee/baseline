@@ -33,6 +33,15 @@ def patient_access(conn, patient_id: UUID, write=False):
     return patient
 
 
+def check_writer_access(conn, patient_id: UUID):
+    """Patient row for a check writer (nurse, importer or PSW); scoring uses this, not pm_access."""
+    require_member(conn)
+    patient = conn.execute("SELECT * FROM patients WHERE id=%s", (patient_id,)).fetchone()
+    if not patient or not conn.execute("SELECT pm_checker(%s) AS ok", (patient_id,)).fetchone()["ok"]:
+        raise Problem(404, "not_found")
+    return patient
+
+
 def audit(conn, identity, patient_id, action, request_id, result="ok"):
     conn.execute(
         "INSERT INTO audit(tenant_id,patient_id,principal_id,action,result,request_id) "

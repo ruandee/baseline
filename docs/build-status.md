@@ -146,18 +146,28 @@ loader writes the cohort to `uid("tenant-0")`. A default local `/unit` therefore
 workspace patients with no voice checks; it shows the cohort only when `PM_DEMO_TOKEN` is set
 to the loader's `artifacts/baseline-demo/session.json` nurse token (BL-21 reset work).
 
-## BL-25 session model integration
+## Resident / PSW workflow (BL-31)
 
-Review fixes cover session expiry before capture and after locking, immutable ended-state retention,
-24-hour deletion including idempotent arm snapshots, constrained runtime grants, and unconditional
-session-audio cleanup. Session-model tests pass locally; final combined service CI remains required.
-Scheduler/SMS/pages and the held ADR 018 policy questions remain separate work.
+Migration 007 adds append-only scoped resident/SDM consent and check skips. Unknown, declined,
+withdrawn or expired consent blocks capture with audited 403 consent_required before decode/ASR
+and is checked again under the patient admission lock. PSWs use score-free due/skip/check receipts;
+ordinary PSW transactions cannot retrieve scoring data, records or evidence. Resident capture fixes
+pending-permission refusal, uses stable per-mode devices and retains the one-retry/warm-close flow.
+See decision 017. Real-browser/nontechnical tester acceptance, additional language protocols and
+source-submitter attribution for ?Your observation helped? remain open. This is synthetic only.
 
+KAZE session model, expiry/retention hardening and synthetic engineering tests from decision 018
+are integrated. Migration 007 follows 006; explicit synthetic session fixtures record consent.
+Scheduler, delivery and real-device acceptance remain separate work.
 
-### BL-26 scheduler branch (pending independent review)
+BL-32 Vox mock adapter integration: care-team authorization, standing `vox_encounter` consent
+before decode and locked publication (403 consent_required), plus exactly one raw true request
+consent part (422 consent_not_given). Resident-only VAD speech must reach8seconds after the
+analysis cap; staff-containing temporary audio is always removed regardless of KEEP_AUDIO.
+Checks remain prompt-scoped; first-change marker uses the displayed prompt. Real speech/Vox
+UI remain unvalidated, and overview prompt switching stays on hold (decision016).
 
-The stacked BL-26 branch implements standard 15-second polling, the 2.5/5/10/10-minute ladder,
-raw session change triggers, normal usable check-in reset and row-locked expiry/ack serialization.
-Only immutable session explainers and escalation_enabled control KAZE; PCC budget/no-escalate
-settings cannot suppress its triggers. Delivery remains offline log only pending BL-27 integration.
-No held ADR018 questions are resolved. Dependency #27 / PR #66 remains open pending review/merge.
+BL-26 scheduler integration: standard KAZE due/nudge/contact ladder runs independently of PCC
+budget/no-escalate profiles. Session assessments bypass those PCC flags; raw session change and
+session explainers drive the scheduler. Normal usable checks reset the ladder; unusable checks
+do not. Default delivery remains offline logging pending BL-27; no SMS/phone acceptance claimed.

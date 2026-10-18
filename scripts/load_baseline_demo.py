@@ -17,6 +17,7 @@ from patient_memory.auth import Identity, synthetic_token
 from patient_memory.baseline import engine
 from patient_memory.baseline.assess import assess_check, lock_assessment
 from patient_memory.config import Settings
+from patient_memory.consent import grant_fixture_consent
 from patient_memory.domain import SourceInput
 from patient_memory.ingestion import digest, submit
 from patient_memory.objects import ObjectStore
@@ -42,6 +43,15 @@ class DemoScope:
     def patient_id(self, index):
         return (uid(f"0/patient-{index}") if self.tenant_id == uid("tenant-0")
                 else uuid5(self.tenant_id, f"baseline/patient-{index}"))
+
+    @property
+    def psw_id(self):
+        return (uid("0/psw") if self.tenant_id == uid("tenant-0")
+                else uuid5(self.tenant_id, "baseline/psw"))
+
+    @property
+    def psw(self):
+        return Identity(self.psw_id, self.tenant_id)
 
     @property
     def importer(self):
@@ -108,7 +118,8 @@ def provision(cfg, scope, residents):
     with psycopg.connect(cfg.admin_database_url, row_factory=dict_row) as conn:
         conn.execute("INSERT INTO tenants VALUES(%s,'synthetic-baseline-demo') ON CONFLICT DO NOTHING",
                      (scope.tenant_id,))
-        for role, actor in (("importer", scope.importer_id), ("nurse", scope.nurse_id)):
+        for role, actor in (("importer", scope.importer_id), ("nurse", scope.nurse_id),
+                            ("psw", scope.psw_id)):
             conn.execute("INSERT INTO principals(id,tenant_id,name) VALUES(%s,%s,%s) "
                          "ON CONFLICT DO NOTHING", (actor, scope.tenant_id, f"synthetic-{role}"))
         for index, resident in enumerate(residents):
@@ -132,10 +143,13 @@ def provision(cfg, scope, residents):
                              (resident["display_name"], scope.tenant_id, pid))
             conn.execute("INSERT INTO patients(id,tenant_id,external_id) VALUES(%s,%s,%s) "
                          "ON CONFLICT DO NOTHING", (pid, scope.tenant_id, resident["display_name"]))
-            for role, actor in (("importer", scope.importer_id), ("nurse", scope.nurse_id)):
+            for role, actor in (("importer", scope.importer_id), ("nurse", scope.nurse_id),
+                            ("psw", scope.psw_id)):
                 # Never reactivate an explicitly revoked assignment.
                 conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,%s,true) "
                              "ON CONFLICT DO NOTHING", (scope.tenant_id, pid, actor, role))
+            # Decision 017: explicit synthetic consent; never overrides a later withdrawal.
+            grant_fixture_consent(conn, scope.tenant_id, pid, scope.importer_id)
 
 
 def _preflight(cfg, scope, residents, presentation):

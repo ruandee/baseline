@@ -15,7 +15,17 @@ from patient_memory.baseline.verdict import (
 )
 from patient_memory.config import Settings
 from patient_memory.ingestion import lock_patient
-from patient_memory.storage import patient_access
+from patient_memory.storage import check_writer_access
+
+COUNTING_PROMPT = "count20-days-v1"
+FREE_CONVERSATION = "free-conversation-v1"
+
+
+def engine_settings(cfg: Settings, prompt_version: str) -> Settings:
+    """Free conversation uses its own, higher z threshold (PM_Z_THRESHOLD_FREE)."""
+    if prompt_version == FREE_CONVERSATION:
+        return cfg.model_copy(update={"z_threshold": cfg.z_threshold_free})
+    return cfg
 
 
 def lock_assessment(conn, tenant_id: UUID, patient_id: UUID):
@@ -51,11 +61,15 @@ def valid_tags(conn, patient_id: UUID, at: datetime) -> list[dict]:
 
 def escalations_used(conn, now: datetime, cfg: Settings) -> int:
     start, end = shift_bounds(now, cfg.shift_timezone)
+    if conn.execute("SELECT nullif(current_setting('pm.check_scoring_patient',true),'') AS p"
+                    ).fetchone()["p"]:
+        return conn.execute("SELECT pm_check_escalations(%s,%s) AS n", (start, end)
+                            ).fetchone()["n"]
     # Counted by when the clip was recorded, so history loaded in bulk never uses today's budget.
     return conn.execute(
         "SELECT count(*) AS n FROM assessments a JOIN voice_checks v ON v.tenant_id=a.tenant_id "
         "AND v.patient_id=a.patient_id AND v.id=a.check_id WHERE a.verdict='escalate' "
-        "AND v.session_id IS NULL AND v.ts>=%s AND v.ts<%s AND COALESCE((a.params->>'over_budget')::boolean,false)=false "
+        "AND v.ts>=%s AND v.ts<%s AND COALESCE((a.params->>'over_budget')::boolean,false)=false "
         "AND COALESCE((a.params->>'no_escalate')::boolean,false)=false", (start, end)
     ).fetchone()["n"]
 
@@ -86,17 +100,16 @@ def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_i
                  features: dict, display_name: str,
                  session_id: UUID | None = None) -> tuple[dict, dict]:
     """Returns the (change, assessment) payloads of POST /checks and stores the assessment row."""
-    patient_access(conn, patient_id)
+    check_writer_access(conn, patient_id)
     lock_assessment(conn, tenant_id, patient_id)
-    patient_access(conn, patient_id)
+    check_writer_access(conn, patient_id)
     history = _history(conn, patient_id, ts, prompt_version, session_id)
     mode = "enrolled" if sum(c.is_baseline for c in history) >= MIN_BASELINE else "rolling"
     check = Check(str(check_id), ts, device_id, prompt_version, is_baseline, True, dict(features))
-    result = evaluate(check, history, mode, cfg)
+    result = evaluate(check, history, mode, engine_settings(cfg, prompt_version))
     tags = valid_tags(conn, patient_id, ts)
     decision = decide(result.status, result.fused, [(t["kind"], t["tag"]) for t in tags])
-    # KAZE has its own explicit escalation_enabled/session-explainer policy. PCC's
-    # interrupt budget and resident profile must not label or downgrade session assessments.
+    # Session assessments use KAZE policy, never PCC interruption/profile suppression.
     flags = {"over_budget": False, "no_escalate": False, "would_escalate": False}
     if session_id is None:
         no_escalate = str(patient_id) in {p.strip() for p in cfg.no_escalate_patients.split(",")}
@@ -116,7 +129,8 @@ def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_i
         "INSERT INTO assessments(tenant_id,patient_id,id,check_id,change_status,fused_z,features,"
         "params,verdict,reasons,suggested_action,sbar) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (tenant_id, patient_id, assessment_id, check_id, result.status, result.fused,
-         Jsonb(change["per_feature"]), Jsonb({**result.params, "mode": mode, "source_revision": source_revision,
+         Jsonb(change["per_feature"]), Jsonb({**result.params, "mode": mode, "prompt_version": prompt_version,
+                                                "source_revision": source_revision,
                                                 "source_ids": [t["source_id"] for t in tags], **flags}),
          decision.verdict, Jsonb(reasons), decision.action, Jsonb(sbar) if sbar else None))
     payload = {"id": str(assessment_id), "verdict": decision.verdict,
