@@ -10,6 +10,7 @@ import base64
 import hashlib
 import html
 import re
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 from uuid import UUID
 
@@ -28,6 +29,7 @@ ASSESSMENT_SYSTEM = "urn:baseline:assessment"
 # check:<uuid> citations are signal data and must never be sent to the fact-only endpoint.
 FACT_SYSTEM = "urn:baseline:evidence:fact"
 CHECK_SYSTEM = "urn:baseline:evidence:voice-check"
+SIGNAL_SYSTEM = "urn:baseline:evidence:signal-capture"
 AUTHOR_DISPLAY = {
     "template": "Baseline SBAR drafter (deterministic template)",
     "gemini": "Baseline SBAR drafter (configured model, server-validated assembly)",
@@ -51,10 +53,10 @@ def note_text(sbar: StoredSbar) -> str:
     return "\n".join(f"{s.section}: {s.text}" for s in sbar.sentences)
 
 
-def citation_reference(evidence_id: str, check_id: str) -> dict:
+def citation_reference(evidence_id: str, check_id: str, allowed_checks=None) -> dict:
     if evidence_id.startswith("check:"):
         value = evidence_id.removeprefix("check:")
-        if value != check_id:
+        if value not in (allowed_checks if allowed_checks is not None else {check_id}):
             raise unavailable("SBAR cites a check other than its assessment's check.")
         return {"type": "Observation", "identifier": {"system": CHECK_SYSTEM, "value": value},
                 "display": "Voice check (signal data)"}
@@ -76,7 +78,7 @@ def build_document_reference(row: dict, sbar: StoredSbar) -> dict:
     for sentence in sbar.sentences:
         evidence = []
         for evidence_id in sentence.evidence_ids:
-            reference = citation_reference(evidence_id, check_id)
+            reference = citation_reference(evidence_id, check_id, row.get("allowed_checks"))
             evidence.append({"url": "evidence", "valueReference": reference})
             if evidence_id not in seen:
                 seen.add(evidence_id)
@@ -99,7 +101,7 @@ def build_document_reference(row: dict, sbar: StoredSbar) -> dict:
             {"url": EXT + "assessment-provenance", "extension": [
                 {"url": "assessment", "valueIdentifier": {"system": ASSESSMENT_SYSTEM,
                                                           "value": str(row["id"])}},
-                {"url": "check", "valueIdentifier": {"system": CHECK_SYSTEM, "value": check_id}},
+                {"url": "check", "valueIdentifier": {"system": (CHECK_SYSTEM if row["params"].get("modality", "speech") == "speech" else SIGNAL_SYSTEM), "value": check_id}},
                 {"url": "sourceRevision", "valueInteger": int(row["params"]["source_revision"])},
                 {"url": "changeStatus", "valueCode": row["change_status"]},
                 {"url": "verdict", "valueCode": row["verdict"]},
@@ -139,9 +141,9 @@ def draft_note(conn, patient_id: UUID, assessment_id: UUID) -> dict:
     if not conn.execute("SELECT pm_care(%s) AS ok", (patient_id,)).fetchone()["ok"]:
         raise Problem(404, "not_found")
     row = conn.execute(
-        "SELECT a.*, p.external_id, p.revision, v.ts AS check_ts, v.usable FROM assessments a "
+        "SELECT a.*, p.external_id, p.revision, COALESCE((a.params->>'signal_ts')::timestamptz,v.ts) AS check_ts, v.usable FROM assessments a "
         "JOIN patients p ON p.tenant_id=a.tenant_id AND p.id=a.patient_id "
-        "JOIN voice_checks v ON v.tenant_id=a.tenant_id AND v.patient_id=a.patient_id "
+        "LEFT JOIN voice_checks v ON v.tenant_id=a.tenant_id AND v.patient_id=a.patient_id "
         "AND v.id=a.check_id WHERE a.patient_id=%s AND a.id=%s",
         (patient_id, assessment_id)).fetchone()
     if not row:
@@ -150,12 +152,13 @@ def draft_note(conn, patient_id: UUID, assessment_id: UUID) -> dict:
     if params.get("invalidated") or params.get("source_revision") != row["revision"]:
         raise unavailable("The SBAR draft was invalidated by a source change. "
                           "A new usable check is needed before a draft note can be exported.")
-    if not row["usable"] or row["verdict"] not in ("escalate", "watch") or not row["sbar"]:
+    if (params.get("modality", "speech") == "speech" and not row["usable"]) or row["verdict"] not in ("escalate", "watch") or not row["sbar"]:
         raise unavailable("This assessment has no SBAR draft to export.")
     try:
         sbar = StoredSbar.model_validate(row["sbar"])
     except ValidationError as exc:
         raise unavailable("The stored SBAR draft is not in the expected shape.") from exc
+    row["allowed_checks"] = validate_signal_citations(conn, patient_id, row, sbar)
     facts = {e for s in sbar.sentences for e in s.evidence_ids if not e.startswith("check:")}
     if facts:
         try:
@@ -167,13 +170,64 @@ def draft_note(conn, patient_id: UUID, assessment_id: UUID) -> dict:
             "SELECT f.id FROM facts f JOIN sources s ON s.tenant_id=f.tenant_id "
             "AND s.patient_id=f.patient_id AND s.id=f.source_id WHERE f.patient_id=%s "
             "AND f.id=ANY(%s) AND s.published_at IS NOT NULL AND s.retracted_at IS NULL "
-            "AND s.purged_at IS NULL AND NOT EXISTS(SELECT FROM sources newer "
+            "AND s.purged_at IS NULL AND (f.valid_to IS NULL OR f.valid_to>clock_timestamp()) AND NOT EXISTS(SELECT FROM sources newer "
             "WHERE newer.tenant_id=s.tenant_id AND newer.patient_id=s.patient_id "
             "AND newer.supersedes=s.id AND newer.published_at IS NOT NULL "
             "AND newer.retracted_at IS NULL AND newer.purged_at IS NULL)", (patient_id, wanted))}
         if found != {str(w) for w in wanted}:
             raise unavailable("A cited source is no longer available to this account.")
     return build_document_reference(row, sbar)
+
+
+def validate_signal_citations(conn, patient_id, row, sbar, now=None):
+    """Resolve typed capture citations under RLS; never trust a UUID merely for membership.
+
+    Multimodal drafts remain tied to current registered snapshots and expire with their
+    contributing captures. Historical voice baselines retain their actual times and prompt.
+    """
+    now = now or datetime.now(UTC)
+    params = row["params"]
+    wanted = {e.removeprefix("check:") for s in sbar.sentences for e in s.evidence_ids
+              if e.startswith("check:")}
+    if params.get("draft_status") != "multimodal_template":
+        if wanted - {str(row["check_id"])}:
+            raise unavailable("SBAR cites an unrelated voice check.")
+        return wanted
+    context_ids = params.get("draft_context_ids", [])
+    if context_ids:
+        rows = conn.execute("SELECT id FROM context_tags WHERE patient_id=%s AND id=ANY(%s::uuid[]) "
+                            "AND valid_from<=%s AND (valid_to IS NULL OR valid_to>%s)",
+                            (patient_id, context_ids, now, now)).fetchall()
+        if {str(r["id"]) for r in rows} != set(context_ids):
+            raise unavailable("Cited context has expired or is unavailable.")
+    modalities = params.get("modality_results", {})
+    speech = modalities.get("speech", {})
+    allowed = {e.removeprefix("check:") for e in [*speech.get("evidence_ids", []),
+                *speech.get("params", {}).get("baseline_evidence_ids", [])] if e.startswith("check:")}
+    if wanted - allowed:
+        raise unavailable("SBAR cites an unrelated voice capture.")
+    from patient_memory.baseline.engine import REGISTRY
+    for name, entry in modalities.items():
+        if not entry.get("current") or entry.get("status") not in ("provisional", "change"):
+            continue
+        try:
+            event = datetime.fromisoformat(entry["ts"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise unavailable("Signal event time is unavailable.") from exc
+        if name not in REGISTRY or event > now or now-event > timedelta(hours=24):
+            raise unavailable("A contributing signal has expired.")
+    if wanted:
+        try:
+            ids = [UUID(e) for e in wanted]
+        except ValueError as exc:
+            raise unavailable("Invalid voice capture citation.") from exc
+        rows = conn.execute("SELECT id,prompt_version,ts FROM voice_checks WHERE patient_id=%s "
+                            "AND id=ANY(%s) AND usable AND session_id IS NULL", (patient_id, ids)).fetchall()
+        if {str(r["id"]) for r in rows} != wanted or len({r["prompt_version"] for r in rows}) != 1:
+            raise unavailable("A cited voice capture is unavailable or uses a different prompt.")
+        if any(r["ts"] > now for r in rows):
+            raise unavailable("A cited voice capture is in the future.")
+    return wanted
 
 
 # --- FHIR R4 DocumentReference shape validator (no external dependency) -----------------------
