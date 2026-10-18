@@ -207,16 +207,69 @@ real-SMS acceptance remain open.
 BL-30 registry (merged #78) adds scoped modalities, explicit missing/stale states, corroboration and
 legacy speech compatibility. New captures reproject eligible immutable modalities at current
 revision without restoring invalidated decisions; first-change markers reject stale/session
-snapshots. Only speech is registered in this base. Decision025/migration010 track the contract;
+snapshots. Speech and motion are registered on main; vitals remain in #84. Decision025/migration010 track the contract;
 final exact-head CI remains authoritative after hosting/status integration.
 
 BL-21 reset (merged #79): fixture-only current-time reset verifies all twelve
 canonical outcomes, preserves unrelated recordings/consent, refreshes private nurse/PSW/KAZE
 credentials and configures runner suppression. Hosted reset under one minute remains unverified.
 
-BL-34 motion integration (pending main CI): local-only camera/pose processing uses pinned
+BL-34 motion integration (merged #91 at d3d7ed0): local-only camera/pose processing uses pinned
 self-hosted assets and uploads bounded client-derived measurements with unknown-by-default
 motion consent. Final migration011 guards require explicit scoring authorization, including
 unset-context denial. Exact source provenance, RLS, purge and projection tests passed on the
-feature head; real Chrome model startup/failure used no camera or remote requests. Physical
+feature head; combined main integration passed 571 unit tests (6 optional deselected), 306
+DB-backed tests, migrations, stub evaluation and image smoke. Real Chrome model startup/failure
+used no camera or remote requests. Physical
 phone/camera and three measurements in under15seconds remain unverified (Refs #36).
+
+## Acceptance audit against all Baseline tickets
+
+Snapshot: main `d3d7ed0`, reviewed 2026-10-18 UTC. The acceptance text comes from
+`baseline-tickets.json` and `06-baseline.md`; adopted decisions supersede the original frontend
+location, unsafe hypertables and approved change-policy/scenario assumptions. A green synthetic
+test proves its engineering case only. Missing measurements, recordings and human actions remain
+unaccepted even when the implementation is merged. Final integrated CI is required after the
+remaining branches land.
+
+| Ticket | Engineering evidence / current implementation | Remaining acceptance |
+| --- | --- | --- |
+| BL-01 | Config/auth TTL tests; strict provider schema smoke recorded twice in the validation ledger | Reconfirm authorized provider connectivity before submission; prior calls prove only those requests |
+| BL-02 | Specification, AGENTS link and adopted decisions merged | None for the documentation gate |
+| BL-03 | Fresh migration CI and runtime-role isolation in `test_baseline_rls.py`; ordinary voice table per decision004 | No hypertable isolation claim |
+| BL-04 | Constructed-silence audio/VAD/feature tests; corrected pause boundaries | Real recordings are BL-06, not proved by these fixtures |
+| BL-05 | Short/noisy/clipped/off-script quality tests | Real venue/phone quality remains separate |
+| BL-06 | Golden-clip harness exists | Normal/slow/pausey/stairs recordings absent; ON HOLD (#8) |
+| BL-07 | Multipart format, authorization, unusable clip and payload-limit contract tests | Hosted p95 below5s unmeasured; #9 reopened for its explicit remaining gate |
+| BL-08 | Original speech cases plus calibration/confirmation/CUSUM regressions; accepted decision019 | Engineering thresholds only; no clinical sensitivity/specificity claim |
+| BL-09 | Structured medication/vital context tests verify exact source spans and order semantics | None for the synthetic engineering gate |
+| BL-10 | Note extraction tests cover exact quotes, fabrication/negation rejection and offline fallback | Real model quality is not established by stub tests |
+| BL-11 | Verdict status/context combinations, amplifier precedence and runner suppression tests | Real runner capture remains BL-15 |
+| BL-12 | Validator/fallback and valid configured-draft publication tests; speech SBAR merged | Grounded multimodal draft/export #87 not yet merged; configured live model quality unmeasured |
+| BL-13 | Watchlist/overview API contracts and committed OpenAPI | Final schema/compatibility CI after pending adapters |
+| BL-14 | Actual loader/runtime-role scoring verifies all12 approved synthetic outcomes, idempotence and evidence | Authored fixtures are not statistical/clinical validation |
+| BL-15 | Server suppression and separate runner identity implemented | Five rested baselines and stairs/race/backup recordings absent; ON HOLD (#17) |
+| BL-16 | Same-origin shell/bootstrap and Host/Origin/authorization tests; decision005 | No Next.js/web directory requirement under the adopted decision |
+| BL-17 | Recording/retry/permission/race and MIME engineering tests | Physical iPhone/Android HTTPS/LTE acceptance unrun (#19) |
+| BL-18 | Real cohort/API-captured JS proves API sort order and hidden-tab polling stop/resume | Specified engineering gate accepted; #20 closed |
+| BL-19 | Real API-captured resident DOM proves four bands/markers, every citation readback, action and draft; headless Chrome layouts | Physical-phone hosted readback still unrun; #21's specified engineering gate accepted |
+| BL-20 | Opt-in image, same-origin proxy, secret/host guards and deployment helpers merged | No server/domain provisioned; public HTTPS/LTE result unverified (#22) |
+| BL-21 | Merged fixture-only current-time reset; DB interruption/resumption/concurrency and volunteer-preservation tests | One-command hosted reset under1minute unmeasured (#23) |
+| BL-22 | Draft submission material only | Public visibility and actual Devpost submission unverified; original deadline is not proof (#24) |
+| BL-23 | README/run guides, draft write-up and video shot list merged | Clean-clone host walkthrough and video saved in two locations unverified (#25) |
+| BL-24 | Rehearsal checklist and empty run log | Two solo runs under4minutes without manual fixes unrecorded (#26) |
+| BL-25 | Actual three-usable-clip activation, forced RLS, expiry and scoped24h retention tests | Specified engineering gate accepted; #27 closed |
+| BL-26 | On-time reset, five-minute level2, acknowledgement stop and DB race tests; hosted service worker merged | Specified engineering gate accepted; #28 closed |
+| BL-27 | Durable claim, provider mock, public acknowledgement/expiry and honest logged/failed/unknown states | Verified phone text receipt and actual link acknowledgement unrun (#29) |
+| BL-28 | Arm/enroll/capture/cancel/countdown/timeline engineering tests | Full two-phone arm/miss/text/ack loop unrun (#30) |
+| BL-29 | KAZE script/prize notes remain preparation material | Two rehearsals and actual Devpost KAZE selection unverified (#31) |
+| BL-30 | Unchanged original speech tests and persisted two-modality corroboration/lifecycle tests; #78 merged | Specified registry gate accepted; #32 closed |
+| BL-31 | Consent, score-free PSW/resident, one-retry and warm-close flows merged | Explicit note attribution #92 and per-resident profiles in progress; nontechnical tester/physical accessibility acceptance unrun (#33) |
+| BL-32 | Mock encounter segmentation, voiced-duration, strict request/stored consent and audio-cleanup tests | Consenting teammate-voiced fixture/real Vox UI acceptance unrun; no real EHR integration (#34) |
+| BL-33 | Preliminary DocumentReference shape/text/provenance tests and actual API-to-button preview | Specified export/preview gate accepted; #35 closed; no real sign-off queue/writeback claimed |
+| BL-34 | Main motion capture/provenance/RLS tests, real Chrome model startup/failure and phone-width layout | Physical chair-to-three-measurements in under15s unverified (#36); client-derived numbers remain unverified |
+| BL-35 | Explicit resting HR/RR adapter and isolated Mrs.K corroboration tests in #84 | Final main integration CI and merge pending (#37); canonical cohort unchanged |
+
+Golden recordings, hosting, actual phone contacts and presenter run logs are external inputs.
+Do not replace them with mock screenshots, provider acceptance, a written checklist or historic
+test counts. This audit does not establish real-data pilot readiness or clinical validation.
