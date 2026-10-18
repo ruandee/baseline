@@ -49,3 +49,30 @@ def sandbox(db_clock_in_step):
     objects = ObjectStore(cfg)
     objects.initialize()
     return cfg, patient, {role: Identity(actor, tenant) for role, actor in actors.items()}, objects
+
+
+@pytest.fixture
+def kaze_sandbox(db_clock_in_step):
+    """A safety-mode tenant (decision 018): two people, each importer on their own row, the
+    kaze-service principal as nurse on both, and an unassigned administrator."""
+    cfg = Settings()
+    tenant = uuid4()
+    ids = {name: uuid4() for name in ["person", "other", "service", "admin"]}
+    with psycopg.connect(cfg.admin_database_url) as conn:
+        conn.execute("INSERT INTO tenants(id,name,safety_mode) VALUES(%s,'synthetic-kaze',true)",
+                     (tenant,))
+        for name, actor in ids.items():
+            conn.execute("INSERT INTO principals(id,tenant_id,name,administrator) VALUES(%s,%s,%s,%s)",
+                         (actor, tenant, "synthetic-" + name, name == "admin"))
+        for name in ["person", "other"]:
+            conn.execute("INSERT INTO patients(id,tenant_id,external_id) VALUES(%s,%s,%s)",
+                         (ids[name], tenant, "synthetic-kaze-" + name))
+            conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,'importer',true)",
+                         (tenant, ids[name], ids[name]))
+            conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,'nurse',true)",
+                         (tenant, ids[name], ids["service"]))
+    objects = ObjectStore(cfg)
+    objects.initialize()
+    return {"cfg": cfg, "tenant": tenant, "patient": ids["person"], "other_patient": ids["other"],
+            "ids": {name: Identity(actor, tenant) for name, actor in ids.items()},
+            "objects": objects}

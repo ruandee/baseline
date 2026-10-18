@@ -66,6 +66,41 @@ class SourceInput(Contract):
         return self
 
 
+class ContextInput(Contract):
+    kind: Literal["explainer", "amplifier"]
+    tag: str = Field(min_length=1, max_length=64)
+    label: str = Field(min_length=1, max_length=500)
+    valid_from: AwareDatetime
+    valid_to: AwareDatetime | None = None
+
+    @model_validator(mode="after")
+    def validate_window(self):
+        if self.valid_to and self.valid_to < self.valid_from:
+            raise ValueError("Inverted validity window")
+        return self
+
+
+class ContextTagOut(Contract):
+    id: UUID
+    kind: Literal["explainer", "amplifier"]
+    tag: str
+    label: str
+    quote: str
+    start_offset: int
+    end_offset: int
+    source_id: UUID
+    valid_from: AwareDatetime
+    valid_to: AwareDatetime | None
+    extracted_by: Literal["structured", "gemini"]
+
+
+class NoteExtractionResult(Contract):
+    processed: int
+    tags_created: int
+    methods: list[Literal["keyword", "gemini"]]
+    batch_limit: int
+
+
 class Question(Contract):
     question: str = Field(min_length=1, max_length=4000)
     as_of: AwareDatetime | None = None
@@ -158,3 +193,157 @@ class Answer(Contract):
     conflicts: list[Conflict]
     coverage: Coverage
     versions: dict[str, str]
+
+
+CheckMode = Literal["resident", "runner", "live"]
+
+
+class CheckQuality(Contract):
+    duration_s: float
+    speech_s: float
+    snr_db: float | None
+    clipped: bool
+    reasons: list[str]
+
+
+class CheckFeatures(Contract):
+    """None means the feature is undefined for this clip, which is not the same as zero."""
+
+    speech_rate_wpm: float | None
+    pause_ratio: float | None
+    mean_pause_s: float | None
+    f0_median_hz: float | None
+
+
+class CheckWord(Contract):
+    w: str
+    start: float
+    end: float
+
+
+class CheckPause(Contract):
+    start: float
+    end: float
+
+
+class CheckResult(Contract):
+    check_id: UUID
+    ts: AwareDatetime
+    usable: bool
+    quality: CheckQuality
+    features: CheckFeatures
+    words: list[CheckWord]
+    pauses: list[CheckPause]
+    # Stay null until the change engine (BL-08) and verdict table (BL-11) exist; unusable
+    # clips never get either.
+    change: dict | None = None
+    assessment: dict | None = None
+    timings_ms: dict[str, int]
+    # Present only for check-ins inside a KAZE safety session (decision 018).
+    session: "SessionSummary | None" = None
+
+
+SessionStatus = Literal["arming", "active", "escalating", "acknowledged", "ended"]
+SessionContextTag = Literal["exertion", "loud_venue"]
+
+
+class SessionContactInput(Contract):
+    name: str = Field(min_length=1, max_length=40)
+    phone_e164: str = Field(pattern=r"^\+[1-9][0-9]{7,14}$")
+
+
+class SessionArm(Contract):
+    """Arm a KAZE safety session (decision 018). `ends_at` is checked against the server clock."""
+
+    display_name: str = Field(min_length=1, max_length=40)
+    ends_at: AwareDatetime
+    interval_min: int = Field(default=45, ge=1, le=180)
+    contacts: list[SessionContactInput] = Field(min_length=1, max_length=2)
+    context_tags: list[SessionContextTag] = Field(default_factory=list, max_length=2)
+    escalation_enabled: bool = True
+
+    @model_validator(mode="after")
+    def distinct(self):
+        if len(set(self.context_tags)) != len(self.context_tags):
+            raise ValueError("Duplicate context tag")
+        if len({c.phone_e164 for c in self.contacts}) != len(self.contacts):
+            raise ValueError("Duplicate contact phone")
+        return self
+
+
+class SessionEnd(Contract):
+    pass
+
+
+class SessionSummary(Contract):
+    id: UUID
+    status: SessionStatus
+    baseline_required: int
+    baseline_usable: int
+    next_due_at: AwareDatetime | None
+
+
+class SessionContactOut(Contract):
+    contact_index: int
+    name: str
+    phone_masked: str
+
+
+class SessionCheckOut(Contract):
+    id: UUID
+    ts: AwareDatetime
+    usable: bool
+    is_baseline: bool
+    change_status: str | None
+    has_location: bool
+
+
+class EscalationOut(Contract):
+    id: UUID
+    episode: int
+    level: int
+    trigger: Literal["missed_checkin", "speech_change"]
+    channel: Literal["nudge", "sms"]
+    contact_index: int | None
+    sent_at: AwareDatetime
+    delivery: Literal["pending", "logged", "sent", "failed"]
+    message: str | None
+    ack_at: AwareDatetime | None
+
+
+class SessionBaseline(Contract):
+    required: int
+    usable: int
+
+
+class SessionOut(Contract):
+    id: UUID
+    patient_id: UUID
+    display_name: str
+    status: SessionStatus
+    created_at: AwareDatetime
+    activated_at: AwareDatetime | None
+    ends_at: AwareDatetime
+    interval_min: int
+    context_tags: list[SessionContextTag]
+    escalation_enabled: bool
+    next_due_at: AwareDatetime | None
+    last_checkin_at: AwareDatetime | None
+    ladder_level: int
+    episode: int
+    ladder_trigger: Literal["missed_checkin", "speech_change"] | None
+    acknowledged_at: AwareDatetime | None
+    ended_at: AwareDatetime | None
+    end_reason: Literal["user", "expired"] | None
+    delete_after: AwareDatetime | None
+    baseline: SessionBaseline
+    contacts: list[SessionContactOut]
+    checks: list[SessionCheckOut] = []
+    escalations: list[EscalationOut] = []
+
+
+class SessionList(Contract):
+    sessions: list[SessionOut]
+
+
+CheckResult.model_rebuild()
