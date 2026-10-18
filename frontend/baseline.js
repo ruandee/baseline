@@ -247,7 +247,7 @@ async function renderUnit(main) {
     el('p', 'Loading the latest review list…', {'data-unit': 'priority-note', class: 'bl-muted'}));
   const roster = el('details', '', {class: 'unit-roster', 'data-unit': 'roster', hidden: ''});
   roster.append(el('summary', 'All visible residents and capture identities', {'data-unit': 'roster-label'}),
-    el('p', 'The full list follows the server’s review order. No flag does not establish that a resident is well.',
+    el('p', 'The full list follows the server’s review order. No flag does not establish that a resident is well. The change score summarizes measured differences from personal history; it is not a probability or diagnosis.',
        {class: 'unit-roster-note'}), table);
   const captures = el('section', '', {'data-unit': 'captures', class: 'unit-captures', hidden: ''});
   captures.append(el('h2', 'Separate capture identities'),

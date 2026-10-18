@@ -335,13 +335,17 @@
       grid.append(fig);
     });
     const legend = h.el('p', 'Line: daily median · dots: each check · green band: usual range (median ± 2 × scale) · dashed line: first change', {class: 'bl-muted'});
+    const guide = h.el('details', '', {class: 'measurement-guide'});
+    guide.append(h.el('summary', 'About these speech measurements'),
+      h.el('p', 'Speech rate is words per minute. Pause ratio is the share of the detected speech interval identified as pauses, shown as a percentage. Mean pause is the average detected pause length in seconds. Pitch (F0) is estimated vocal frequency in hertz.'),
+      h.el('p', 'These describe the recording and its comparison with personal history. They are not a diagnosis or a probability of illness. Missing values are unavailable, not zero.'));
     const sbar = sbarPanel(h, ctx, data);
     const signals = window.signalPanel && window.signalPanel(h, ctx, data);
     const navigation = h.el('div', '', {class: 'resident-context-links'});
     navigation.append(h.el('a', 'Unit overview', {href: '/unit'}),
       h.el('a', 'Notes and source history', {href: '/?patient=' + encodeURIComponent(id)}),
       h.el('a', 'Voice-check readiness', {href: '/check?nurse=1&patient=' + encodeURIComponent(id)}));
-    main.replaceChildren(navigation, title, verdictCard(h, data), ...(signals ? [signals] : []), h.el('h2', 'Last 30 days'), grid, legend,
+    main.replaceChildren(navigation, title, verdictCard(h, data), ...(signals ? [signals] : []), h.el('h2', 'Last 30 days'), grid, legend, guide,
                          evidenceChain(h, ctx, data), ...(sbar ? [sbar] : []),
                          decisionTable(h, data));
     if (!ctx.mock && data.latest_assessment && data.latest_assessment.sbar && window.noteExportPanel) {

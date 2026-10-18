@@ -8,8 +8,8 @@ Functional checks below remain engineering evidence, not visual acceptance. The 
 requires actual award-winning healthcare references, flat surfaces without bevels, stronger
 typography and restrained information hierarchy. Resident-facing screens should be warmer,
 with a few original minimal drawings and empathetic, explicit choices. The isolated concepts
-in `docs/design/` are for feedback before extending the direction to the full application.
-They make no API calls, record no media and do not change the deployed site or its safeguards.
+in `docs/design/` established the accepted direction; it is now applied to the functional
+application. The concepts make no API calls or media recordings. Deployment remains separate.
 
 ## Problem and decision
 
@@ -19,8 +19,8 @@ and comparable history would be used. The notes workspace emphasized implementat
 used a cramped mobile resident list and showed a fixed January record horizon on a hosted
 October cohort. A visual refresh alone would not fix those workflow and time-context problems.
 
-Use one care-team navigation order and a shared system-font, slate/teal shell with white cards
-on a light gray background. Keep the unit list, notes review and nurse voice-check preparation
+Use one care-team navigation order with a flat header, locally bundled Nunito type, warm
+neutral surfaces, restrained green/ink controls and compact rows separated by fine rules. Keep the unit list, notes review and nurse voice-check preparation
 as separate tasks with clear headings, labelled controls and visible loading/empty/error states.
 Movement and the visibly labelled presentation demo remain secondary destinations.
 

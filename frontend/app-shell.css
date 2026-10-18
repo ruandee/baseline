@@ -224,3 +224,7 @@ body.care-app:has(.bl-motion[data-mode=resident]) .nav-foot { flex: 0 1 auto; ma
 .care-app .bl-demo-capture { padding: 20px 0; margin: 20px 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; }
 .care-app .bl-demo-capture .bl-prompt { font-size: 23px; line-height: 1.5; max-width: 640px; }
 .care-app .bl-demo-controls button { border: 1px solid #b6c4b7; border-radius: 4px; font: inherit; }
+
+.measurement-guide { padding-block: 12px; color: var(--muted); font-size: 14px; }
+.measurement-guide summary { min-height: 44px; padding-block: 10px; color: var(--green); font-weight: 600; cursor: pointer; }
+.measurement-guide p { max-width: 850px; line-height: 1.65; }

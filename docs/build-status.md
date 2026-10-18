@@ -389,12 +389,20 @@ keep January 3 with `snapshot_mode: "fixed"`. The hosted handover's explicit, ed
 UTC default does not overwrite date edits on resident change or retry. API permissions,
 consent, scoring and the separate decision036 presentation semantics are unchanged.
 
-Local deterministic JavaScript verification reported 161 passed scenarios; the movement audit's
-ten JS scenarios also passed, with physical chair/camera acceptance still unverified. At
-functional head `1f824cf`, the fresh full unit suite passed 667 tests with five optional tests
-deselected. Independent actual headless Chrome verification passed 25 checks across 1440px/390px
-views of the three workflows; six ignored screenshots were saved and reviewed. There were zero
-media calls, remote calls or page errors; question/summary POSTs were fixture responses only.
-Exact combined backend/evaluation/image CI remains pending. No live upgrade or physical
-user/phone/rehearsal acceptance is claimed. See [decision037](decisions/037-care-workspace-workflows.md) for rationale, research
-sources, contract boundaries and engineering acceptance criteria.
+Local validation passed Ruff, 667 unit tests (five optional tests deselected) and 162 JavaScript
+checks. Headless Chrome passed 25 core workflow checks, five presentation checks and 24 further
+screen checks at desktop/phone widths. It also exercised two actual Chrome MediaRecorder takes
+per width on generated WebAudio, verifying current permission/profile admission, enrollment,
+unknown verdict handling and blocking after withdrawal. All four tracks ended; four multipart
+uploads were intercepted fixtures. No physical microphone, provider or real SMS was used.
+
+All seven areas/fifteen screen types have an implementation and screenshot pass; the public
+site is unchanged. Exact-head backend/evaluation/image CI and user release review remain.
+Use PR #123 and tracker #38 for the exact final commit and CI result, rather than treating
+historical counts as acceptance of a later release. The combined PR also preserves the earlier
+reset-wrapper recovery fix: startup is attempted after a safe reset refusal, and the original
+failure status is retained. No unexpected recording is deleted or bypassed.
+
+See [decision037](decisions/037-care-workspace-workflows.md) for research and contract boundaries,
+and [the screen inventory](frontend-redesign.md) for current coverage. Physical-phone,
+chair/camera, hosted latency, resident/staff usability and rehearsal acceptance remain unverified.

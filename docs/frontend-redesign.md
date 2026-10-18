@@ -46,3 +46,15 @@ extended browser audit passed 24 checks and saved 28 screenshots in ignored
 acknowledgement page uses an exact stylesheet hash in its restrictive CSP; no script or
 external assets are permitted. Coordinate the proposed release with the user. No deployment is authorized by acceptance of a visual concept.
 Physical-phone, resident/staff usability and clinical validation remain separate acceptance.
+
+
+The final audit also exercised the staff recorder in actual Chrome at both widths, using two
+WebAudio-generated takes per width. Four multipart uploads were intercepted, all audio tracks
+ended, enrolling/missing-verdict states remained explicit and withdrawn permission blocked the
+next microphone attempt. Speech measurement definitions are available on demand in the staff
+record; the roster explains that its change score is not a probability or diagnosis.
+
+The proposed combined release also contains the previously prepared reset-wrapper recovery
+fix inherited from draft #119: it retains strict reset refusal and original failure status,
+then attempts to restore service after safe earlier preparation. See its dedicated regression
+coverage; no reset or deploy is performed by the frontend review.
