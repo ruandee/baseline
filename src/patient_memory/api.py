@@ -147,7 +147,7 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
                     "Whisper failed to load; voice checks retry on first use")
         yield
 
-    app = FastAPI(title="Patient Memory â€” synthetic prototype", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="Patient Memory — synthetic prototype", version="0.1.0", lifespan=lifespan)
     app.state.cfg = cfg
     app.state.objects = objects or ObjectStore(cfg)
     app.state.generator = generator or generator_for(cfg)
