@@ -38,6 +38,14 @@ def validate_url(value):
     return value.rstrip("/")
 
 
+def load_token(path):
+    raw = Path(path).read_text(encoding="utf-8").strip()
+    token = json.loads(raw)["token"] if raw.startswith("{") else raw
+    if not re.fullmatch(r"[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+", token):
+        raise EnrollmentError("Session file must contain a JWT; no credentials were printed")
+    return token
+
+
 def check_response(response):
     if not response.is_success:
         # Do not echo server bodies, transcripts, headers or bearer tokens.
@@ -149,10 +157,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         base = validate_url(args.base_url)
-        raw = args.session_file.read_text(encoding="utf-8").strip()
-        token = json.loads(raw)["token"] if raw.startswith("{") else raw
-        if not re.fullmatch(r"[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+", token):
-            raise EnrollmentError("Session file must contain a JWT; no credentials were printed")
+        token = load_token(args.session_file)
         with httpx.Client(base_url=base, headers={"Authorization": "Bearer " + token},
                           timeout=90, follow_redirects=False, trust_env=False) as client:
             report = enroll(client, args.patient_id, args.clips, args.device_id, args.output,

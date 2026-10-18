@@ -282,7 +282,7 @@ remaining branches land.
 | BL-04 | Constructed-silence audio/VAD/feature tests; corrected pause boundaries | Real recordings are BL-06, not proved by these fixtures |
 | BL-05 | Short/noisy/clipped/off-script quality tests | Real venue/phone quality remains separate |
 | BL-06 | Golden-clip harness merged; pending #94 reports a local real Whisper run against its explicitly revised protocol, preserving the original stairs failure | Review the revised protocol and run evidence before accepting #8; no exertion-detection validation claimed |
-| BL-07 | Multipart format, authorization, unusable clip and payload-limit contract tests | Hosted p95 below5s unmeasured; #9 reopened for its explicit remaining gate |
+| BL-07 | Multipart format, authorization, unusable clip and payload-limit contract tests; `scripts/measure_checks_latency.py` (stubbed-HTTP unit tests) for the hosted run | Hosted p95 below 5 s unmeasured; #9 reopened for its explicit remaining gate; a tool run is evidence, not closure |
 | BL-08 | Original speech cases plus calibration/confirmation/CUSUM regressions; accepted decision019 | Engineering thresholds only; no clinical sensitivity/specificity claim |
 | BL-09 | Structured medication/vital context tests verify exact source spans and order semantics | None for the synthetic engineering gate |
 | BL-10 | Note extraction tests cover exact quotes, fabrication/negation rejection and offline fallback | Real model quality is not established by stub tests |
