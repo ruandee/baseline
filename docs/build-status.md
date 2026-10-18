@@ -127,20 +127,20 @@ Follow README/operations and the exact CI order before claiming a new integrated
 Do not introduce real patient data before source permissions, hosting, provider handling and
 clinical ownership are decided.
 
-## BL-25 — KAZE safety sessions (model and endpoints)
+## BL-18 live acceptance (Refs #20)
 
-Migration 006 (chained off 005) adds `tenants.safety_mode`, `safety_sessions`, `safety_contacts`
-and `escalation_events` (forced RLS, composite tenant/patient and session-scoped FKs), plus
-`session_id`, `lat`, `lon`, `accuracy_m` on `voice_checks`. Sessions exist only in safety-mode
-tenants (`scripts/kaze_demo.py` creates `kaze-demo`); the person is importer on their own row,
-the `kaze-service` principal is nurse. Endpoints: arm (`POST /v1/patients/{id}/sessions`), list,
-status and end. `POST /checks` accepts `session_id` and location; the third usable baseline
-clip activates the session, and session checks are scored only against that session's history.
-`pm_acknowledge_escalation` (hashed token, for BL-27) and `pm_retire_safety_sessions` (expiry and
-24 h deletion of session checks/locations/assessments/contacts/events; worker calls it each
-minute) are SECURITY DEFINER and tenant-scoped. Contract: [decision 018](decisions/018-kaze-session-model.md).
+`tests/contract/test_unit_watchlist_live.py` loads the BL-14 cohort (scenario-snapshots,
+offline) into a sandbox tenant, reads `/v1/watchlist` through the workspace app and demo token
+the page uses, checks that every field `/unit` reads in `frontend/baseline.js` exists in the
+live payload, checks the sort contract (Mrs. K escalate, Mrs. L watch, Mr. T explained, nine
+within-normal by fused z, the patient with no checks last) and then runs
+`tests/js/unit_page.test.mjs` under Node against that captured response. The JS test asserts
+rendered order equals API order (no client re-sort), a 10 s interval, no timer or requests
+while hidden, an immediate refresh and a new 10 s interval when visible again, and a single
+load for a background-opened tab. `tests/unit/test_unit_page_js.py` runs the same JS test on a
+committed schema-shaped fixture; both skip only when Node is missing.
 
-Not done: scheduler/ladder progression and check-in resets (BL-26), SMS sender and `/ack` route
-(BL-27), pages (BL-28), `loud_venue` quality tolerance, two-phone acceptance, and integrated
-acceptance after the PointClickCare path reaches BL-13. DB-backed tests run in CI only (no
-local Docker).
+Known gap: `scripts.frontend` mints its token for the eval-corpus workspace tenant, while the
+loader writes the cohort to `uid("tenant-0")`. A default local `/unit` therefore lists the
+workspace patients with no voice checks; it shows the cohort only when `PM_DEMO_TOKEN` is set
+to the loader's `artifacts/baseline-demo/session.json` nurse token (BL-21 reset work).

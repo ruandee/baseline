@@ -41,9 +41,11 @@ def mask_phone(phone: str) -> str:
     return phone[:1] + "*" * (len(phone) - 5) + phone[-4:]
 
 
-def check_problem(status: str, mode: str, is_baseline: bool) -> Problem | None:
-    """Which check-ins a session accepts in each state."""
-    if status == "ended":
+def check_problem(status: str, mode: str, is_baseline: bool,
+                  past_end: bool = False) -> Problem | None:
+    """Which check-ins a session accepts in each state. A session past `ends_at` is over even
+    before the retention job marks it expired."""
+    if status == "ended" or past_end:
         return Problem(409, "session_ended")
     if mode != "live":
         return Problem(422, "invalid_request", "Session check-ins use mode live")
@@ -80,6 +82,10 @@ def _row(conn, patient_id: UUID, session_id: UUID, lock=False):
                        + (" FOR UPDATE" if lock else ""), (patient_id, session_id)).fetchone()
     if not row:
         raise Problem(404, "not_found")
+    # Sample expiry after FOR UPDATE has actually acquired the row lock. A computed SELECT
+    # column can otherwise be evaluated before waiting for a concurrent session mutation.
+    row["past_end"] = conn.execute("SELECT %s<=clock_timestamp() AS past_end",
+                                   (row["ends_at"],)).fetchone()["past_end"]
     return row
 
 
@@ -132,6 +138,11 @@ def arm(conn, identity, patient_id: UUID, body: SessionArm, key: str | None,
         problem = window_error(created_at, body.ends_at, body.interval_min)
         if problem:
             raise Problem(422, "invalid_request", problem)
+        # A previous session past its end is over even if retention has not run yet.
+        conn.execute(
+            "UPDATE safety_sessions SET status='ended',end_reason='expired',ended_at=ends_at,"
+            "delete_after=ends_at+%s,next_due_at=NULL WHERE patient_id=%s AND status<>'ended' "
+            "AND ends_at<=clock_timestamp()", (RETENTION, patient_id))
         if conn.execute("SELECT 1 FROM safety_sessions WHERE patient_id=%s AND status<>'ended'",
                         (patient_id,)).fetchone():
             raise Problem(409, "session_open")
@@ -165,11 +176,14 @@ def end(conn, identity, patient_id: UUID, session_id: UUID, request_id: UUID) ->
     owner_gate(conn, patient_id)
     row = _row(conn, patient_id, session_id, lock=True)
     if row["status"] != "ended":
-        ended_at = conn.execute("SELECT clock_timestamp() AS t").fetchone()["t"]
+        # A late end request cannot extend the retention window past the planned expiry.
+        ended_at = (row["ends_at"] if row["past_end"] else
+                    conn.execute("SELECT clock_timestamp() AS t").fetchone()["t"])
+        reason = "expired" if row["past_end"] else "user"
         conn.execute(
-            "UPDATE safety_sessions SET status='ended',end_reason='user',ended_at=%s,"
+            "UPDATE safety_sessions SET status='ended',end_reason=%s,ended_at=%s,"
             "delete_after=%s,next_due_at=NULL WHERE patient_id=%s AND id=%s",
-            (ended_at, ended_at + RETENTION, patient_id, session_id))
+            (reason, ended_at, ended_at + RETENTION, patient_id, session_id))
         audit(conn, identity, patient_id, "end_session", request_id)
         row = _row(conn, patient_id, session_id)
     return describe(conn, row)
@@ -192,7 +206,7 @@ def check_gate(conn, patient_id: UUID, session_id: UUID, mode: str, is_baseline:
     """Run before any audio work and again under lock before the insert."""
     owner_gate(conn, patient_id)
     row = _row(conn, patient_id, session_id, lock=lock)
-    problem = check_problem(row["status"], mode, is_baseline)
+    problem = check_problem(row["status"], mode, is_baseline, row["past_end"])
     if problem:
         raise problem
     return row

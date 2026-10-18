@@ -9,7 +9,9 @@ from fastapi.testclient import TestClient
 
 from patient_memory.api import create_app
 from patient_memory.auth import synthetic_token
+from patient_memory.speech.pipeline import Analysis
 from tests.contract.test_checks import USABLE, encode, on_script
+from tests.integration.test_assessments import BASE, QUALITY, SLOW
 
 needs_ffmpeg = pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg not installed")
 CONTACTS = [{"name": "Dee", "phone_e164": "+14165550101"},
@@ -160,6 +162,112 @@ def test_session_check_ins_are_rejected_before_audio_work(kaze_sandbox, who, fie
                                    files={"audio": ("clip", b"not audio", "application/octet-stream")})
     assert response.status_code == status
     assert admin_rows(k, "SELECT id FROM voice_checks WHERE patient_id=%s", (k["patient"],)) == []
+
+
+def add_past_end_session(k):
+    """An active session whose ends_at passed before the retention job ran."""
+    sid = uuid4()
+    with psycopg.connect(k["cfg"].admin_database_url) as admin:
+        admin.execute(
+            "INSERT INTO safety_sessions(tenant_id,patient_id,id,display_name,status,created_at,"
+            "activated_at,ends_at,next_due_at) VALUES(%s,%s,%s,'Sam','active',"
+            "now()-interval '2 hours',now()-interval '2 hours',now()-interval '1 minute',now())",
+            (k["tenant"], k["patient"], sid))
+    return sid
+
+
+def test_a_session_past_its_end_takes_no_check_ins(kaze_sandbox):
+    k = kaze_sandbox
+    sid = add_past_end_session(k)
+    response = client(k).post(f"/v1/patients/{k['patient']}/checks",
+                              data={"mode": "live", "device_id": "phone", "session_id": str(sid)},
+                              files={"audio": ("clip", b"x", "application/octet-stream")})
+    assert response.status_code == 409 and response.json()["error"]["code"] == "session_ended"
+
+
+def test_arming_again_closes_a_session_past_its_end(kaze_sandbox):
+    k = kaze_sandbox
+    old = add_past_end_session(k)
+    assert arm(k).status_code == 201
+    previous = client(k).get(f"/v1/patients/{k['patient']}/sessions/{old}").json()
+    assert previous["status"] == "ended" and previous["end_reason"] == "expired"
+    assert previous["ended_at"] == previous["ends_at"]
+
+
+def test_late_end_does_not_extend_retention_past_planned_expiry(kaze_sandbox):
+    k = kaze_sandbox
+    sid = add_past_end_session(k)
+    response = client(k).post(f"/v1/patients/{k['patient']}/sessions/{sid}/end", json={})
+    assert response.status_code == 200, response.text
+    ended = response.json()
+    assert ended["end_reason"] == "expired" and ended["ended_at"] == ended["ends_at"]
+    assert (datetime.fromisoformat(ended["delete_after"]) -
+            datetime.fromisoformat(ended["ends_at"])) == timedelta(hours=24)
+
+
+def test_session_expiring_during_decode_is_rejected_before_storage(kaze_sandbox, monkeypatch):
+    k = kaze_sandbox
+    sid = arm(k).json()["id"]
+    calls = []
+    def analyze(*args):
+        calls.append(True)
+        # A session was valid at admission, but its end passes before the storage gate.
+        with psycopg.connect(k["cfg"].admin_database_url) as admin:
+            admin.execute("UPDATE safety_sessions SET created_at=now()-interval '2 hours',"
+                          "ends_at=now()-interval '1 minute' WHERE id=%s", (sid,))
+        return Analysis(True, QUALITY, BASE, [], [], {})
+    monkeypatch.setattr("patient_memory.api.analyze", analyze)
+    response = check_in(k, sid, b"synthetic stub", True)
+    assert calls == [True]
+    assert response.status_code == 409 and response.json()["error"]["code"] == "session_ended"
+    assert admin_rows(k, "SELECT count(*) FROM voice_checks WHERE session_id=%s", (sid,)) == [(0,)]
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_session_raw_audio_is_removed_even_with_keep_audio_enabled(kaze_sandbox, monkeypatch, fail):
+    k = {**kaze_sandbox, "cfg": kaze_sandbox["cfg"].model_copy(update={"keep_audio": True})}
+    sid = arm(k).json()["id"]
+    directories = []
+    def analyze(upload, work, **kwargs):
+        directories.append(work)
+        assert upload.exists()
+        if fail:
+            from patient_memory.speech.pipeline import InvalidAudio
+            raise InvalidAudio
+        return Analysis(True, QUALITY, BASE, [], [], {})
+    monkeypatch.setattr("patient_memory.api.analyze", analyze)
+    response = check_in(k, sid, b"synthetic stub", True)
+    assert response.status_code == (422 if fail else 200), response.text
+    assert directories and all(not path.exists() for path in directories)
+
+
+@pytest.mark.parametrize("profile", ["budget", "no_escalate"])
+def test_raw_session_change_survives_pcc_budget_and_profile_for_ladder_consumers(
+        kaze_sandbox, monkeypatch, profile):
+    k = kaze_sandbox
+    cfg = k["cfg"].model_copy(update={
+        "escalation_budget": 0,
+        "no_escalate_patients": str(k["patient"]) if profile == "no_escalate" else ""})
+    k = {**k, "cfg": cfg}
+    sid = arm(k, context_tags=[]).json()["id"]
+    # A strong authored multifeature signal makes the PCC verdict eligible to escalate.
+    signal = {**SLOW, "speech_rate_wpm": BASE["speech_rate_wpm"] * .6,
+              "pause_ratio": BASE["pause_ratio"] + .16, "mean_pause_s": BASE["mean_pause_s"] + .4}
+    features = iter([BASE, BASE, BASE, signal, signal])
+    monkeypatch.setattr("patient_memory.api.analyze", lambda *a, **kw: Analysis(
+        True, QUALITY, next(features), [], [], {}))
+    for _ in range(3):
+        assert check_in(k, sid, b"synthetic stub", True).status_code == 200
+    first = check_in(k, sid, b"synthetic stub", False)
+    second = check_in(k, sid, b"synthetic stub", False)
+    assert first.status_code == second.status_code == 200
+    assert first.json()["change"]["status"] == "provisional"
+    assert second.json()["change"]["status"] == "change"
+    assessment = second.json()["assessment"]
+    assert assessment["over_budget"] if profile == "budget" else assessment["no_escalate"]
+    # BL-26 must consume this raw session change plus session explainers, not the PCC verdict.
+    status = client(k).get(f"/v1/patients/{k['patient']}/sessions/{sid}").json()
+    assert status["context_tags"] == [] and status["checks"][-1]["change_status"] == "change"
 
 
 def test_another_persons_session_id_is_404(kaze_sandbox):
