@@ -121,3 +121,9 @@ cohort separate. The report explicitly distinguishes twelve scripted residents f
 runs the offline reset, and restarts only after the strict gate passes. It prints three core URLs
 and an optional runner URL. No down-v, real audio, provider/SMS call, cloud action or paid resource
 is part of this implementation. Public-host/phone/latency acceptance remains separate.
+# Capture consent during reset
+
+Dedicated live/runner capture identities are outside the scripted reset allowlist. Provisioning
+them never grants consent: unknown continues to block capture until the care team records an
+actual volunteer decision. This avoids treating the non-audio cohort's synthetic consent as
+permission to record a person. Reset preserves their prior consent history and withdrawals.

@@ -135,6 +135,11 @@ Original fixture files and the existing all-history/scenario-snapshots loader mo
 The reset accepts only exact authored fixture rows. It refuses real/runner/session checks or other
 unrecognized data inside the scripted identities, rather than deleting them. Existing capture
 volunteers, other patients/tenants, consent withdrawals and revoked assignments are preserved.
+
+Creating the dedicated live/runner identities does not record consent. Their initial consent is
+unknown and capture returns `403 consent_required` until the authorized care team records the
+volunteer's actual decision through the existing consent endpoint. Reset never grants or restores
+that consent. The authored, non-audio cohort uses explicit synthetic fixture consent separately.
 Use the printed live/runner URLs to keep new recordings outside the scripted identities.
 
 API and worker are stopped before reset to prevent concurrent admissions. If validation or strict

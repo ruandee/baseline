@@ -13,7 +13,6 @@ from psycopg.types.json import Jsonb
 
 from patient_memory.baseline.overview import watchlist
 from patient_memory.config import Settings
-from patient_memory.consent import grant_fixture_consent
 from patient_memory.domain import SourceInput
 from patient_memory.extraction import extract
 from patient_memory.ingestion import digest, lock_patient
@@ -249,7 +248,8 @@ def provision_capture(cfg, scope):
             for role, actor in (("nurse", scope.nurse_id), ("importer", scope.importer_id)):
                 conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,%s,true) ON CONFLICT DO NOTHING",
                              (scope.tenant_id, pid, actor, role))
-            grant_fixture_consent(conn, scope.tenant_id, pid, scope.importer_id)
+            # These identities can receive consenting volunteer recordings later. Provisioning
+            # is not consent: no row remains unknown until the care team records the decision.
             people.append({"id": str(pid), "name": name, "capture_mode": mode, "scripted_cohort": False})
     return people
 

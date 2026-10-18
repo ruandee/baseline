@@ -44,6 +44,9 @@ def test_reset_preserves_capture_unrelated_safety_consent_and_revocations_and_al
     loader._publish_sources(cfg, scope, manifest["residents"], objects)
     provision_capture(cfg, scope)
     with psycopg.connect(cfg.admin_database_url, autocommit=True) as admin:
+        captures = [capture_patient_id(scope, mode) for mode in ("live", "runner")]
+        assert admin.execute("SELECT count(*) FROM resident_consents WHERE tenant_id=%s "
+                             "AND patient_id=ANY(%s)", (scope.tenant_id, captures)).fetchone()[0] == 0
         seed_authored_checks(admin, scope, manifest)
         sentinel_ids = []
         for pid, mode in [(capture_patient_id(scope, "live"), "live"),
@@ -81,6 +84,8 @@ def test_reset_preserves_capture_unrelated_safety_consent_and_revocations_and_al
                               (scope.tenant_id, ids)).fetchone() == (now,353)
         assert admin.execute("SELECT count(*) FROM voice_checks WHERE id=ANY(%s)", (sentinel_ids,)).fetchone()[0] == 3
         assert admin.execute("SELECT count(*) FROM safety_sessions WHERE id=%s", (sid,)).fetchone()[0] == 1
+        assert admin.execute("SELECT count(*) FROM resident_consents WHERE tenant_id=%s "
+                             "AND patient_id=ANY(%s)", (scope.tenant_id, captures)).fetchone()[0] == 0
         assert admin.execute("SELECT active FROM assignments WHERE tenant_id=%s AND patient_id=%s "
                              "AND principal_id=%s AND role='psw'", (scope.tenant_id, scope.patient_id(0), scope.psw_id)).fetchone()[0] is False
         assert admin.execute("SELECT status FROM resident_consents WHERE tenant_id=%s AND patient_id=%s "
