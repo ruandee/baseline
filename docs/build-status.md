@@ -1,6 +1,6 @@
 # Implementation status and remaining gates
 
-BL-17 replacement (decision035): `/unit?demo=handoff` hosts a two-resident presentation room.
+BL-17 replacement (decision036): `/unit?demo=handoff` hosts a two-resident presentation room.
 Separate phone links record locally and submit only a duration/idempotency receipt. The runner
 arrives as Watch; nurse-added exertion context changes it to Explained. Dee's first/second
 submissions show Watch/Escalate. Findings/baselines are authored and disclosed as a demo scenario.
