@@ -80,14 +80,18 @@ window.checkSetup = async function(host, patientId, changed) {
   consentForm.append(el('legend', 'Voice-check permission'), consentView,
     field('Decision', decision), field('Decision maker', maker),
     field('SDM reference (required for a substitute decision maker)', reference), consentLabel, saveConsent);
+  const settings = el('details', '', {class: 'capture-settings'});
+  settings.open = !controller.ready;
+  settings.append(el('summary', 'Review or change counting setup and permission'), profileForm, consentForm);
   const show = () => {
     if (closed) return;
+    if (!controller.ready) settings.open = true;
     consentView.textContent = `Stored permission: ${consent.state}`
       + (consent.recorded_at ? `, recorded ${consent.recorded_at}` : '') + '.';
     message.textContent = controller.ready ? 'Counting is ready. Recording starts only when you tap Record.'
       : `Recording blocked. Profile: ${controller.profile.state}; voice permission: ${consent.state}.`;
   };
-  section.append(profileForm, consentForm); show();
+  section.append(settings); show();
   controller.refresh = async () => { const ready = await refresh(); show(); return ready; };
   saveProfile.addEventListener('click', async () => {
     if (closed || !profileConfirmed.checked) return;

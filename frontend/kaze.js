@@ -1,5 +1,6 @@
 // Synthetic KAZE pages. The server supplies a separate self-custody session token in memory.
 async function renderKaze(main, requestedId) {
+  main.setAttribute('data-workspace', 'kaze');
   let disposed = false;
   const alive = () => !disposed;
   window.addEventListener('pagehide', () => { disposed = true; }, {once: true});
@@ -29,12 +30,14 @@ function renderKazeArm(host, base, permission, alive) {
     const wrap = el('label', label, {for: `kaze-${key}`});
     wrap.append(node); form.append(wrap); return node;
   };
+  form.append(el('h2', 'Your plan'));
   input('name', 'Your first name', 'text');
   const end = new Date(Date.now() + 3 * 3600000);
   input('end', 'Expected end time (your local clock)', 'time',
     `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`);
   const interval = input('interval', 'Check-in interval in minutes', 'number', '45');
   interval.setAttribute('min', '1'); interval.setAttribute('max', '180');
+  form.append(el('h2', 'Who should we contact?'));
   for (const n of [1, 2]) {
     input(`name${n}`, `Contact ${n} name${n === 2 ? ' (optional)' : ''}`, 'text');
     input(`phone${n}`, `Contact ${n} phone with country code`, 'tel');

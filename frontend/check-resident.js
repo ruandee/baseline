@@ -176,6 +176,7 @@ async function renderResidentCheck(main, params, patientId) {
   const skip = el('button', 'Skip today', {type: 'button', class: 'bl-skip'});
   const reasons = el('div', '', {class: 'bl-skip-reasons', role: 'group',
                                  'aria-label': 'Why are we skipping today?', hidden: ''});
+  reasons.append(el('p', 'For staff: record why we are skipping today.', {class: 'workspace-muted'}));
   SKIP_REASONS.forEach(([code, label]) => {
     const b = el('button', label, {type: 'button', 'data-reason': code});
     reasons.append(b);
@@ -395,6 +396,8 @@ async function renderResidentCheck(main, params, patientId) {
     resend.hidden = true;
     if (recorder && recorder.state === 'recording') { discard = true; stop(); }
     if (canSpeak) window.speechSynthesis.cancel();
+    say([RESIDENT_TEXT.skipped]);
+    purpose.hidden = true; text.hidden = true;
     reasons.hidden = false;  // staff pick why; the skip is logged once a reason is chosen
     reasons.querySelector('button').focus();
   });

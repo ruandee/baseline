@@ -16,7 +16,7 @@ const button = (h, text) => h.main.querySelectorAll('button').find((b) => b.text
 test('motion permission controls have visible associated labels and a fieldset legend', async () => {
   const h = loadPage('/check?type=motion&patient=p1');
   h.window.MotionCapture = CaptureStub;
-  await until(() => button(h, 'Prepare local'));
+  await until(() => button(h, 'Get ready'));
   const permission = h.main.querySelector('fieldset');
   assert.equal(permission.querySelector('legend').textContent, 'Movement-check permission');
   for (const control of h.main.querySelectorAll('select').concat(
@@ -34,13 +34,13 @@ test('motion page requires taps and server consent, then posts derived numbers w
     'GET /v1/patients/p1/motion-checks/readiness': () => ({ready: true}),
     'POST /v1/patients/p1/motion-checks': () => ({usable: true, ...measured})}});
   h.window.MotionCapture = CaptureStub;
-  await until(() => button(h, 'Prepare local'));
+  await until(() => button(h, 'Get ready'));
   const capture = CaptureStub.instances.at(-1);
   assert.equal(capture.warms, 0); assert.equal(capture.starts, 0);
   assert.equal(h.calls.some((c) => /readiness/.test(c.key)), false);
   const bootstrap = h.calls.find((c) => c.key === 'GET /demo/session');
   assert.equal(bootstrap.opts.headers['X-PM-Role'], undefined); // Judge path is care-team mode.
-  button(h, 'Prepare local').click();
+  button(h, 'Get ready').click();
   await until(() => !button(h, 'Start').disabled);
   button(h, 'Start').click();
   await until(() => h.calls.some((c) => c.key.startsWith('POST')));
@@ -62,9 +62,9 @@ test('resident/PSW motion view never exposes measurement values or assessment ev
     'POST /v1/patients/p1/motion-checks': () => ({usable: true, ...measured,
       assessment: {verdict: 'escalate', fused_z: 99}})}});
   h.window.MotionCapture = CaptureStub;
-  await until(() => button(h, 'Prepare local'));
+  await until(() => button(h, 'Get ready'));
   assert.equal(h.calls.find((c) => c.key === 'GET /demo/session').opts.headers['X-PM-Role'], 'psw');
-  button(h, 'Prepare local').click(); await until(() => !button(h, 'Start').disabled);
+  button(h, 'Get ready').click(); await until(() => !button(h, 'Start').disabled);
   button(h, 'Start').click(); await until(() => /Thank you/.test(h.main.textContent));
   assert.doesNotMatch(exposedText(h.main), /1\.20|60\.00|99|escalate|Time to half-rise|Trunk sway|Step cadence/);
   for (const f of h.window.listeners.pagehide || []) f();
@@ -75,11 +75,11 @@ test('cancel during consent preflight prevents delayed model initialization or c
   const h = loadPage('/check?type=motion&patient=p1', {routes: {
     'GET /v1/patients/p1/motion-checks/readiness': () => new Promise((r) => { ready = r; })}});
   h.window.MotionCapture = CaptureStub;
-  await until(() => button(h, 'Prepare local'));
+  await until(() => button(h, 'Get ready'));
   const capture = CaptureStub.instances.at(-1);
-  button(h, 'Prepare local').click(); await until(() => ready);
+  button(h, 'Get ready').click(); await until(() => ready);
   button(h, 'Cancel').click(); ready({ready: true});
-  await until(() => !button(h, 'Prepare local').disabled);
+  await until(() => !button(h, 'Get ready').disabled);
   assert.equal(capture.warms, 0); assert.equal(capture.starts, 0);
   assert.ok(button(h, 'Start').disabled);
   assert.match(h.main.textContent, /Camera off/);

@@ -271,7 +271,7 @@ async function renderCheck(main) {
   const baselineLabel = el('label', ' Mark as baseline', {for: 'is-baseline', class: 'bl-baseline'});
   baselineLabel.prepend(baselineBox);
   baselineLabel.hidden = !(params.mode === 'runner' && new Date().getDay() === 6);
-  card.append(el('h1', 'Voice check'), prompt, button, countdown, status, retry, baselineLabel);
+  card.append(el(new URLSearchParams(location.search).get('from') === 'nurse' ? 'h2' : 'h1', 'Voice check'), prompt, button, countdown, status, retry, baselineLabel);
   main.append(card, result);
 
   const resident = params.mode === 'resident';

@@ -134,3 +134,29 @@ The user requested iteration on every frontend piece. `docs/frontend-redesign.md
 all seven product areas and fifteen screen types, including movement, KAZE contact
 acknowledgement and both current/legacy presentation surfaces. Shared typography alone does
 not mark those detailed workflows visually accepted.
+
+
+### Remaining-screen implementation pass
+
+Staff resident details now use flat charts/findings/evidence and resident-specific links back
+to notes and voice readiness. Ready staff recording folds setup forms into a native disclosure;
+blocked setup remains open without granting permission. Resident refusal is acknowledged before
+staff reason entry, with old prompt text hidden. Existing capture/upload/cancel logic remains.
+
+Movement uses Get ready before Start, describes preparation without model jargon, and keeps the
+empty camera preview hidden until capture starts. Cancel and failed readiness leave it hidden.
+The browser audit denied readiness and made no media calls; real pose quality, chair timing,
+physical-phone capture and the under-15-second acceptance are still unverified. The local model
+may require preparation time and is not warmed automatically.
+
+KAZE arm fields are grouped into plan and contacts; stored permission stays distinct. Session
+controls/timeline use the shared system. Contact acknowledgement remains self-contained, with
+no scripts/external resources: its CSP allows only the SHA-256 hash of its exact inline style.
+This changes presentation policy only, not token consumption, acknowledgement behavior or
+contact messages. The legacy simulation also uses flat capture/controls and visible fiction.
+
+Actual headless Chrome checked 24 additional desktop/phone scenarios and saved 28 screenshots
+for these screens, with zero media calls, remote calls or page errors. Its source data and
+session responses were intercepted fixtures. This does not demonstrate real SMS, live-provider,
+physical-device or resident usability acceptance. All fifteen screen types now have a first
+pass; final user review and exact-head CI remain release conditions.

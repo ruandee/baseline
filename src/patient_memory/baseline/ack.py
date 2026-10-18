@@ -9,6 +9,7 @@ and changes nothing.
 `GET /ack/{token}` records acknowledgement and returns a minimal result page, per the
 specified KAZE contract. POST is equivalent. No page names a person, contact or session.
 """
+import base64
 import hashlib
 import html
 import re
@@ -58,14 +59,28 @@ def acknowledge(cfg, token: str) -> str:
     return result if result in RESULTS else "invalid"
 
 
-# A page with no script, style, image or external resource; the only form posts to itself.
+# No script, image or external resource; the only form posts to itself.
+# A self-contained contact page: permit only this exact stylesheet, with no external assets.
+STYLE = """
+*{box-sizing:border-box}body{margin:0;background:#faf8f1;color:#292e33;
+font:18px/1.6 ui-rounded,"Arial Rounded MT Bold","Trebuchet MS",sans-serif}
+main{max-width:540px;margin:10vh auto;padding:28px}
+.brand{font-size:17px;color:#356d94;font-weight:700;margin:0 0 34px}
+h1{font-size:32px;line-height:1.2;letter-spacing:-.5px;margin:0 0 20px}
+p{margin:0 0 24px}button{font:inherit;font-weight:700;width:100%;min-height:60px;
+padding:14px 20px;border:0;border-radius:8px;background:#356d94;color:#fff;cursor:pointer}
+button:focus-visible{outline:3px solid #292e33;outline-offset:5px}
+@media(max-width:540px){main{margin:5vh auto;padding:24px}}
+"""
+STYLE_HASH = base64.b64encode(hashlib.sha256(STYLE.encode()).digest()).decode()
+
 HEADERS = {
     "Cache-Control": "no-store",
     "Referrer-Policy": "no-referrer",
     "X-Content-Type-Options": "nosniff",
     "X-Robots-Tag": "noindex, nofollow",
     "Content-Security-Policy": ("default-src 'none'; form-action 'self'; frame-ancestors 'none'; "
-                                "base-uri 'none'"),
+                                f"base-uri 'none'; style-src 'sha256-{STYLE_HASH}'"),
 }
 
 PAGES = {
@@ -95,6 +110,7 @@ def page(kind: str) -> str:
     return ("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
             "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
             "<meta name=\"robots\" content=\"noindex, nofollow\">"
-            f"<title>{html.escape(title)}</title></head><body><main>"
+            f"<title>{html.escape(title)}</title><style>{STYLE}</style></head><body><main>"
+            '<p class="brand">baseline &middot; safety</p>'
             f"<h1>{html.escape(title)}</h1><p>{html.escape(text)}</p>{form}"
             "</main></body></html>")

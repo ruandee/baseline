@@ -315,6 +315,7 @@
   }
 
   window.renderResident = async function (main, id, h) {
+    main.setAttribute('data-workspace', 'resident-details');
     const ctx = {id, mock: h.mock};
     main.replaceChildren(h.el('p', 'Loading…'));
     let data;
@@ -336,7 +337,11 @@
     const legend = h.el('p', 'Line: daily median · dots: each check · green band: usual range (median ± 2 × scale) · dashed line: first change', {class: 'bl-muted'});
     const sbar = sbarPanel(h, ctx, data);
     const signals = window.signalPanel && window.signalPanel(h, ctx, data);
-    main.replaceChildren(title, verdictCard(h, data), ...(signals ? [signals] : []), h.el('h2', 'Last 30 days'), grid, legend,
+    const navigation = h.el('div', '', {class: 'resident-context-links'});
+    navigation.append(h.el('a', 'Unit overview', {href: '/unit'}),
+      h.el('a', 'Notes and source history', {href: '/?patient=' + encodeURIComponent(id)}),
+      h.el('a', 'Voice-check readiness', {href: '/check?nurse=1&patient=' + encodeURIComponent(id)}));
+    main.replaceChildren(navigation, title, verdictCard(h, data), ...(signals ? [signals] : []), h.el('h2', 'Last 30 days'), grid, legend,
                          evidenceChain(h, ctx, data), ...(sbar ? [sbar] : []),
                          decisionTable(h, data));
     if (!ctx.mock && data.latest_assessment && data.latest_assessment.sbar && window.noteExportPanel) {
