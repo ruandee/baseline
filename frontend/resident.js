@@ -94,8 +94,9 @@
     const a = data.latest_assessment;
     const card = h.el('section', '', {class: 'bl-card'});
     if (!a) {
-      card.append(h.chip('No assessment yet', 'enrolling'),
-                  h.el('p', 'Waiting for enough voice checks to build a baseline.'));
+      card.append(h.chip('Assessment unavailable', 'unknown'),
+                  h.el('p', 'No current assessment is available. Review the available records; '
+                    + 'this does not establish whether a baseline is complete.'));
       return card;
     }
     const overBudget = a.verdict === 'escalate' && a.over_budget;
