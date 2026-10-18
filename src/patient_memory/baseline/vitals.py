@@ -88,7 +88,7 @@ def projection(conn, cfg, patient_id, at):
         return None
     check = checks[-1]
     expired = conn.execute(
-        "SELECT id FROM facts WHERE patient_id=%s AND id=ANY(%s) AND valid_to IS NOT NULL AND valid_to<=%s",
+        "SELECT id FROM facts WHERE patient_id=%s AND id=ANY(%s::uuid[]) AND valid_to IS NOT NULL AND valid_to<=%s",
         (patient_id, list(check.evidence_ids), at)).fetchall()
     if expired:
         return None
