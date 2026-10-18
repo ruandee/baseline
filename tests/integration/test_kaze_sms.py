@@ -199,6 +199,14 @@ def test_uncertain_delivery_remains_pending_and_cannot_retry(kaze_sandbox, admin
         with transaction(k["cfg"], k["ids"]["service"]) as conn:
             conn.execute("UPDATE escalation_events SET delivery_started_at=NULL WHERE id=%s",
                          (message.event_id,))
+    sent_at = admin.execute("SELECT sent_at FROM escalation_events WHERE id=%s",
+                             (message.event_id,)).fetchone()[0]
+    # Uncertainty does not claim acknowledgement or stop the standard next-contact timer.
+    assert run_pass(k["cfg"], k["ids"]["service"], sender,
+                    now=sent_at + timedelta(minutes=10))[0][1].level == 3
+    assert sender.calls == 2
+    assert admin.execute("SELECT delivery FROM escalation_events WHERE id=%s",
+                          (message.event_id,)).fetchone()[0] == "pending"
 
 
 def test_expired_session_cannot_begin_delivery(kaze_sandbox, admin):
