@@ -516,6 +516,7 @@ Vox Advantage captures care conversations through a mobile app, builds consent i
 - Concatenate resident segments (ffmpeg `atrim` + `concat`) and run the normal pipeline with `prompt_version = "free-conversation-v1"` and `mode = "resident"`; skip the on-script check.
 - **Engine rule added:** baselines only use checks with the same `prompt_version`. Free conversation is noisier than the fixed prompt, so its z threshold is 2.5 (`PM_Z_THRESHOLD_FREE`).
 - Fixture: `fixtures/synthetic/vox_encounter_mrs_k.json` plus a teammate-voiced audio file kept out of Git.
+- As built (BL-32, [decision 016](decisions/016-vox-mock-encounter-adapter.md)): staff/other overlap is cut out of resident segments; resident samples are sliced from one decode instead of an ffmpeg filter graph; per-request consent must be exactly one `consent` part whose raw value is `true` (otherwise 422 `consent_not_given`, audited; distinct from the stored-consent 403 `consent_required` of BL-31); encounters are capped at 120 s and analysis at 60 s of resident speech; encounter audio is always deleted after analysis.
 
 **Out direction:** `GET /v1/patients/{id}/assessments/{aid}/note` returns the SBAR as a draft note that needs sign-off, shaped as a FHIR `DocumentReference` with `docStatus: "preliminary"`, `type` text "Baseline change-of-condition draft", and the SBAR as the attachment text. The resident page gets a "Send to sign-off queue" button that calls it and shows the payload.
 

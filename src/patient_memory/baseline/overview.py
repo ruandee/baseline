@@ -2,7 +2,7 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from patient_memory.baseline.assess import escalations_used, valid_tags
+from patient_memory.baseline.assess import COUNTING_PROMPT, escalations_used, valid_tags
 from patient_memory.baseline.engine import FEATURES
 from patient_memory.baseline.verdict import (
     ACTION_LABELS,
@@ -69,36 +69,41 @@ def overview(conn, cfg: Settings, patient: dict, days: int, now: datetime | None
     if not conn.execute("SELECT pm_care(%s) AS ok", (pid,)).fetchone()["ok"]:
         raise Problem(404, "not_found")
     tags = valid_tags(conn, pid, now)
+    latest = _latest_assessment(conn, pid)
+    # The chart shows one prompt's checks, the one the latest band was computed from, so free
+    # conversation (Vox) points never sit on a counting-prompt band or the reverse.
+    prompt = (latest["params"].get("prompt_version") if latest else None) or COUNTING_PROMPT
     series = {name: {"daily": [], "checks": []} for name in FEATURES}
     for row in conn.execute(
             "SELECT time_bucket('1 day', ts) AS day, "
             + ",".join(f"percentile_cont(0.5) WITHIN GROUP (ORDER BY {n}) AS {n}" for n in FEATURES)
-            + " FROM voice_checks WHERE patient_id=%s AND usable AND ts>=%s - make_interval(days=>%s) "
-            "GROUP BY 1 ORDER BY 1", (pid, now, days)):
+            + " FROM voice_checks WHERE patient_id=%s AND usable AND prompt_version=%s "
+            "AND ts>=%s - make_interval(days=>%s) GROUP BY 1 ORDER BY 1", (pid, prompt, now, days)):
         for name in FEATURES:
             if row[name] is not None:
                 series[name]["daily"].append({"day": row["day"].date().isoformat(),
                                               "median": row[name]})
     for row in conn.execute(
             "SELECT ts," + ",".join(FEATURES) + " FROM voice_checks WHERE patient_id=%s AND usable "
-            "AND ts>=%s - make_interval(days=>%s) ORDER BY ts", (pid, now, days)):
+            "AND prompt_version=%s AND ts>=%s - make_interval(days=>%s) ORDER BY ts",
+            (pid, prompt, now, days)):
         for name in FEATURES:
             if row[name] is not None:
                 series[name]["checks"].append({"ts": row["ts"].isoformat(), "value": row[name]})
-    latest = _latest_assessment(conn, pid)
-    baseline = {"mode": None, "n_checks": 0, "features": {}}
+    baseline = {"mode": None, "n_checks": 0, "features": {}, "prompt_version": prompt}
     assessment = None
     if latest:
         assessment = _assessment_payload(latest, tags, latest["features"])
-        baseline = {"mode": latest["params"].get("mode"),
+        baseline = {"mode": latest["params"].get("mode"), "prompt_version": prompt,
                     "n_checks": latest["params"].get("baseline_checks", 0),
                     "features": {n: {"median": f["median"], "scale": f["scale"]}
                                  for n, f in latest["features"].items()}}
     first = conn.execute(
         "SELECT min(v.ts) AS ts FROM assessments a JOIN voice_checks v "
         "ON v.tenant_id=a.tenant_id AND v.patient_id=a.patient_id AND v.id=a.check_id "
-        "WHERE a.patient_id=%s AND a.change_status='change' AND v.ts>=%s - make_interval(days=>%s)",
-        (pid, now, days)).fetchone()["ts"]
+        "WHERE a.patient_id=%s AND a.change_status='change' AND v.prompt_version=%s "
+        "AND v.ts>=%s - make_interval(days=>%s)",
+        (pid, prompt, now, days)).fetchone()["ts"]
     return {
         "patient_id": str(pid), "display_name": patient["external_id"], "synthetic": True,
         "watch_window": watch_window(tags, now), "features": FEATURE_META, "series": series,
@@ -127,8 +132,9 @@ def watchlist(conn, cfg: Settings, now: datetime | None = None) -> dict:
         spark = conn.execute(
             "SELECT time_bucket('1 day', ts) AS day, "
             "percentile_cont(0.5) WITHIN GROUP (ORDER BY speech_rate_wpm) AS speech_rate_wpm "
-            "FROM voice_checks WHERE patient_id=%s AND usable AND ts>=%s - interval '14 days' "
-            "GROUP BY 1 ORDER BY 1", (pid, now)).fetchall()
+            "FROM voice_checks WHERE patient_id=%s AND usable AND prompt_version=%s "
+            "AND ts>=%s - interval '14 days' GROUP BY 1 ORDER BY 1",
+            (pid, COUNTING_PROMPT, now)).fetchall()
         params = latest["params"] if latest else {}
         residents.append({
             "patient_id": str(pid), "display_name": patient["external_id"], "synthetic": True,
