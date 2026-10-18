@@ -73,3 +73,19 @@ The server listens on `127.0.0.1:8001` and trusts forwarded headers only from lo
 a TLS proxy on the same machine. Minimal Caddy config: `demo.example.com { reverse_proxy 127.0.0.1:8001 }`
 (Caddy forwards `Host` and `X-Forwarded-Proto` by default). The `Origin` check only runs when the
 browser sends an `Origin` header, which it does for `fetch` POSTs but not for plain page loads.
+
+## Check response progress and timings (BL-17 clarification)
+
+The live check renders enrollment from `change.params.baseline_checks` and `min_baseline`,
+labelled eligible prior checks. The current recording is not counted as earlier baseline data;
+rolling history still applies its 12-hour guard, device preference and prompt/session scopes.
+Two eligible earlier checks report2of3; a third eligible earlier check unlocks scoring. No
+threshold, enrollment mode or history policy changes here.
+
+Usable check responses add measured `timings_ms.engine` (evaluate only) and `verdict` (context
+selection, deterministic verdict and budget/profile application). These use the same rounded
+integer milliseconds as speech timings, so measured sub-millisecond work may round to0. Unusable
+checks omit stages they did not execute. Timing dictionaries are copied rather than mutating
+shared analysis inputs. This excludes SBAR enrichment and persistence, and does not establish
+end-to-end latency acceptance. Provider enrichment remains after transaction commit; PSW
+receipts still return only check_id, ts and usable.

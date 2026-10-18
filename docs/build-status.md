@@ -1,5 +1,9 @@
 # Implementation status and remaining gates
 
+BL-17 follow-up: live checks display eligible prior baseline checks from the engine contract
+and report measured engine/verdict elapsed milliseconds. This does not change scoring policy;
+real phone/audio and hosted latency acceptance remain open.
+
 This is the current runtime handoff after the explicitly approved policy/scenario adoption
 (PRs #60 and #61), built on the backend MVP and reviewed Baseline core. Implementation and
 synthetic engineering checks do not establish clinical validation or real-data pilot readiness.
