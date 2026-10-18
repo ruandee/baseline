@@ -18,6 +18,27 @@ test('missing current assessment stays unknown even when historical checks exist
   assert(!page.main.textContent.includes('Waiting for enough voice checks'));
 });
 
+for (const [status, verdict, message] of [
+  ['enrolling', 'enrolling', 'Baseline in progress.'],
+  ['none', 'within_normal', 'usual range is unavailable.'],
+]) {
+  test(`resident ${status} without current scores never claims a baseline comparison`, async () => {
+    let page;
+    page = loadPage('/resident/mrs-k', {routes: {
+      'GET /v1/patients/mrs-k/overview?days=30': () => {
+        // Historical chart/baseline data must not stand in for current comparison evidence.
+        const data = page.window.RESIDENT_FIXTURES['mrs-k'];
+        return {...data, latest_assessment: {...data.latest_assessment, verdict,
+          change: {status, per_feature: {}, fused_z: null},
+          suggested_action: {id: 'none', label: 'No action'}, sbar: null}};
+      },
+    }});
+    await until(() => page.main.textContent.includes('LATEST ASSESSMENT'));
+    assert(page.main.textContent.includes(message));
+    assert(!page.main.textContent.includes('Compared with this resident’s own usual range.'));
+  });
+}
+
 test('live resident route: charts, actual evidence, action, editable preliminary export', async () => {
   const captured = process.env.RESIDENT_LIVE_FIXTURE
     ? JSON.parse(readFileSync(process.env.RESIDENT_LIVE_FIXTURE, 'utf8')) : null;
@@ -50,6 +71,7 @@ test('live resident route: charts, actual evidence, action, editable preliminary
   routes[`GET /v1/patients/${pid}/assessments/${captured ? captured.overview.latest_assessment.id : 'asm-1'}/note`] = () => note;
   page = loadPage(`/resident/${pid}`, {routes, patients: [{id: pid, name: 'Mrs. K'}]});
   await until(() => page.main.querySelector('.bl-parameters'));
+  assert(page.main.textContent.includes('Compared with this resident’s own usual range.'));
   assert.equal(page.main.querySelectorAll('.bl-chart').length, 4);
   assert.equal(page.main.querySelectorAll('.bl-band').length, 4);
   assert.equal(page.main.querySelectorAll('.bl-marker').length, 4);
