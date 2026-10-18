@@ -156,3 +156,5 @@
 
 /* Readable secondary text and navigation symbols on the warm surfaces. */
 .notes-app .connection,.notes-app .arrow,.notes-app .event-dot,.notes-app .suggestion span { color: var(--muted); }
+
+.notes-app .event[data-kind] .event-dot { color: var(--muted); }
