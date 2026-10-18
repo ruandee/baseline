@@ -159,3 +159,8 @@ source-submitter attribution for ?Your observation helped? remain open. This is 
 KAZE session model, expiry/retention hardening and synthetic engineering tests from decision 018
 are integrated. Migration 007 follows 006; explicit synthetic session fixtures record consent.
 Scheduler, delivery and real-device acceptance remain separate work.
+
+BL-17 contract polish: live enrollment labels use engine baseline_checks/min_baseline and
+explicitly count eligible prior checks. Usable responses measure engine and verdict stages in
+timings_ms; unexecuted stages are omitted and PSW receipts remain score-free. Real phone/audio
+and host p95 acceptance remain open. See decision005 response clarification.
