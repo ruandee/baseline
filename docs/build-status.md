@@ -124,11 +124,11 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
   remain acceptance work. UI evidence/SBAR readback passes API-captured DOM and lifecycle tests;
   physical-phone readback has not been verified.
 - The 12-patient roster, Mrs. K's sourced 37.1 C observation, resident charts and preliminary
-  export are merged (#55). Current-time reset remains in #79 pending final combined CI/review.
+  export are merged (#55). Current-time reset #79 is merged; hosted timing remains unverified.
 - KAZE sessions, scheduler, SMS/acknowledgement and pages are merged (#66/#69/#72/#71/#80);
-  hosted worker/bootstrap remains in #76. Real two-phone SMS/ack acceptance remains open.
+  hosted worker/bootstrap #76 is merged. Real two-phone SMS/ack acceptance remains open.
   Vox mock and consent/PSW flows are merged; real/nontechnical user acceptance remains open.
-  Registry #78, motion and vitals remain development work. Submission, backup video and two
+  Registry #78 is merged; motion and vitals remain in integration. Submission, backup video and two
   rehearsals are tracked separately; implemented code alone does not close those gates.
 
 Follow README/operations and the exact CI order before claiming a new integrated milestone done.
@@ -167,7 +167,7 @@ KAZE session model, expiry/retention hardening and synthetic engineering tests f
 are integrated. Migration 007 follows 006; explicit synthetic session fixtures record consent.
 Scheduler and durable delivery/public acknowledgement are merged; real-device acceptance remains
 open. The default sender logs simulated delivery and sends no SMS. Hosted KAZE credentials,
-bootstrap and dedicated worker remain in #76 pending integration acceptance.
+bootstrap and dedicated worker are merged in #76; public-host acceptance remains open.
 
 BL-32 Vox mock adapter integration: care-team authorization, standing `vox_encounter` consent
 before decode and locked publication (403 consent_required), plus exactly one raw true request
@@ -204,10 +204,24 @@ explicit contact-free bootstrap and private safety-person credentials. Consent r
 unless explicitly granted for fixtures; existing withdrawals remain preserved. Public-phone and
 real-SMS acceptance remain open.
 
-BL-30 registry review adds scoped modalities and fresh immutable-capture reprojection without
-restoring invalidated decisions, flat speech compatibility and source-safe first-change markers.
-Decision025/migration010 and exact-head CI track acceptance.
-BL-35 review adds explicit resting HR/RR observations, an isolated synthetic Mrs. K RR-rise
-example and nurse source readback. Unknown rest/time/units stay unavailable; engineering-only
-vitals parameters are documented in decision028. Speech/canonical cohort are unchanged.012
-preserves private PSW scoring while ordinary evidence remains denied. Final CI remains required.
+BL-30 registry (merged #78) adds scoped modalities, explicit missing/stale states, corroboration and
+legacy speech compatibility. New captures reproject eligible immutable modalities at current
+revision without restoring invalidated decisions; first-change markers reject stale/session
+snapshots. Only speech is registered in this base. Decision025/migration010 track the contract;
+final exact-head CI remains authoritative after hosting/status integration.
+
+BL-21 reset (merged #79): fixture-only current-time reset verifies all twelve
+canonical outcomes, preserves unrelated recordings/consent, refreshes private nurse/PSW/KAZE
+credentials and configures runner suppression. Hosted reset under one minute remains unverified.
+
+BL-34 motion integration (pending main CI): local-only camera/pose processing uses pinned
+self-hosted assets and uploads bounded client-derived measurements with unknown-by-default
+motion consent. Final migration011 guards require explicit scoring authorization, including
+unset-context denial. Exact source provenance, RLS, purge and projection tests passed on the
+feature head; real Chrome model startup/failure used no camera or remote requests. Physical
+phone/camera and three measurements in under15seconds remain unverified (Refs #36).
+
+BL-35 integration: explicit resting HR/RR observations feed current-revision signal projections
+and isolated synthetic RR-rise acceptance; unknown rest/time/units stay unavailable. ADR028
+records engineering-only vitals parameters and012scoped PSW facts; ordinary evidence remains
+denied. Final motion011 from main is preserved unchanged. Speech/canonical cohort unchanged.

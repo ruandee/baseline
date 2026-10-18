@@ -26,10 +26,18 @@ function pickMimeType() {
 
 function checkParams() {
   const q = new URLSearchParams(location.search);
-  const mode = CHECK_MODES.includes(q.get('mode')) ? q.get('mode') : 'resident';
+  const mode = CHECK_MODES.includes(q.get('mode')) ? q.get('mode')
+    : q.get('type') === 'motion' ? 'live' : 'resident';
   return {mode, patient: q.get('patient'), mock: q.get('mock') === '1',
           fixture: q.get('fixture') || 'change', lang: q.get('lang') || 'en',
           device: q.get('device')};
+}
+
+function checkPatientId(params, people) {
+  const capture = people.find((person) => person.capture_mode === params.mode);
+  // Hosted scripted residents never become an implicit live/runner recording target.
+  const legacy = !people.some((person) => 'scripted_cohort' in person);
+  return params.patient || (capture && capture.id) || (legacy && people[0] && people[0].id) || null;
 }
 
 // The engine prefers same-device history when picking a baseline, so device_id must be stable:
@@ -250,7 +258,7 @@ async function renderCheck(main) {
     if (params.patient) return renderResidentCheck(main, params, params.patient);
     return renderResidentLanding(main, params);
   }
-  const patientId = params.patient || (state.session.patients[0] && state.session.patients[0].id);
+  const patientId = checkPatientId(params, state.session.patients || []);
   main.replaceChildren();
   const card = el('section', '', {class: 'bl-check-card'});
   const prompt = el('p', CHECK_PROMPT, {class: 'bl-prompt'});

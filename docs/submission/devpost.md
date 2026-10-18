@@ -83,8 +83,8 @@ and cited evidence. The model never decides a verdict, has no tools, and cannot 
   decision 004.
 - Voice activity detection ended every voiced run 120 ms late, which hid real pauses; we
   measured it on constructed audio and corrected it.
-- Making "absence of documentation" never count as a negative finding: "no fever" requires a
-  documented temperature, not a missing fever note.
+- Making "absence of documentation" never count as a negative finding: the interface shows a
+  sourced temperature and its time without inferring "no fever" or a normal-range finding.
 - Keeping copied evidence honest when a source note is corrected or retracted: stale
   assessments are withheld rather than shown with outdated quotes.
 
@@ -106,9 +106,10 @@ and cited evidence. The model never decides a verdict, has no tools, and cannot 
   public Vox API, and there is no real PointClickCare integration.**
 - More signals through the same engine (movement, charted vitals), marked *corroborated* when
   two change together.
-- KAZE "Baseline Out" safety sessions: the same engine outside the care home, where a missed or
-  unusual check-in texts the contacts the person chose. **Not integrated in this build.**
-  [Update only if BL-25 to BL-29 merge and the two-phone loop has been rehearsed.]
+- KAZE "Baseline Out" safety sessions: session, scheduler, optional SMS delivery/acknowledgement
+  and pages are merged; hosted worker/bootstrap integration and a real two-phone rehearsal
+  remain pending. Default delivery is simulated logging and sends no text.
+  [Claim a working live loop only after host acceptance and the two-phone rehearsal.]
 - A Health Canada classification review before any real deployment.
 
 ## Honest limits (keep this section in the entry)

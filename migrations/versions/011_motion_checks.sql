@@ -55,7 +55,8 @@ CREATE FUNCTION pm_motion_source_payload(p_patient uuid,p_check uuid) RETURNS js
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog,public AS $$
 DECLARE m public.motion_checks; c public.resident_consents;
 BEGIN
- IF NOT public.pm_check_scoring(p_patient) OR NOT public.pm_checker(p_patient) THEN
+ IF public.pm_check_scoring(p_patient) IS NOT TRUE
+    OR public.pm_checker(p_patient) IS NOT TRUE THEN
   RAISE EXCEPTION 'motion capture scope required' USING ERRCODE='42501';
  END IF;
  SELECT * INTO c FROM public.resident_consents WHERE tenant_id=public.pm_tenant()
@@ -126,3 +127,20 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION pm_publish_motion_source(uuid,uuid,text,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION pm_publish_motion_source(uuid,uuid,text,text) TO pm_runtime;
+
+-- Source purge must remove the duplicate raw capture, not only its fact projection.
+CREATE FUNCTION pm_purge_motion_projection() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+BEGIN
+ IF OLD.purged_at IS NULL AND NEW.purged_at IS NOT NULL THEN
+  DELETE FROM public.assessments a USING public.motion_checks m
+   WHERE m.tenant_id=NEW.tenant_id AND m.patient_id=NEW.patient_id AND m.source_id=NEW.id
+   AND a.tenant_id=m.tenant_id AND a.patient_id=m.patient_id AND a.check_id=m.id;
+  DELETE FROM public.motion_checks WHERE tenant_id=NEW.tenant_id
+   AND patient_id=NEW.patient_id AND source_id=NEW.id;
+ END IF;
+ RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION pm_purge_motion_projection() FROM PUBLIC;
+CREATE TRIGGER motion_source_purge AFTER UPDATE OF purged_at ON sources
+ FOR EACH ROW EXECUTE FUNCTION pm_purge_motion_projection();

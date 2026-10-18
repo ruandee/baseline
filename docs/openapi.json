@@ -667,6 +667,167 @@
         }
       }
     },
+    "/v1/patients/{patient_id}/motion-checks/readiness": {
+      "get": {
+        "summary": "Motion Ready",
+        "operationId": "motion_ready_v1_patients__patient_id__motion_checks_readiness_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/patients/{patient_id}/motion-checks": {
+      "post": {
+        "summary": "Motion Check",
+        "operationId": "motion_check_v1_patients__patient_id__motion_checks_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MotionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/MotionResult"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CheckReceipt"
+                    }
+                  ],
+                  "title": "Response Motion Check V1 Patients  Patient Id  Motion Checks Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/patients/{patient_id}/motion-checks/{check_id}": {
+      "get": {
+        "summary": "Motion Evidence",
+        "operationId": "motion_evidence_v1_patients__patient_id__motion_checks__check_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "check_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Check Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MotionResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/patients/{patient_id}/checks": {
       "post": {
         "summary": "Create Check",
@@ -882,7 +1043,8 @@
             "schema": {
               "enum": [
                 "voice_check",
-                "vox_encounter"
+                "vox_encounter",
+                "motion_check"
               ],
               "type": "string",
               "default": "voice_check",
@@ -2368,7 +2530,8 @@
             "type": "string",
             "enum": [
               "voice_check",
-              "vox_encounter"
+              "vox_encounter",
+              "motion_check"
             ],
             "title": "Scope",
             "default": "voice_check"
@@ -2444,7 +2607,8 @@
             "type": "string",
             "enum": [
               "voice_check",
-              "vox_encounter"
+              "vox_encounter",
+              "motion_check"
             ],
             "title": "Scope"
           },
@@ -2993,6 +3157,265 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "MotionFeatures": {
+        "properties": {
+          "sit_to_stand_s": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 10.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sit To Stand S"
+          },
+          "trunk_sway": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 5.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trunk Sway"
+          },
+          "step_cadence_spm": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 360.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step Cadence Spm"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "MotionFeatures"
+      },
+      "MotionInput": {
+        "properties": {
+          "device_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Device Id"
+          },
+          "device_ts": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Ts"
+          },
+          "prompt_version": {
+            "type": "string",
+            "const": "pose-chair-steps-v1",
+            "title": "Prompt Version",
+            "default": "pose-chair-steps-v1"
+          },
+          "is_baseline": {
+            "type": "boolean",
+            "title": "Is Baseline",
+            "default": false
+          },
+          "features": {
+            "$ref": "#/components/schemas/MotionFeatures"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/MotionQuality"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "device_id",
+          "features",
+          "quality"
+        ],
+        "title": "MotionInput"
+      },
+      "MotionQuality": {
+        "properties": {
+          "duration_s": {
+            "type": "number",
+            "maximum": 12.0,
+            "minimum": 0.0,
+            "title": "Duration S"
+          },
+          "total_frames": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Total Frames"
+          },
+          "confident_frames": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Confident Frames"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "duration_s",
+          "total_frames",
+          "confident_frames"
+        ],
+        "title": "MotionQuality"
+      },
+      "MotionQualityOut": {
+        "properties": {
+          "duration_s": {
+            "type": "number",
+            "maximum": 12.0,
+            "minimum": 0.0,
+            "title": "Duration S"
+          },
+          "total_frames": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Total Frames"
+          },
+          "confident_frames": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Confident Frames"
+          },
+          "confident_fraction": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confident Fraction"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "producer": {
+            "type": "string",
+            "const": "client-derived",
+            "title": "Producer"
+          },
+          "protocol": {
+            "type": "string",
+            "const": "pose-chair-steps-v1",
+            "title": "Protocol"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "duration_s",
+          "total_frames",
+          "confident_frames",
+          "confident_fraction",
+          "reasons",
+          "producer",
+          "protocol"
+        ],
+        "title": "MotionQualityOut"
+      },
+      "MotionResult": {
+        "properties": {
+          "check_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Check Id"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "usable": {
+            "type": "boolean",
+            "title": "Usable"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/MotionQualityOut"
+          },
+          "features": {
+            "$ref": "#/components/schemas/MotionFeatures"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Evidence Ids",
+            "default": []
+          },
+          "change": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change"
+          },
+          "assessment": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assessment"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "check_id",
+          "ts",
+          "usable",
+          "quality",
+          "features"
+        ],
+        "title": "MotionResult"
       },
       "NoteExtractionResult": {
         "properties": {
