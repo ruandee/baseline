@@ -10,6 +10,7 @@ MIN_DURATION_S = 6.0
 MIN_SPEECH_S = 5.0
 MIN_WORDS = 15
 MIN_SNR_DB = 10.0
+LOUD_VENUE_SNR_DB = MIN_SNR_DB - 3.0
 MAX_CLIPPED = 0.01
 CLIP_LEVEL = 0.99
 MIN_ON_SCRIPT = 10
@@ -52,7 +53,7 @@ class Quality:
 
 
 def assess(audio: np.ndarray, words: list[Word], runs: list[Span],
-           on_script: bool = True) -> Quality:
+           on_script: bool = True, *, loud_venue: bool = False) -> Quality:
     """Gate a 16 kHz mono clip, its transcript and its voiced runs (vad.voiced_runs).
 
     `on_script=False` skips the prompt-token check, for free conversation (Vox encounters).
@@ -66,7 +67,8 @@ def assess(audio: np.ndarray, words: list[Word], runs: list[Span],
         "too_little_speech": sum(r.end - r.start for r in runs) < MIN_SPEECH_S,
         "too_few_words": len(words) < MIN_WORDS,
         # No quiet frame at all means the VAD heard speech everywhere: noise, not headroom.
-        "too_noisy": bool(runs) and (snr is None or snr < MIN_SNR_DB),
+        "too_noisy": bool(runs) and (
+            snr is None or snr < (LOUD_VENUE_SNR_DB if loud_venue else MIN_SNR_DB)),
         "clipped": clipping_fraction(audio) >= MAX_CLIPPED,
         "off_script": on_script and on_script_tokens(words) < MIN_ON_SCRIPT,
     }

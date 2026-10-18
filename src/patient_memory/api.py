@@ -149,7 +149,7 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
                     "Whisper failed to load; voice checks retry on first use")
         yield
 
-    app = FastAPI(title="Patient Memory â€” synthetic prototype", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="Patient Memory — synthetic prototype", version="0.1.0", lifespan=lifespan)
     app.state.cfg = cfg
     app.state.objects = objects or ObjectStore(cfg)
     app.state.generator = generator or generator_for(cfg)
@@ -382,17 +382,20 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             if lat is None or lon is None or session_id is None:
                 raise Problem(422, "invalid_request")
             location = (lat, lon, accuracy_m)
+        loud_venue = False
         if session_id is not None:
             with transaction(cfg, actor) as conn:
                 care_gate(conn, patient_id)
-                sessions.check_gate(conn, patient_id, session_id, mode, is_baseline)
+                session = sessions.check_gate(conn, patient_id, session_id, mode, is_baseline)
+                loud_venue = "loud_venue" in session["context_tags"]
         work = Path(tempfile.mkdtemp(prefix="check-"))
         try:
             upload = work / "upload"
             with upload.open("wb") as out:
                 shutil.copyfileobj(audio.file, out)
             try:
-                analysis = analyze(upload, work, app.state.transcriber)
+                analysis = analyze(upload, work, app.state.transcriber,
+                                   **({"loud_venue": True} if loud_venue else {}))
             except InvalidAudio as exc:
                 raise Problem(422, "invalid_audio") from exc
             except DecoderUnavailable as exc:

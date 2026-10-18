@@ -130,7 +130,7 @@ class FakeRecorder {
 // Builds a page at `url` with stubbed fetch/mic/speech. `routes` maps "METHOD path" to a
 // function returning a JSON body (or throwing {status}).
 function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, storage = 'ok',
-                         consent = {}, pswToken = 'psw-t'} = {}) {
+                         consent = {}, pswToken = 'psw-t', kaze = false} = {}) {
   const doc = new Document_();
   const main = doc.createElement('main');
   main.setAttribute('id', 'bl-main');
@@ -168,6 +168,8 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, s
   const localStorage = {getItem: (k) => (stored.has(k) ? stored.get(k) : null),
                         setItem: (k, v) => stored.set(k, String(v))};
   const window = {
+    listeners: {},
+    addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); },
     document: doc, location: {pathname: parsed.pathname, search: parsed.search},
     fetch, atob, btoa, TextEncoder, TextDecoder, URLSearchParams, Blob, FormData, URL, Promise, JSON, Math, Date, Object, Array, Map,
     Number, String, Error, setTimeout, clearTimeout, setInterval, clearInterval,
@@ -202,7 +204,8 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, s
       }
     });
   };
-  for (const file of ['check-resident.js', 'check.js', 'resident-fixtures.js', 'note-export.js', 'resident.js', 'baseline.js']) {
+  for (const file of ['check-resident.js', 'check.js', 'resident-fixtures.js', 'note-export.js', 'resident.js',
+    ...(kaze ? ['kaze-core.js', 'kaze-capture.js', 'kaze.js'] : []), 'baseline.js']) {
     vm.runInContext(fs.readFileSync(path.join(FRONTEND, file), 'utf8'), ctx, {filename: file});
   }
   return {doc, main, window, ctx, calls, spoken, errors};
