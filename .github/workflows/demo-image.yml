@@ -1,0 +1,35 @@
+name: Demo image
+on:
+  pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - compose.yaml
+      - compose.demo.yaml
+      - deploy/**
+      - scripts/**
+      - src/**
+      - frontend/**
+      - evals/**
+      - fixtures/synthetic/**
+      - pyproject.toml
+      - uv.lock
+      - migrations/**
+      - .github/workflows/demo-image.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: demo-image-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash deploy/ci-smoke.sh
+      - if: always()
+        run: docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml logs --no-color --tail 200 || true
+      - if: always()
+        run: docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml down -v || true
