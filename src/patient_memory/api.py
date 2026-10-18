@@ -11,7 +11,7 @@ from uuid import UUID, uuid4
 
 import psycopg
 from botocore.exceptions import BotoCoreError, ClientError
-from fastapi import Depends, FastAPI, Form, Header, Query, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, Query, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -19,6 +19,7 @@ from pydantic import AwareDatetime
 
 from patient_memory.auth import decode_token
 from patient_memory.baseline import sessions
+from patient_memory.baseline.assess import FREE_CONVERSATION
 from patient_memory.baseline.context import add_context
 from patient_memory.baseline.notes import extract_pending_notes
 from patient_memory.baseline.overview import overview as build_overview
@@ -26,7 +27,13 @@ from patient_memory.baseline.overview import watchlist as build_watchlist
 from patient_memory.baseline.sbar import enrich_assessment_sbar
 from patient_memory.checks import care_gate, store_check
 from patient_memory.config import Settings
-from patient_memory.consent import ConsentRequired, admit_check, audit_consent_block, check_gate
+from patient_memory.consent import (
+    ConsentRequired,
+    admit_check,
+    audit_consent_block,
+    check_gate,
+    require_consent,
+)
 from patient_memory.consent import consent_record as read_consent
 from patient_memory.domain import (
     Answer,
@@ -52,11 +59,13 @@ from patient_memory.domain import (
     SourceInput,
     Summary,
     VisibilityInput,
+    VoxEncounterResult,
     now,
 )
 from patient_memory.errors import Problem
 from patient_memory.generation import build_answer
 from patient_memory.ingestion import digest, lock_patient, submit
+from patient_memory.integrations import vox
 from patient_memory.lifecycle import (
     assign,
     cache_get,
@@ -78,8 +87,10 @@ from patient_memory.speech import asr
 from patient_memory.speech.pipeline import DecoderUnavailable, InvalidAudio, analyze
 from patient_memory.storage import audit, patient_access, require_member, transaction
 
-# Voice-check uploads are the one multipart route; every other route stays JSON only.
-CHECK_UPLOAD = re.compile(r"^/v1/patients/[^/]+/checks$")
+# Voice-check uploads and the MOCK Vox encounter adapter are the only multipart routes (POST
+# only); every other route stays JSON only. Both keep the same whole-body size cap.
+MULTIPART_ROUTES = (re.compile(r"^/v1/patients/[^/]+/checks$"),
+                    re.compile(r"^/v1/integrations/vox/encounters$"))
 
 
 class PayloadLimit:
@@ -103,7 +114,8 @@ class PayloadLimit:
             if not message.get("more_body", False):
                 break
         headers = dict(scope.get("headers", []))
-        upload = scope["method"] == "POST" and CHECK_UPLOAD.match(scope["path"])
+        upload = scope["method"] == "POST" and any(
+            r.match(scope["path"]) for r in MULTIPART_ROUTES)
         expected = "multipart/form-data" if upload else "application/json"
         if body and headers.get(b"content-type", b"").split(b";")[0] != expected.encode():
             response = JSONResponse(status_code=415, content={"error": {
@@ -400,6 +412,71 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
         if result.assessment and session_id is None:
             enrich_assessment_sbar(cfg, actor, patient_id, result.assessment["id"])
         return result
+
+    @app.post("/v1/integrations/vox/encounters", tags=["mock integrations"],
+              summary="MOCK Vox Advantage encounter (not a real PointClickCare/Vox integration)")
+    def vox_encounter(resident_id: Annotated[UUID, Form()], request: Request, actor=actor_dep,
+                      audio: Annotated[UploadFile | None, File()] = None,
+                      segments: Annotated[str | None, Form()] = None,
+                      consent: Annotated[list[str] | None, Form()] = None,
+                      encounter_ts: Annotated[str | None, Form()] = None) -> VoxEncounterResult:
+        """Mock adapter contract defined by this project (decision 016); no Vox API exists to us.
+
+        Authorization comes first (404 before anything else). Consent must be exactly one part
+        whose raw value is `true`; otherwise the refusal is audited, nothing else is stored and
+        the answer is 422 `consent_not_given` (distinct from stored-consent 403
+        `consent_required`, BL-31). Only resident segments are analyzed, as free conversation.
+        """
+        try:
+            with transaction(cfg, actor) as conn:
+                care_gate(conn, resident_id)  # Vox remains care-team only; never PSW.
+                require_consent(conn, resident_id, "vox_encounter")
+                refused = not vox.consent_given(consent)
+                if refused:  # commit the refusal before raising its 422
+                    audit(conn, actor, resident_id, "vox_encounter", request.state.request_id,
+                          "consent_refused")
+        except ConsentRequired:
+            audit_consent_block(cfg, actor, resident_id, request.state.request_id)
+            raise
+        if refused:
+            raise Problem(422, "consent_not_given")
+        parsed = vox.parse_segments(segments)
+        device_ts = vox.parse_encounter_ts(encounter_ts)
+        if audio is None:
+            raise Problem(422, "invalid_request")
+        work = Path(tempfile.mkdtemp(prefix="vox-"))
+        try:
+            upload = work / "upload"
+            with upload.open("wb") as out:
+                shutil.copyfileobj(audio.file, out)
+            try:
+                encounter = vox.analyze_encounter(upload, work, parsed, app.state.transcriber)
+            except InvalidAudio as exc:
+                raise Problem(422, "invalid_audio") from exc
+            except DecoderUnavailable as exc:
+                raise Problem(503, "dependency_unavailable") from exc
+        finally:
+            # Always, whatever PM_KEEP_AUDIO says: raw encounter audio contains staff speech.
+            shutil.rmtree(work, ignore_errors=True)
+        try:
+            with transaction(cfg, actor) as conn:
+                care_gate(conn, resident_id)
+                check = store_check(conn, actor, resident_id, request.state.request_id,
+                                    encounter.analysis, "resident", vox.DEVICE_ID, device_ts, False,
+                                    cfg, prompt_version=FREE_CONVERSATION,
+                                    consent_scope="vox_encounter")
+                care_gate(conn, resident_id)
+                audit(conn, actor, resident_id, "vox_encounter", request.state.request_id)
+        except ConsentRequired:
+            audit_consent_block(cfg, actor, resident_id, request.state.request_id)
+            raise
+        if check.assessment:  # same post-commit SBAR drafting as POST /checks (decision 014)
+            enrich_assessment_sbar(cfg, actor, resident_id, check.assessment["id"])
+        return VoxEncounterResult(
+            resident_id=resident_id, usable=check.usable, reasons=check.quality.reasons,
+            resident_speech_s=round(encounter.resident_speech_s, 2),
+            analyzed_s=round(encounter.analyzed_s, 2), truncated=encounter.truncated,
+            segments=encounter.counts, check=check)
 
     @app.get("/v1/checks/due", response_model=DueList)
     def checks_due(actor=actor_dep):

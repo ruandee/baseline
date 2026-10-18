@@ -160,6 +160,12 @@ KAZE session model, expiry/retention hardening and synthetic engineering tests f
 are integrated. Migration 007 follows 006; explicit synthetic session fixtures record consent.
 Scheduler, delivery and real-device acceptance remain separate work.
 
+BL-32 Vox mock adapter integration: care-team authorization, standing `vox_encounter` consent
+before decode and locked publication (403 consent_required), plus exactly one raw true request
+consent part (422 consent_not_given). Resident-only VAD speech must reach8seconds after the
+analysis cap; staff-containing temporary audio is always removed regardless of KEEP_AUDIO.
+Checks remain prompt-scoped; first-change marker uses the displayed prompt. Real speech/Vox
+UI remain unvalidated, and overview prompt switching stays on hold (decision016).
 
 ### BL-21 reset branch (pending review and combined CI)
 

@@ -51,8 +51,11 @@ class Quality:
     reasons: tuple[str, ...]
 
 
-def assess(audio: np.ndarray, words: list[Word], runs: list[Span]) -> Quality:
+def assess(audio: np.ndarray, words: list[Word], runs: list[Span],
+           on_script: bool = True) -> Quality:
     """Gate a 16 kHz mono clip, its transcript and its voiced runs (vad.voiced_runs).
+
+    `on_script=False` skips the prompt-token check, for free conversation (Vox encounters).
 
     Reason codes come back in spec-table order. Unusable checks are stored for audit but never
     reach the baselines or the change engine.
@@ -65,7 +68,7 @@ def assess(audio: np.ndarray, words: list[Word], runs: list[Span]) -> Quality:
         # No quiet frame at all means the VAD heard speech everywhere: noise, not headroom.
         "too_noisy": bool(runs) and (snr is None or snr < MIN_SNR_DB),
         "clipped": clipping_fraction(audio) >= MAX_CLIPPED,
-        "off_script": on_script_tokens(words) < MIN_ON_SCRIPT,
+        "off_script": on_script and on_script_tokens(words) < MIN_ON_SCRIPT,
     }
     reasons = tuple(code for code, bad in failed.items() if bad)
     return Quality(usable=not reasons, reasons=reasons)
