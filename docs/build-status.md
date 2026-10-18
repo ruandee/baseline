@@ -1,6 +1,18 @@
 # Implementation status and remaining gates
 
-Latest runtime: `38fbee2` (2026-10-18), BL-15 phone-to-unit follow-up. The existing live volunteer
+Latest runtime: `4bcc848` (2026-10-18), adding BL-19 Mrs. L context to the phone-to-unit demo.
+Mrs. L's resident page exposes Add context / possible explanation, confirmed observation entry,
+and Save context and reassess. A hosted endpoint restricts this operation to the canonical nurse
+and authored Mrs. L record. Existing importer service scope publishes source-backed structured
+context and appends a genuine reassessment of the same synthetic check, preserving its ID,
+event time and measurements. No nurse credential gains a broader role and no verdict is forced.
+See decision039 for delegation, idempotency, temporal and source-lifecycle behavior. Three focused
+frontend scenarios and two authorization checks passed, as did lint. A real runtime-role database
+publication/reassessment check produced Explained and rolled back all DB writes using an
+in-memory object sink; Mrs. L remained Watch for the user to exercise. Hosted readiness and
+recording-preservation checks passed. Full CI was not awaited, per the user's priority.
+
+Earlier runtime: `38fbee2` (2026-10-18), BL-15 phone-to-unit follow-up. The existing live volunteer
 is persisted under the requested name and included in ordinary Unit priority/counts, with a
 live-volunteer label and the actual verdict. Five usable baseline captures are verified on the
 same device and prompt. The user confirmed phone capture and nurse Watch readback. At the user's
