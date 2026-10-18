@@ -240,6 +240,14 @@ does not establish that a particular live deployment or phone has passed rehears
 Latest live-demo handoff: actual enrollment is paused in this agent and delegated to a teammate.
 An optional fixed-outcome presentation is documented as a labelled simulation plan only; no
 hardcoded verdict or write into real capture history is implemented.
+
+BL-17 three-day presentation now implements that plan in an explicit local-only mode (decision
+031), `/check?mode=live&demo=days`: local live/file audio precedes Watch, Explained and Escalate
+authored scenarios. Next day resets only tab state, not real dates or patient history. Recordings
+are not analyzed/uploaded and fictional values/context are visibly labelled. Actual normal,
+slow and pausey WAV imports passed desktop/390px Chrome interaction checks with no API/session
+requests. New browser tests cover all three outcomes and capture/file cancellation/cleanup.
+Deployment, physical-device permission/codec behavior and presenter rehearsal remain unverified.
 BL-35 integration: explicit resting HR/RR observations feed current-revision signal projections
 and isolated synthetic RR-rise acceptance; unknown rest/time/units stay unavailable. ADR028
 records engineering-only vitals parameters and012scoped PSW facts; ordinary evidence remains

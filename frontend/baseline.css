@@ -150,3 +150,18 @@ body[data-motion-page] .bl-nav .brand-mark{display:block}
  .bl-motion-permission{padding:10px 12px 14px}
  .bl-motion-permission button{width:100%}
 }
+.bl-demo-banner{background:#fff6d9;border:2px solid #ac7a20;border-radius:10px;padding:16px;margin:16px 0}
+.bl-demo-banner strong{letter-spacing:.06em;color:#694407}
+.bl-demo-banner p{margin:8px 0 0;max-width:72ch}
+.bl-demo-timeline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0;list-style:none}
+.bl-demo-timeline li{padding:12px;border:1px solid #c8d3c7;border-radius:8px;background:#fff}
+.bl-demo-timeline [aria-current=step]{border:2px solid #236752;background:#edf3ef;font-weight:600}
+.bl-demo-controls{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}
+.bl-demo-controls button,.bl-demo-record{min-height:48px;padding:10px 18px}
+.bl-demo-file-label{display:block;margin:18px 0 8px}
+.bl-demo-file{display:block;max-width:100%;margin-top:8px}
+.bl-demo-preview audio{display:block;max-width:100%;margin-top:12px}
+.bl-demo-result:not(:empty){background:#fff;border:2px solid #ac7a20;border-radius:10px;padding:20px;margin-top:20px;overflow-x:auto}
+.bl-demo-disclosure{font-weight:600;color:#694407}
+.bl-demo-source{margin-top:16px}
+@media(max-width:640px){.bl-demo-timeline{grid-template-columns:1fr}.bl-demo-controls{flex-direction:column}}

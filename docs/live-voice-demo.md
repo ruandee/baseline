@@ -1,8 +1,44 @@
-# Dee's live voice demo
+# Three-day live voice demo
 
-The live speaker is Dee, on the same device used for the baseline. No teammate telephone call,
-marathon claim, stairs-trigger promise or breathlessness detector is part of this flow.
-See [decision 030](decisions/030-live-voice-demo-protocol.md) for the approved protocol revision.
+The selected presentation records audio locally, then shows three visibly scripted outcomes for
+a fictional resident. It requires no API enrollment, credentials or personal baseline. Start with
+Dee's clips, then use the teammate's clips or live microphone. There is no marathon, breathlessness
+or clinical-detection claim. See [decision 031](decisions/031-three-day-local-voice-demo.md).
+
+## Present Watch, Explained and Escalate
+
+After this release is deployed, open:
+
+```text
+https://baseline.deeruan.com/check?mode=live&demo=days
+```
+
+The equivalent path on a local frontend is `/check?mode=live&demo=days`. This is separate from
+the actual watch list at `/unit`; adding the query to an older deployment does not install it.
+
+1. Day 1: tap **Record live**, read the numbers/days prompt, and tap Stop (auto-stop at 30 s).
+   Or choose **load a prerecorded clip**, initially `htv/normal.wav`. Play it back if desired.
+   The page reveals the authored **Watch** scenario with the simulated recheck action.
+2. Tap **Next simulated day**. The prior clip is cleared; actual dates and history are untouched.
+3. Day 2: record or load a clip, initially `htv/slow.wav`. The fictional dentures context produces
+   the scripted **Explained** scenario, regardless of the actual audio's features.
+4. Advance again. Day 3: record or load a clip, initially `htv/pausey.wav`. Fictional medication
+   and intake context produce the scripted **Escalate** scenario and **Run 4AT now** label.
+5. **Restart scenario** clears the tab's recording and returns to day 1. To swap speakers, restart
+   and use the teammate's recording or microphone; no code/data migration or enrollment is needed.
+
+Say: "We are capturing a real clip. We are now stepping through a scripted three-day example to
+show how the three outcomes are presented." Keep the simulation labels visible. The authored
+feature table is not measured from the clip. No audio, ASR request, fake assessment or notes are
+sent to the backend. A failed microphone/import does not count as a recording or reveal a result.
+
+Rehearse twice on the exact HTTPS demo URL/device; grant microphone permission before presenting.
+Keep one labelled prerecorded clip and a backup video available. Local recordings should be
+30 seconds or less (known-duration WAV/MP4 is simplest), smaller than 20 MB, and kept outside Git.
+The existing four WAVs were exercised locally in Chrome; deployment and physical-phone rehearsal
+remain separate checks. The site still needs the new commit deployed before this link works.
+
+## Optional genuine baseline comparison (separate flow)
 
 Latest execution handoff: API enrollment is on hold in this agent; a teammate will handle setup.
 Confirm the actual speaker before enrollment and use that person's own baseline and device.
@@ -82,18 +118,5 @@ reported as exploratory, with no direction gate. Keep audio in ignored `data/raw
 commit personal recordings or add them to CI. This does not mark API enrollment, phone/host
 acceptance or rehearsal complete.
 
-## Optional fixed demo outcome: plan only
-
-If the team chooses a predictable outcome, use an explicit simulation mode with a persistent
-"Simulated demo result" badge. Keep the actual recording receipt and measured features separate
-from the authored scenario's verdict/context/SBAR. Do not overwrite the actual live assessment,
-present authored values as computed from the call, or publish simulation data into the live
-participant's history. The existing explicitly labelled mock path and synthetic resident stories
-are the starting points; a combined live-capture/simulation view is not implemented here.
-
-Proposed presentation: teammate verifies consent, identity, baseline and connectivity; speaker
-submits a real check; presenter shows the actual receipt/measurements; then explicitly switches
-to the authored scenario to explain the deterministic verdict and evidence flow. If the upload
-fails, show a labelled prerecorded backup instead of claiming receipt. Save a backup video and
-rehearse the exact device, URLs and transition twice. Enrollment remains the teammate's task;
-no actual enrollment or simulated-verdict implementation is claimed by this plan.
+The three-day mode above intentionally does not invoke the optional genuine enrollment path.
+Do not mix its fictional values with a real baseline or store its results as clinical history.

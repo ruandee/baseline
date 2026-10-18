@@ -205,7 +205,7 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, s
       }
     });
   };
-for (const file of ['check-resident.js', 'check.js', 'resident-fixtures.js', 'note-export.js', 'signal-panel.js', 'resident.js',
+for (const file of ['check-resident.js', 'check.js', 'demo-days.js', 'resident-fixtures.js', 'note-export.js', 'signal-panel.js', 'resident.js',
     ...(kaze ? ['kaze-core.js', 'kaze-capture.js', 'kaze.js'] : []), 'motion-core.js', 'motion-capture.js', 'motion.js', 'baseline.js']) {
     vm.runInContext(fs.readFileSync(path.join(FRONTEND, file), 'utf8'), ctx, {filename: file});
   }
