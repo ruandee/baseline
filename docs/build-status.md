@@ -167,7 +167,19 @@ analysis cap; staff-containing temporary audio is always removed regardless of K
 Checks remain prompt-scoped; first-change marker uses the displayed prompt. Real speech/Vox
 UI remain unvalidated, and overview prompt switching stays on hold (decision016).
 
-BL-26 scheduler integration: standard KAZE due/nudge/contact ladder runs independently of PCC
-budget/no-escalate profiles. Session assessments bypass those PCC flags; raw session change and
-session explainers drive the scheduler. Normal usable checks reset the ladder; unusable checks
-do not. Default delivery remains offline logging pending BL-27; no SMS/phone acceptance claimed.
+BL-19 resident integration (review branch): live authorized overview, four speech charts,
+clickable source evidence, server-labelled action handoff button, and structured engine
+parameters. Recorded temperature includes source/time (Mrs. K 37.1 Celsius); no absence or
+normal-range inference. The available stored SBAR mounts BL-33 exact preliminary export and
+local human-edited, unverified preview. API-captured cohort/DOM and lifecycle tests are added;
+DB-backed CI and real phone/host acceptance remain gates until their actual results.
+
+BL-19 follow-up makes every check citation interactive with matching assessment/check identity
+and refreshed authorization. All reason, observation and SBAR citation buttons are exercised,
+including withheld readback after assessment change/revocation. Headless Chrome renders desktop
+and phone-width synthetic fixtures; this does not claim physical-phone or live-audio acceptance.
+
+BL-26 scheduler integration records the standard missed-check/speech-change ladder with
+serialized reset/acknowledgement/expiry and independent KAZE assessment/profile rules. Session
+checks do not consume the resident shift budget. Exact integrated CI and phone gates remain
+required; no live SMS is enabled by this scheduler-only branch.
