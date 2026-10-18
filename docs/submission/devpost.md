@@ -8,7 +8,7 @@ Baseline
 
 ## Tagline
 
-Detect changes in speech by comparing each person with their own baseline.
+Help dementia care teams notice speech changes from each resident's personal baseline.
 
 ## Inspiration
 
@@ -22,7 +22,7 @@ PointClickCare's "Catch It Early" challenge asked for a way to catch a confused 
 
 ## What it does
 
-Baseline measures changes in a resident's speech against their personal baseline: the range of speech patterns seen in their earlier checks. Care teams can see what changed for that person, read relevant care notes, and prepare a handoff without searching through scattered records.
+Baseline supports care teams looking after older adults, including people living with dementia. It measures changes in a resident's speech against their personal baseline: the range of speech patterns seen in their earlier checks. This keeps the focus on what has changed for that individual, even when memory or communication difficulties are already part of daily life. Care teams can review the change alongside relevant care notes and prepare a handoff.
 
 ## How it works
 
@@ -30,7 +30,7 @@ A care aide opens a resident's check and records them counting and saying the da
 
 The result reaches the nurse's overview, where residents needing attention are easier to find. Opening a resident shows the change over time alongside relevant notes and links to the original records. The nurse reviews that context and decides what to do next. The resident simply receives a thank-you, without a clinical score.
 
-If a recording is unusable or there is too little history, Baseline says so. A change is a reason to look closer, not a diagnosis.
+If a recording is unusable or there is too little history, Baseline says so. A change is a reason to look closer; it does not diagnose dementia, delirium, or their causes.
 
 ## Challenges and what we learned
 
@@ -42,7 +42,7 @@ We connected a simple voice check to personal-baseline comparisons and an eviden
 
 ## What's next
 
-Test the experience with consenting volunteers and care professionals, especially on real phones. Baseline is a decision-support prototype; it has not been clinically validated.
+Test the experience with consenting volunteers and care professionals, including how to make voice checks comfortable and accessible for people living with dementia. Baseline is a decision-support prototype; it has not been clinically validated.
 
 ## How we built it
 
