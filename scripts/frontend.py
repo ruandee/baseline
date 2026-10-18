@@ -64,6 +64,17 @@ def psw_identity(tenant_id):
 
 
 LOOPBACK = {"localhost", "127.0.0.1", "::1"}
+LOCAL_JWT_SECRET = Settings.model_fields["jwt_secret"].default
+
+
+def require_deployment_secret(cfg):
+    """The default signing secret is public in the repo: anyone could mint tokens with it."""
+    if len(cfg.jwt_secret) < 32 or cfg.jwt_secret == LOCAL_JWT_SECRET:
+        raise ValueError("Hosted mode needs a deployment-only PM_JWT_SECRET of at least "
+                         "32 characters, not the local default")
+    return cfg
+
+
 SHELL_ROUTES = ("/unit", "/check", "/resident/{patient_id}")
 PAGE_ROUTES = {"/", "/demo/session", *SHELL_ROUTES}
 PAGE_CSP = (
@@ -76,12 +87,15 @@ PAGE_CSP = (
 def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None, psw=None,
                   psw_token=None):
     """`psw`/`psw_token` give /check resident mode a PSW token that never receives scores."""
-    app = create_app(cfg)
     if extra_hosts and not demo_token:
         raise ValueError("Hosted mode (PM_FRONTEND_HOSTS) requires PM_DEMO_TOKEN")
+    if extra_hosts:
+        require_deployment_secret(cfg)
+    app = create_app(cfg)
     for token in (demo_token, psw_token):
         if token:
             decode_token(token, cfg)  # fail at startup, not as 401s on every page
+
     allowed = LOOPBACK | {h.lower() for h in extra_hosts}
 
     @app.middleware("http")
@@ -132,13 +146,17 @@ def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None, psw=No
 
 def main():
     cfg = Settings(provider="stub")
-    # Fixture bootstrap is explicit CLI work, never an unauthenticated API write.
-    reader, patients = prepare_demo(cfg)
     hosts = tuple(h.strip() for h in os.environ.get("PM_FRONTEND_HOSTS", "").split(",")
                   if h.strip())
+    if hosts:
+        # Refuse before any fixture write, not after loading the corpus.
+        require_deployment_secret(cfg)
+    # Fixture bootstrap is explicit CLI work, never an unauthenticated API write.
+    reader, patients = prepare_demo(cfg)
     app = workspace_app(cfg, reader, patients, hosts, os.environ.get("PM_DEMO_TOKEN") or None,
                         psw=psw_identity(reader.tenant_id),
                         psw_token=os.environ.get("PM_DEMO_PSW_TOKEN") or None)
+
     uvicorn.run(app, host="127.0.0.1", port=8001, access_log=False,
                 proxy_headers=bool(hosts), forwarded_allow_ips="127.0.0.1")
 
