@@ -92,6 +92,28 @@ test('nurse receives runner and must explicitly apply context to explain it', as
   exit(page);
 });
 
+test('nurse screen says Reconnecting on a dropped network and recovers, without phone wording', async () => {
+  const data = {revision: 1, exertion: false, capture_keys: {runner: 'r', resident: 'd'},
+    checks: [{resident: 'runner', take: 1, received_at: '2026-10-18T03:00:00Z', verdict: 'watch'}]};
+  const page = loadPage('/unit?demo=handoff#room=room1&key=nurse-key', {routes: {
+    'GET /demo/handoff/room1': () => data,
+    'POST /demo/handoff/room1/context': () => data,
+  }});
+  await until(() => page.main.textContent.includes('Connected'));
+  const working = page.window.fetch;
+  page.window.fetch = async () => { throw new TypeError('Failed to fetch'); };
+  await until(() => page.main.textContent.includes('Reconnecting'), 5000);
+  assert(!page.main.textContent.includes('Failed to fetch'));
+  assert(!page.main.textContent.includes('check-in will not be duplicated'));
+  // A dropped network while applying context gets nurse wording, not the phone's retry text.
+  q(page, '[data-resident=runner]').querySelector('button').click();
+  await until(() => page.main.textContent.includes('Connection failed. Try again.'));
+  assert(!page.main.textContent.includes('check-in will not be duplicated'));
+  page.window.fetch = working;
+  await until(() => page.main.textContent.includes('Connected'), 5000);
+  exit(page);
+});
+
 test('expired nurse room removes stale findings and offers fresh setup', async () => {
   const page = loadPage('/unit?demo=handoff#room=gone&key=old', {routes: {}});
   await until(() => page.main.textContent.includes('Start a new demo room'));
