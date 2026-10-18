@@ -30,20 +30,34 @@ services:
     <<: *demo
     command: ["python", "-m", "scripts.hosted_demo", "bootstrap"]
     profiles: ["setup"]
+  # BL-14 12-resident roster (admin URL for this one-off step only). Offline: keyword note
+  # extraction and template SBARs, no provider calls. Report and a loader-minted nurse token go
+  # to the demo_artifacts volume, never stdout. Recreate api afterwards to pick up the roster.
+  load:
+    <<: *demo
+    command: ["python", "-m", "scripts.load_baseline_demo", "--offline",
+              "--presentation", "${PM_DEMO_PRESENTATION:-all-history}"]
+    profiles: ["setup"]
+    volumes: ["demo_artifacts:/app/artifacts"]
   api:
     <<: *demo
     restart: unless-stopped
     environment:
       <<: *environment
       PM_ADMIN_DATABASE_URL: ""
+      # Container-internal only: port 8001 is not published, Caddy is the sole public entry.
+      PM_BIND_HOST: 0.0.0.0
       PM_PROXY_TRUSTED_IPS: "*"
     volumes: ["whisper:/home/demo/.cache/huggingface"]
+    # Readiness, not just liveness: runtime DB role + bootstrapped nurse, bucket, ffmpeg and the
+    # app itself. Whisper loads before uvicorn accepts connections, so first boot downloads the
+    # model inside start_period; Caddy (the only public port) waits for this to pass.
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/v1/health/live', timeout=3)"]
-      interval: 10s
-      timeout: 5s
-      retries: 60
-      start_period: 30s
+      test: ["CMD", "python", "-m", "scripts.hosted_demo", "check"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 120s
   worker:
     <<: *demo
     restart: unless-stopped
@@ -52,7 +66,7 @@ services:
       PM_ADMIN_DATABASE_URL: ""
     command: ["python", "-m", "scripts.hosted_demo", "worker"]
   caddy:
-    image: caddy:2.10.2-alpine
+    image: caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
     restart: unless-stopped
     environment:
       PM_DEMO_DOMAIN: ${PM_DEMO_DOMAIN:?Set PM_DEMO_DOMAIN in .env.demo}
@@ -65,6 +79,7 @@ services:
       api:
         condition: service_healthy
 volumes:
+  demo_artifacts:
   whisper:
   caddy_data:
   caddy_config:

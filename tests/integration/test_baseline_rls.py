@@ -112,10 +112,23 @@ def test_assessment_updates_stay_inside_the_callers_patient(two_tenants):
 @pytest.mark.parametrize("table", ["voice_checks", "context_tags"])
 def test_checks_and_tags_are_append_only_for_the_runtime_role(two_tenants, table):
     t = two_tenants
-    for statement in (f"UPDATE {table} SET tenant_id=tenant_id", f"DELETE FROM {table}"):
+    statements = [f"UPDATE {table} SET tenant_id=tenant_id"]
+    if table == "voice_checks":
+        statements.append(f"DELETE FROM {table}")
+    for statement in statements:
         with pytest.raises(psycopg.errors.InsufficientPrivilege):
             with transaction(t["cfg"], t["nurse"]) as conn:
                 conn.execute(statement)
+
+
+def test_tags_can_be_deleted_only_while_their_source_is_being_purged(two_tenants):
+    t = two_tenants
+    with transaction(t["cfg"], t["nurse"]) as conn:
+        assert conn.execute("DELETE FROM context_tags").rowcount == 0
+    with psycopg.connect(t["cfg"].admin_database_url, autocommit=True) as admin:
+        admin.execute("UPDATE sources SET purge_requested=true WHERE patient_id=%s", (t["patient"],))
+    with transaction(t["cfg"], t["nurse"]) as conn:
+        assert conn.execute("DELETE FROM context_tags").rowcount == 1
 
 
 def test_context_tag_must_cite_a_real_span_of_a_source_of_the_same_patient(sandbox):

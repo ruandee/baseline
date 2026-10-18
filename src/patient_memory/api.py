@@ -18,6 +18,11 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import AwareDatetime
 
 from patient_memory.auth import decode_token
+from patient_memory.baseline.context import add_context
+from patient_memory.baseline.notes import extract_pending_notes
+from patient_memory.baseline.overview import overview as build_overview
+from patient_memory.baseline.overview import watchlist as build_watchlist
+from patient_memory.baseline.sbar import enrich_assessment_sbar
 from patient_memory.checks import care_gate, store_check
 from patient_memory.config import Settings
 from patient_memory.domain import (
@@ -25,6 +30,9 @@ from patient_memory.domain import (
     AssignmentInput,
     CheckMode,
     CheckResult,
+    ContextInput,
+    ContextTagOut,
+    NoteExtractionResult,
     PatientInput,
     Question,
     Reason,
@@ -195,6 +203,23 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             audit(conn, actor, patient_id, "import_source", request.state.request_id)
             return result
 
+    @app.post("/v1/patients/{patient_id}/context", status_code=201, response_model=ContextTagOut)
+    def add_context_tag(patient_id: UUID, body: ContextInput, request: Request,
+                        idempotency_key: str | None = Header(default=None), actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            tag = add_context(conn, actor, patient_id, body, idempotency_key, app.state.objects)
+            audit(conn, actor, patient_id, "add_context", request.state.request_id)
+            return tag
+
+    @app.post("/v1/patients/{patient_id}/notes/extract", response_model=NoteExtractionResult)
+    def extract_notes(patient_id: UUID, request: Request, retry_fallback: bool = Query(default=False),
+                      actor=actor_dep):
+        result = extract_pending_notes(cfg, actor, patient_id, retry_fallback)
+        with transaction(cfg, actor) as conn:
+            patient_access(conn, patient_id, write=True)
+            audit(conn, actor, patient_id, "extract_note_context", request.state.request_id)
+            return result
+
     @app.get("/v1/patients/{patient_id}/jobs/{job_id}")
     def job_state(patient_id: UUID, job_id: UUID, actor=actor_dep):
         with transaction(cfg, actor) as conn:
@@ -328,8 +353,25 @@ def create_app(cfg=None, objects=None, generator=None, transcriber=None):
             if not cfg.keep_audio:
                 shutil.rmtree(work, ignore_errors=True)
         with transaction(cfg, actor) as conn:
-            return store_check(conn, actor, patient_id, request.state.request_id, analysis,
-                               mode, device_id, device_ts, is_baseline)
+            result = store_check(conn, actor, patient_id, request.state.request_id, analysis,
+                                 mode, device_id, device_ts, is_baseline, cfg)
+        if result.assessment:
+            enrich_assessment_sbar(cfg, actor, patient_id, result.assessment["id"])
+        return result
+
+    @app.get("/v1/watchlist")
+    def watchlist(actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            require_member(conn)
+            return build_watchlist(conn, cfg)
+
+    @app.get("/v1/patients/{patient_id}/overview")
+    def patient_overview(patient_id: UUID, days: Annotated[int, Query(ge=1, le=90)] = 30,
+                         actor=actor_dep):
+        with transaction(cfg, actor) as conn:
+            care_gate(conn, patient_id)
+            patient = patient_access(conn, patient_id)
+            return build_overview(conn, cfg, patient, days)
 
     @app.post("/v1/patients/{patient_id}/questions", response_model=Answer)
     def question(patient_id: UUID, body: Question, request: Request, actor=actor_dep):

@@ -66,6 +66,41 @@ class SourceInput(Contract):
         return self
 
 
+class ContextInput(Contract):
+    kind: Literal["explainer", "amplifier"]
+    tag: str = Field(min_length=1, max_length=64)
+    label: str = Field(min_length=1, max_length=500)
+    valid_from: AwareDatetime
+    valid_to: AwareDatetime | None = None
+
+    @model_validator(mode="after")
+    def validate_window(self):
+        if self.valid_to and self.valid_to < self.valid_from:
+            raise ValueError("Inverted validity window")
+        return self
+
+
+class ContextTagOut(Contract):
+    id: UUID
+    kind: Literal["explainer", "amplifier"]
+    tag: str
+    label: str
+    quote: str
+    start_offset: int
+    end_offset: int
+    source_id: UUID
+    valid_from: AwareDatetime
+    valid_to: AwareDatetime | None
+    extracted_by: Literal["structured", "gemini"]
+
+
+class NoteExtractionResult(Contract):
+    processed: int
+    tags_created: int
+    methods: list[Literal["keyword", "gemini"]]
+    batch_limit: int
+
+
 class Question(Contract):
     question: str = Field(min_length=1, max_length=4000)
     as_of: AwareDatetime | None = None

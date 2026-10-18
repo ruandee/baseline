@@ -3,12 +3,14 @@ import time
 from uuid import UUID, uuid4
 
 from patient_memory.auth import Identity
+from patient_memory.baseline.context import store_tags, structured_tags
+from patient_memory.baseline.notes import note_tags, publish_note_tags
 from patient_memory.config import Settings
 from patient_memory.domain import SourceInput
-from patient_memory.extraction import embed, extract, fact_id, vector_sql
+from patient_memory.extraction import extract, store_facts, store_relations
 from patient_memory.ingestion import bump, claim_job, lock_patient
 from patient_memory.objects import ObjectStore
-from patient_memory.storage import audit, transaction
+from patient_memory.storage import audit, patient_access, transaction
 
 
 def run_once(cfg: Settings, identity: Identity, objects=None):
@@ -20,42 +22,31 @@ def run_once(cfg: Settings, identity: Identity, objects=None):
         job = claim_job(conn)
         if not job:
             return False
+        patient_access(conn, job["patient_id"], write=True)
         source = conn.execute("SELECT * FROM sources WHERE id=%s", (job["source_id"],)).fetchone()
     try:
         raw = objects.get(source["object_key"], source["payload_hash"])
         payload = SourceInput.model_validate_json(raw)
         canonical, candidates = extract(payload)
+        tags, note_method = note_tags(payload, cfg) if payload.kind == "nursing_note" else ([], None)
         with transaction(cfg, identity) as conn:
             lock_patient(conn, job["patient_id"])
+            patient_access(conn, job["patient_id"], write=True)
             current = conn.execute("SELECT * FROM jobs WHERE id=%s FOR UPDATE", (job["id"],)).fetchone()
             if not current or current["lease_token"] != job["lease_token"] or current["status"] != "processing":
                 return True
             source = conn.execute("SELECT * FROM sources WHERE id=%s", (job["source_id"],)).fetchone()
-            if not source or source["retracted_at"] or source["purged_at"]:
+            if not source or source["retracted_at"] or source["purged_at"] or source["purge_requested"]:
                 conn.execute("UPDATE jobs SET status='cancelled',stage='cancelled' WHERE id=%s", (job["id"],))
                 return True
-            for c in candidates:
-                conn.execute(
-                    "INSERT INTO facts(id,tenant_id,patient_id,source_id,concept,value,unit,polarity,"
-                    "experiencer,event_type,order_id,valid_from,valid_to,quote,start_offset,end_offset,embedding) "
-                    "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::vector) ON CONFLICT DO NOTHING",
-                    (fact_id(source["id"], c), identity.tenant_id, job["patient_id"], source["id"],
-                     c.concept, c.value, c.unit, c.polarity, c.experiencer, c.event_type, c.order_id,
-                     c.valid_from, c.valid_to, c.quote, c.start, c.end, vector_sql(embed(c.quote))),
-                )
+            store_facts(conn, identity.tenant_id, job["patient_id"], source["id"], candidates)
+            store_tags(conn, identity.tenant_id, job["patient_id"], source["id"],
+                       structured_tags(payload, candidates))
+            if note_method:
+                publish_note_tags(conn, identity, job["patient_id"], source["id"], tags, note_method)
             conn.execute("UPDATE sources SET canonical_text=%s,published_at=coalesce(published_at,clock_timestamp()) WHERE id=%s",
                          (canonical, source["id"]))
-            # Structured contradictions only; do not guess semantic contradictions in free text.
-            conn.execute(
-                "INSERT INTO relations SELECT a.tenant_id,a.patient_id,a.id,b.id,'contradicts' "
-                "FROM facts a JOIN facts b ON a.tenant_id=b.tenant_id AND a.patient_id=b.patient_id "
-                "AND a.concept=b.concept AND a.id>b.id AND a.source_id<>b.source_id "
-                "WHERE a.patient_id=%s AND a.concept<>'source_assertion' AND a.order_id IS NULL "
-                "AND b.order_id IS NULL AND (a.value<>b.value OR a.polarity<>b.polarity) "
-                "AND (a.valid_to IS NULL OR b.valid_from IS NULL OR a.valid_to>=b.valid_from) "
-                "AND (b.valid_to IS NULL OR a.valid_from IS NULL OR b.valid_to>=a.valid_from) "
-                "ON CONFLICT DO NOTHING", (job["patient_id"],),
-            )
+            store_relations(conn, job["patient_id"])
             conn.execute("UPDATE jobs SET status='completed',stage='published',lease_until=NULL,error_code=NULL "
                          "WHERE id=%s", (job["id"],))
             bump(conn, job["patient_id"])
@@ -65,7 +56,8 @@ def run_once(cfg: Settings, identity: Identity, objects=None):
         with transaction(cfg, identity) as conn:
             conn.execute(
                 "UPDATE jobs SET status=%s,error_code=%s,lease_until=NULL,"
-                "next_attempt_at=now()+(%s * interval '1 second') WHERE id=%s AND lease_token=%s",
+                "next_attempt_at=now()+(%s * interval '1 second') WHERE id=%s AND lease_token=%s "
+                "AND status='processing'",
                 ("failed" if permanent or job["attempt"] >= 5 else "queued",
                  "invalid_extraction" if permanent else "dependency_unavailable",
                  2 ** min(job["attempt"], 5), job["id"], job["lease_token"]),

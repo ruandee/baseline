@@ -217,6 +217,11 @@ Response 200:
 
 Unusable clip: 200 with `usable: false`, `quality.reasons` (e.g. `too_short`, `too_noisy`, `clipped`), no `change` or `assessment`. Wrong patient or a caller outside the care team: 404. Request body over 2 MB: 413 (the `PayloadLimit` middleware, before the route runs). Audio ffmpeg cannot decode, or longer than 30 s: 422 `invalid_audio`. Invalid form field: 422 `invalid_request`.
 
+Configured SBAR drafting starts after the check, deterministic assessment and template commit.
+The provider runs outside database locks. Draft publication rechecks authorization and source
+revision; a concurrent source change returns 409 `memory_changed`, while revoked access returns
+404. The original check remains stored on these post-commit errors (decision 014).
+
 ### `GET /v1/watchlist`
 
 ```json
@@ -237,6 +242,13 @@ Sort: escalate, then watch, then explained, then within normal; ties by `fused_z
 
 Returns `series` (daily `time_bucket` medians per feature plus raw checks), `baseline` (median and MAD per feature, mode, number of baseline checks), `latest_assessment` (as above, plus `sbar`), `context_tags` (with quote, offsets, source id, validity), and `watch_window`.
 
+Shape as built (decision 012): `patient_id`, `display_name`, `synthetic`, `watch_window`, `features` (`{name: {label, unit}}`), `series` (`{feature: {daily: [{day, median}], checks: [{ts, value}]}}`), `baseline` (`{mode, n_checks, features: {name: {median, scale}}}`, `scale` is the floored robust scale from the score formula), `first_change_ts`, `latest_assessment` (`id`, `ts`, `verdict`, `over_budget`, `no_escalate_profile`, `suggested_action: {id, label}`, `reasons[]` with `kind`, `tag`, `label`, `evidence_id`, `quote`, `match`, `source_kind`, `recorded_at`, `change` with `per_feature` carrying `scale`, and `sbar`) and `context_tags`.
+
+Assessment freshness (decision 015): read endpoints withhold stored assessments after a source revision
+change until another usable check is assessed. Source publication, correction, retraction, visibility
+change and purge atomically invalidate assessments and clear copied context quotes/SBAR. Context
+selection excludes superseded sources. Context items include `source_id` and `valid_to` provenance.
+
 ### `POST /v1/patients/{id}/context`
 
 ```json
@@ -244,7 +256,9 @@ Returns `series` (daily `time_bucket` medians per feature plus raw checks), `bas
  "valid_from": "2026-10-18T12:00:00Z", "valid_to": "2026-10-18T18:00:00Z"}
 ```
 
-Creates an `observation` source through the existing ingestion path (record `concept: "context.exertion"`), then a `context_tags` row with `extracted_by: "structured"` pointing at that source's span. Returns 201 with the tag.
+Creates an `observation` source through the existing ingestion path (record `concept: "context.exertion"`), then a `context_tags` row with `extracted_by: "structured"` pointing at that source's span. Returns 201 with the tag (`id`, `kind`, `tag`, `label`, `quote`, `start_offset`, `end_offset`, `source_id`, `valid_from`, `valid_to`, `extracted_by`).
+
+`valid_from` is required and becomes the source's `recorded_at`; `valid_to` defaults to the taxonomy window (none for `exertion`). `language_change` is check-only and is rejected here until check-linked metadata support exists; generic structured sources do not create that tag either. `tag` must be in the taxonomy and `kind` must match it, else 422 `invalid_request`. An optional `Idempotency-Key` header makes retries safe (same key and body replays the same tag; same key and different body is 409). The endpoint synchronously publishes canonical source text, its fact and tag, completes the source job, and bumps the patient revision in one transaction before returning 201; no worker pass is needed for evidence access. Replays do not bump the revision. Writing goes through ingestion, so only importer-assigned callers may post; anyone else, or another patient, gets 404.
 
 ## Speech pipeline
 
@@ -326,10 +340,20 @@ dz = direction[f] * z        # positive = concerning direction
 
 ### Status rule
 
+Accepted policy `multifeature-cusum-v2` ([decision 019](decisions/019-multifeature-cusum-proposal.md))
+supersedes the original any-single-CUSUM rule after explicit approval of PRs #60 and #61.
+
 1. `enrolling` if the baseline has fewer than 3 checks.
-2. `change` if at least 2 features have dz > 2 on this check **and** on the previous usable check within 24 h, or any CUSUM alarms.
-3. `provisional` if not `change` and at least 2 features have dz > 3 on this check alone.
-4. `none` otherwise.
+2. `change` if at least `PM_MIN_FEATURES` of the **same feature names** exceed `PM_Z_THRESHOLD`
+   on the current and previous usable check within 24 h, with the same signed pitch direction;
+   or at least two same features have supported CUSUM alarms on both checks in that window.
+3. A supported CUSUM feature has its directional stream at least H and current directional
+   deviation strictly greater than k. Pitch uses separate positive/negative signed streams,
+   displays their maximum and must retain the same direction to confirm. Residual accumulation
+   without ongoing deviation never maintains status.
+4. If not change, `provisional` if at least two currently supported CUSUM features alarm,
+   or at least `PM_MIN_FEATURES` features exceed `PM_PROVISIONAL_Z` on this check alone.
+5. `none` otherwise. One-feature CUSUM is diagnostic only; EWMA remains diagnostic.
 
 All thresholds come from `Settings` (`PM_Z_THRESHOLD=2.0`, `PM_PROVISIONAL_Z=3.0`, `PM_MIN_FEATURES=2`, `PM_EWMA_LAMBDA=0.3`, `PM_CUSUM_K=0.5`, `PM_CUSUM_H=4.0`) and are echoed in `params`. The runner sends two clips about 2 minutes apart, so the 2-consecutive rule can fire on race day.
 
@@ -448,7 +472,7 @@ One loader builds the synthetic unit, one reset script restores it and mints fre
 | Patient | Script | Expected result |
 | --- | --- | --- |
 | Mrs. K | Day 24: `medication_event` ordered oxybutynin 5 mg. Days 26 and 27: speech rate −22%, pause ratio +40%, mean pause +35%. Day 27: note "Quiet at lunch, didn't finish her soup. Not her usual chatty self." Day 27: `temperature_c` 37.1 | `escalate`, `4at_now`; amplifiers: high-risk med, poor intake, new confusion; temperature shown as documented and normal |
-| Mr. T | Day 25: note "New upper denture fitted this morning, says it feels loose." Days 26 and 27: speech rate −15%, pauses +20% | `explained` (dentures) |
+| Mr. T | Day 25: note "New upper denture fitted this morning, says it feels loose." Days 26 and 27: speech rate −15%, pause ratio and mean pause +35% (explicitly approved scenario amendment, decision 008) | `explained` (dentures) |
 | Mrs. L | Day 29: one check with speech rate −30% and pause ratio +50%; no notes | `watch`, `recheck_1h` (provisional) |
 | 9 others | Stable | `within_normal` |
 | Runner (real) | Saturday: 5 rested clips with `is_baseline`, 2 clips right after stairs (backup, not baseline). Context: `exertion`, "Running the Toronto marathon", Sunday 08:00 to 14:00. Listed in `PM_NO_ESCALATE_PATIENTS`. `device_id = runner-phone` | Sunday race clips: `change` then `explained` |
