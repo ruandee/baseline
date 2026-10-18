@@ -22,11 +22,11 @@ def probe(monkeypatch):
     monkeypatch.setitem(REGISTRY, "probe", PROBE)
 
 
-def evidence(sandbox, at=None):
+def evidence(sandbox, at=None, until=None):
     at = at or datetime.now(UTC) - timedelta(days=10)
     imported = import_note(sandbox, source_payload(
         text=None, kind="observation", author_role="system", recorded_at=at.isoformat(),
-        effective_from=at.isoformat(), records=[{"concept": "synthetic_probe", "value": "Synthetic probe capture"}]))
+        effective_from=at.isoformat(), effective_to=until.isoformat() if until else None, records=[{"concept": "synthetic_probe", "value": "Synthetic probe capture"}]))
     with transaction(sandbox[0], sandbox[2]["nurse"]) as conn:
         fact = conn.execute("SELECT id FROM facts WHERE source_id=%s",
                             (imported["source_version_id"],)).fetchone()["id"]
@@ -203,3 +203,13 @@ def test_source_supersession_cannot_be_reused_as_signal_evidence(sandbox, probe)
     with pytest.raises(Problem) as raised:
         admit(sandbox, capture(fact))
     assert raised.value.code == "signal_evidence_unavailable"
+
+
+def test_effective_expiry_rechecks_other_modality_before_corroborating(sandbox, probe):
+    now = datetime.now(UTC)
+    fact, _ = evidence(sandbox, now-timedelta(days=1), now-timedelta(hours=2))
+    admit(sandbox, capture(fact, now-timedelta(hours=3)))
+    seed_checks(sandbox, 6)
+    result = store(sandbox, SLOW)
+    assert not result.assessment["corroborated"]
+    assert result.change["modalities"]["probe"]["status"] == "unavailable"

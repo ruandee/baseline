@@ -157,12 +157,23 @@ def _latest_modalities(conn, patient_id, check, revision):
                                         abs(z) if direction == 0 else direction * z,
                                         raw["ewma"], raw["cusum"])
         params = row["params"]
+        evidence_ids = tuple(params.get("signal_evidence_ids", ("check:" + str(row["check_id"]),)
+                                        if modality == "speech" else ()))
+        if modality != "speech":
+            try:
+                # Revision checks cover mutations; effective expiry also changes eligibility
+                # with time alone. Recheck supporting facts at this new signal's event time.
+                signal_sources(conn, patient_id, Check(str(row["check_id"]), check.ts, "", "",
+                                                       False, True, {}, modality, evidence_ids))
+            except Problem as exc:
+                if exc.code not in ("signal_evidence_required", "signal_evidence_unavailable"):
+                    raise
+                continue
         results.append(ModalityResult(modality, row["signal_ts"], Assessment(
             params.get("modality_status", row["change_status"]), scores,
             params.get("modality_fused_z", row["fused_z"]), (),
             params.get("engine_params", params)), str(row["check_id"]),
-            tuple(params.get("signal_evidence_ids", ("check:" + str(row["check_id"]),)
-                             if modality == "speech" else ()))))
+            evidence_ids))
     return results
 
 
