@@ -41,9 +41,14 @@ null under existing assessment RLS; there is no new scoring context in the due e
 Feedback adds a 24-hour freshness window, which is an engineering limit on the acknowledgement
 message only. It does not change verdict policy, interruption budgets or clinical history.
 The current latest assessment must actually escalate without budget/profile suppression.
-The exact source must be published by assessment knowledge time, active and not superseded;
+All contributing current/baseline fact and voice citations must still resolve in scope, all
+contributing modality events must remain fresh, and all cited context must remain unexpired.
+This prevents credit after another contributing RR/motion fact expires without a revision bump.
+The exact own-note source must be published by assessment knowledge time, active and not superseded;
 its attribution must also predate that assessment. Exact facts and their note context must be
-valid at signal event time and remain unexpired now. Future events, stale revisions, a newer
+valid at signal event time and remain unexpired now. Own-note facts may retain the extractor's
+uncertain/unspecified source-assertion attribution, but absent polarity or another experiencer
+can never earn credit. Future events, stale revisions, a newer
 watch assessment, expired context, revocation, retraction, supersession and purge withhold the
 message. A note merely being present, semantically similar or submitted by the importer does
 not earn credit. Existing unknown author mappings are never backfilled by guessing.
