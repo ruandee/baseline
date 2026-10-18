@@ -3,7 +3,11 @@ const {test} = require('node:test');
 const capture = require('../../frontend/kaze-capture.js');
 const core = require('../../frontend/kaze-core.js');
 const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); };
-const defer = () => { let resolve; const promise = new Promise((r) => { resolve = r; }); return {resolve, promise}; };
+const defer = () => {
+  let resolve, reject;
+  const promise = new Promise((a, b) => { resolve = a; reject = b; });
+  return {resolve, reject, promise};
+};
 
 function setup(opts = {}) {
   let time = 1000, stopped = 0, locations = 0, reads = 0;
@@ -16,7 +20,7 @@ function setup(opts = {}) {
     start() { this.state = 'recording'; }
     stop() { this.state = 'inactive'; this.ondataavailable({data: new Blob(['synthetic'])}); this.onstop(); }
   }
-  const controller = capture({getSession: async () => { reads++; return session; },
+  const controller = capture({getSession: opts.getSession || (async () => { reads++; return session; }),
     getMedia: opts.getMedia || (async () => media), Recorder,
     locate: opts.locate || (async () => { locations++; return {coords: {latitude: 1, longitude: 2, accuracy: 3}}; }),
     upload: async (blob, fields) => { uploads.push(fields); return {usable: true}; },
@@ -25,6 +29,7 @@ function setup(opts = {}) {
   return {controller, uploads, states, timers, media, expire: () => { time = 100000; },
     change: (updates) => { session = {...session, ...updates}; },
     reads: () => reads, stopped: () => stopped, locations: () => locations,
+    recorder: () => recorder,
     recording: () => recorder && recorder.state === 'recording'};
 }
 
@@ -57,6 +62,38 @@ test('clock expiry during microphone permission prevents recording even before s
   const pending = defer(); const h = setup({getMedia: () => pending.promise});
   const start = h.controller.start(false); await flush(); h.expire(); pending.resolve(h.media); await start;
   assert.equal(h.uploads.length, 0); assert.ok(h.stopped() > 0); assert.equal(h.recording(), undefined);
+});
+
+test('obsolete first session read cannot release the next active capture', async () => {
+  const oldRead = defer(); let reads = 0;
+  const valid = {id: 'session-one', status: 'active', ends_at: new Date(100000).toISOString()};
+  const h = setup({getSession: () => ++reads === 1 ? oldRead.promise : Promise.resolve(valid)});
+  const first = h.controller.start(false); await flush(); h.controller.cancel();
+  await h.controller.start(false); assert.ok(h.recording());
+  const before = h.stopped(); oldRead.resolve(valid); await first;
+  assert.equal(h.stopped(), before); assert.ok(h.recording()); h.controller.cancel();
+});
+
+test('obsolete rejected microphone permission cannot release the next active capture', async () => {
+  const pending = defer(); let requests = 0;
+  let stopped = 0;
+  const h = setup({getMedia: () => ++requests === 1 ? pending.promise : Promise.resolve({
+    getTracks: () => [{stop() { stopped++; }}]})});
+  const first = h.controller.start(false); await flush(); h.controller.cancel();
+  await h.controller.start(false); assert.ok(h.recording());
+  pending.reject(new Error('old permission failed')); await first;
+  assert.equal(stopped, 0); assert.ok(h.recording()); h.controller.cancel();
+});
+
+test('delayed stop and error callbacks from a cancelled recorder cannot stop its replacement', async () => {
+  const h = setup(); await h.controller.start(false);
+  const obsolete = h.recorder();
+  obsolete.stop = function() { this.state = 'inactive'; }; // browser queues stop asynchronously
+  h.controller.cancel(); await h.controller.start(false);
+  const before = h.stopped();
+  await obsolete.onstop(); obsolete.onerror(); await flush();
+  assert.equal(h.stopped(), before); assert.ok(h.recording()); assert.equal(h.uploads.length, 0);
+  h.controller.cancel();
 });
 
 test('ending while location permission is pending never submits the recording or coordinates', async () => {

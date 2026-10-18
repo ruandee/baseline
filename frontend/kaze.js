@@ -83,7 +83,7 @@ async function renderKazeSession(host, base, sid, judge) {
     record, locationLabel, ending, link, result, events);
   const endpoint = `${base}/${encodeURIComponent(sid)}`;
   const fresh = async () => { session = await api(endpoint); return session; };
-  const capture = kazeCapture({getSession: fresh,
+  const capture = kazeCapture({getSession: () => api(endpoint),
     getMedia: () => navigator.mediaDevices.getUserMedia({audio: true}),
     Recorder: function(stream) {
       const mime = pickMimeType();

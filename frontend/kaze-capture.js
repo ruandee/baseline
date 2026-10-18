@@ -32,10 +32,12 @@ function kazeCapture({getSession, getMedia, Recorder, upload, locate, onState,
       const chunks = [];
       recorder = new Recorder(stream);
       recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
-      recorder.onerror = () => { cancel(); onState('Recording failed. Please try again.'); };
+      recorder.onerror = () => {
+        if (current()) { cancel(); onState('Recording failed. Please try again.'); }
+      };
       recorder.onstop = async () => {
-        cancelLater(timer); release();
         if (!current()) return;
+        cancelLater(timer); release();
         try {
           onState('Saving check-in');
           const fresh = await getSession();
@@ -63,8 +65,10 @@ function kazeCapture({getSession, getMedia, Recorder, upload, locate, onState,
       onState('Listening — tap Stop when finished');
       timer = later(() => { if (current()) stop(); }, Math.min(15000, new Date(session.ends_at).getTime() - now()));
     } catch (error) {
-      release();
-      if (current()) { busy = false; onState('Could not start. Check microphone permission and session end time.'); }
+      if (current()) {
+        release(); busy = false;
+        onState('Could not start. Check microphone permission and session end time.');
+      }
     }
   }
   function stop() { if (recorder && recorder.state === 'recording') recorder.stop(); }
