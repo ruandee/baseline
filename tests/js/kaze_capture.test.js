@@ -135,3 +135,10 @@ test('timeline labels log-only delivery honestly and removes location and acknow
   assert.equal(core.timeToAck(s)[0].seconds, 60);
   assert.doesNotMatch(core.personView(s).headline, /sent|alerted/);
 });
+
+
+test('reminders-only sessions never promise contact texts', () => {
+  const view = core.personView({status: 'active', ladder_level: 1, escalation_enabled: false});
+  assert.match(view.detail, /Texts are off.*reminders only/);
+  assert.doesNotMatch(view.detail, /will be texted|escalation will be attempted/);
+});

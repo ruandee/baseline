@@ -149,7 +149,8 @@ const KazeCore = (() => {
     }
     if (s.ladder_level >= 1) {
       return {screen: 'status', tone: 'watch', headline: 'Time to check in',
-              detail: 'A reminder was recorded. If you do not check in, your contacts will be texted.' + textsOff};
+              detail: 'A reminder was recorded.' + (s.escalation_enabled === false ? textsOff
+                : ' If you do not check in, contact escalation will be attempted.')};
     }
     return {screen: 'status', tone: 'ok', headline: 'Session active',
             detail: `Check in every ${s.interval_min} min until ${timeOfDay(s.ends_at)}.` + textsOff};
