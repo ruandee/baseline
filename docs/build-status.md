@@ -183,11 +183,7 @@ and refreshed authorization. All reason, observation and SBAR citation buttons a
 including withheld readback after assessment change/revocation. Headless Chrome renders desktop
 and phone-width synthetic fixtures; this does not claim physical-phone or live-audio acceptance.
 
-BL-26 scheduler integration records the standard missed-check/speech-change ladder with
-serialized reset/acknowledgement/expiry and independent KAZE assessment/profile rules. Session
-checks do not consume the resident shift budget. Exact integrated CI and phone gates remain
-required; no live SMS is enabled by this scheduler-only branch.
-
-BL-27 adds token-scoped public acknowledgement and immutable delivery claims outside DB locks,
-with explicit logged/sent/failed/pending outcomes and migration008/009. Hosted external document
-navigation reaches only the public token capability; verified phone receipt remains open.
+BL-28 pages add separate KAZE bootstrap, arming, baseline/session recording, countdown/reminders
+and a delivery/acknowledgement timeline. Logged/failed attempts never claim sent SMS. Latest
+SMS integration preserves public acknowledgement navigation and clinical/bootstrap guards.
+Physical phone/SMS/rehearsal gates remain open; page setup is in docs/kaze-pages.md.
