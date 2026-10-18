@@ -52,6 +52,9 @@ for real data (see AGENTS.md invariants).
   `baseline.js` and `baseline.css` (verdict colour tokens). The Content-Security-Policy keeps
   `script-src 'self'` and adds `media-src 'self' blob:` for the recorder; no CDN scripts.
 - The proxy must pass `Host` and `X-Forwarded-Proto` unchanged (Caddy does by default).
+- Hosted mode also refuses to start with the repository's default `PM_JWT_SECRET` or any secret
+  shorter than 32 characters (BL-20 completion, decision 010): the default is public, so anyone
+  could mint tokens with it.
 
 ## Affected tickets
 
