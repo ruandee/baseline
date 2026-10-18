@@ -93,7 +93,11 @@ def projection(conn, cfg, patient_id, at):
     if expired:
         return None
     result = evaluate(check, checks[:-1], "rolling", cfg)
+    baseline_ids = set(result.baseline_ids)
     result = replace(result, params={**result.params, "capture_adapter": PROMPT,
+                     "baseline_check_ids": list(result.baseline_ids),
+                     "baseline_evidence_ids": sorted({eid for earlier in checks
+                         if earlier.id in baseline_ids for eid in earlier.evidence_ids}),
                      "measurement_attribution": "documented_system_observation",
                      "threshold_status": "engineering_unvalidated",
                      "feature_meta": {f.name: {"label": f.label, "unit": f.unit} for f in VITALS.features},

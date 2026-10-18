@@ -24,7 +24,8 @@ The registry's baseline/guard/window rules remain unchanged; these are not clini
 ## Immutable provenance and new knowledge snapshots
 
 Observations are grouped by exact effective time. Their deterministic check identity is derived
-from patient, timestamp and resting-observation-v1, with exact fact citations; no new raw capture,
+from patient, timestamp and resting-observation-v1, with exact fact citations. Modality
+parameters retain selected baseline check identities and exact baseline fact IDs; no new raw capture,
 patient table or secondary measurement copy is introduced. The current source lifecycle,
 patient/tenant scope, polarity/experiencer and recorded versus effective times remain visible.
 Late-recorded observations retain actual event time and are evaluated with currently published

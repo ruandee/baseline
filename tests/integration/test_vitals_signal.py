@@ -56,6 +56,11 @@ def test_isolated_mrs_k_rr_rise_is_a_corroborating_vitals_change(sandbox):
     assert latest["modalities"]["vitals"]["params"]["threshold_status"] == "engineering_unvalidated"
     assert latest["sbar"] is None and latest["draft_status"] == "unavailable_multimodal_evidence"
     nurse = client_for(sandbox)
+    baseline = latest["modalities"]["vitals"]["params"]["baseline_evidence_ids"]
+    assert len(baseline) == 6
+    for eid in baseline:
+        source = nurse.get(f"/v1/patients/{sandbox[1]}/evidence/{eid}")
+        assert source.status_code == 200 and "16.0" in source.json()["quote"]
     for eid in latest["modalities"]["vitals"]["evidence_ids"]:
         evidence = nurse.get(f"/v1/patients/{sandbox[1]}/evidence/{eid}")
         assert evidence.status_code == 200
