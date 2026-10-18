@@ -1,7 +1,6 @@
-# Baseline — Devpost draft
+# Baseline - Devpost draft
 
-Prepared for BL-22 / BL-23. **Draft only; not submitted.** The sections from “Project name”
-through “What's next” are the paste-ready entry. The final section is for the team only.
+Draft only. The project story below is ready to paste; the final section is for the team.
 
 ## Project name
 
@@ -9,95 +8,39 @@ Baseline
 
 ## Tagline
 
-Help care teams notice when someone is different from their usual self—and see the context behind the change.
+Help care teams notice when someone is different from their usual self.
 
 ## Inspiration
 
-“She seems a little different today.”
-
-For a care aide who knows a resident well, that observation can mean a lot. For a nurse
-covering a busy unit, or a staff member meeting that resident for the first time, it can be
-hard to know what changed or where to look next.
-
-We wanted to make that observation easier to share. Baseline starts with a simple question:
-**what is normal for this person?** A resident is compared with their own history, rather than
-expected to sound like everyone else.
+"She seems a little different today." A familiar caregiver may notice a change immediately, but a nurse covering a busy unit may not know that resident as well. We built Baseline to help share that observation, with the person's own history as the starting point.
 
 ## What it does
 
-A care aide opens a resident's check, asks them to count and say the days of the week, and
-records a short response. The resident gets a simple thank-you, without a score or a warning.
+Baseline turns a short voice check into a clearer picture of who may need attention. Care teams can see what changed, read relevant care notes, and prepare a handoff without searching through scattered records.
 
-Baseline measures things such as speaking speed and pauses, compares them with earlier
-checks, and brings relevant notes and recorded observations into the same view. A nurse gets
-a short, prioritized list and can open the records behind each explanation. A draft handoff
-helps them share what they found; the nurse remains responsible for reviewing it.
+## How it works
 
-Our fictional cases explore three different situations:
+A care aide opens a resident's check and records them counting and saying the days of the week. Baseline checks the recording, turns speech into text, and measures patterns such as speaking speed and pauses. It compares those patterns with the resident's earlier checks to look for a change from their usual range.
 
-- **Mrs. K needs review:** her speech changed, and there is relevant context in her care record.
-- **Mrs. L needs another look:** a change is being watched rather than treated as a diagnosis.
-- **Mr. T has an explanation to consider:** his record mentions new dentures. That context is
-  shown alongside the change; it does not prove that nothing else is wrong.
+The result reaches the nurse's overview, where residents needing attention are easier to find. Opening a resident shows the change over time alongside relevant notes and links to the original records. The nurse reviews that context and decides what to do next. The resident simply receives a thank-you, without a clinical score.
 
-The goal is to help a busy person decide **who to look at, what changed, and which records to read**.
+If a recording is unusable or there is too little history, Baseline says so. A change is a reason to look closer, not a diagnosis.
 
-## How we built it
+## Challenges and what we learned
 
-The app runs in an ordinary browser on a phone or computer. There is no separate mobile app
-to install. Its main parts are:
+The hardest part was making a change understandable. A number alone cannot explain someone's situation. We learned to keep the recording simple and put the history, supporting notes, and uncertainty together for the person reviewing it.
 
-- **HTML, CSS and JavaScript:** the recording screen, nurse list and resident detail pages.
-- **Python and FastAPI:** receive a check, run the processing steps and return the result.
-- **FFmpeg and Whisper:** prepare the audio and identify the spoken words and their timing.
-  Additional audio tools measure pauses and pitch.
-- **PostgreSQL with TimescaleDB:** keep the history and build the charts. Source records are
-  stored separately so an explanation can point back to what was actually recorded.
-- **Docker and Caddy on Google Cloud:** run the services together and provide an HTTPS website.
+## What we're proud of
 
-The change calculation uses measurements and explicit rules. An optional Gemini connection
-can help find context in notes and draft a handoff. Its quotes and numbers are checked against
-the supplied evidence. It does not decide the verdict. The current hosted demo uses the
-no-model-call fallback, so a working page is not a claim that Gemini ran live.
-
-## Challenges we ran into
-
-The difficult part was making the result useful and trustworthy, not just producing a number.
-A recording can be noisy. Someone may not have enough history yet. A note may have been
-corrected. A user may not be allowed to see a record.
-
-We built explicit “not enough information” and retry states, kept explanations connected to
-their sources, and separated the care aide's simple check flow from the nurse's detailed view.
-A missing note is never treated as proof that a symptom is absent.
-
-## Accomplishments we're proud of
-
-We connected a short voice check, a person's history, a prioritized nurse view and supporting
-records in one prototype. The deployed fictional cohort includes all twelve residents, with
-different cases that show why a changed measurement should not always lead to the same response.
-
-We also kept the resident experience simple: clear recording controls, the option to skip,
-and no clinical scores on the resident-facing screen.
-
-## What we learned
-
-A useful alert needs a clear explanation and a clear next step. Showing more measurements
-is not automatically more helpful. The person using the tool needs to understand what they
-are seeing, where it came from, and what is still unknown.
+We connected recording, comparison, and review in one working prototype, demonstrated with fictional residents.
 
 ## What's next
 
-Our next step is to test the experience with consenting volunteers and care professionals:
-can people complete the check comfortably, and can a nurse quickly understand the result?
-We still need physical-phone testing and measured processing times on the hosted system.
+Test the experience with consenting volunteers and care professionals, especially on real phones. Baseline is a decision-support prototype; it has not been clinically validated.
 
-We have also built prototype extensions for movement, recorded vital signs and personal
-safety check-ins through Project KAZE. These need their own validation. Our Vox encounter
-adapter is a mock; there is no live PointClickCare integration.
+## Built with
 
-**Baseline is a decision-support prototype, not a diagnostic tool.** The resident records in
-this demo are fictional. We have not established clinical accuracy or improved patient outcomes.
-Real-world use would require clinical evaluation and decisions about consent, hosting and data handling.
+Python, FastAPI, PostgreSQL, TimescaleDB, FFmpeg, Whisper, HTML, CSS, JavaScript, Docker, Caddy, and Google Cloud.
 
 ---
 
