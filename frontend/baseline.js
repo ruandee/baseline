@@ -230,7 +230,7 @@ async function renderUnit(main) {
     el('p', 'Start with the people who need a closer look. Read the evidence before deciding on a next step.',
        {class: 'bl-intro'}));
   heading.append(introduction, el('a', 'Start voice checks',
-    {href: '/check?mode=resident', class: 'bl-primary-link'}));
+    {href: '/check?nurse=1', class: 'bl-primary-link'}));
   const summary = el('div', '', {class: 'bl-unit-summary', 'aria-label': 'Unit summary'});
   [['escalate', 'Needs review', 'Flagged for nurse review'],
    ['watch', 'On watch', 'A change to follow up'],
