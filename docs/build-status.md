@@ -1,6 +1,10 @@
 # Implementation status and remaining gates
 
-Latest runtime: `4bcc848` (2026-10-18), adding BL-19 Mrs. L context to the phone-to-unit demo.
+Latest runtime: `839f042` (2026-10-18), adding vertical field layout and spacing to the BL-19
+Mrs. L context form. Labels sit above full-width controls, the confirmation has its own row,
+and the save action sits below it. The deployed expanded form was visually checked in Chrome;
+hosted readiness passed. CI was not awaited as requested. This is a CSS-only follow-up to
+`4bcc848`, adding BL-19 Mrs. L context to the phone-to-unit demo.
 Mrs. L's resident page exposes Add context / possible explanation, confirmed observation entry,
 and Save context and reassess. A hosted endpoint restricts this operation to the canonical nurse
 and authored Mrs. L record. Existing importer service scope publishes source-backed structured
