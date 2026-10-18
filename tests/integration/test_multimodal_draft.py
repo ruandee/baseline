@@ -1,5 +1,6 @@
 """Real RR + raw speech provenance through preliminary export and current nurse readback."""
 import base64
+import json
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
@@ -9,11 +10,13 @@ from psycopg.types.json import Jsonb
 
 from patient_memory.baseline.note import CHECK_SYSTEM, SIGNAL_SYSTEM, validate_document_reference
 from tests.contract.test_api import client_for, import_note
+from tests.contract.test_motion import capture, grant
 from tests.integration.test_note_export import note_path
 from tests.integration.test_vitals_signal import example, overview, rr_payload
+from tests.unit.test_multimodal_sbar import run_multimodal_js
 
 
-def test_multimodal_note_cites_actual_current_and_baseline_sources_without_model(sandbox, monkeypatch):
+def test_multimodal_note_cites_actual_current_and_baseline_sources_without_model(sandbox, monkeypatch, tmp_path):
     monkeypatch.setattr("patient_memory.baseline.llm.request_json",
                         lambda *a, **k: pytest.fail("multimodal drafts never call a provider"))
     example(sandbox)
@@ -38,6 +41,9 @@ def test_multimodal_note_cites_actual_current_and_baseline_sources_without_model
         for eid in sentence["evidence_ids"]:
             if not eid.startswith("check:"):
                 assert nurse.get(f"/v1/patients/{sandbox[1]}/evidence/{eid}").status_code == 200
+    fixture = tmp_path / "multimodal.json"
+    fixture.write_text(json.dumps({"overview": page}), encoding="utf-8")
+    run_multimodal_js(fixture)
     for role in ("patient", "psw", "admin"):
         assert client_for(sandbox, role).get(note_path(sandbox, latest["id"])).status_code == 404
 
@@ -49,6 +55,33 @@ def test_rr_only_draft_never_uses_voice_primary_or_invents_missing_hr(sandbox):
     text = " ".join(s["text"] for s in latest["sbar"]["sentences"])
     assert "breaths/min" in text and "speech" not in text.lower() and "heart" not in text.lower()
     assert client_for(sandbox).get(note_path(sandbox, latest["id"])).status_code == 200
+
+
+@pytest.mark.parametrize("with_vitals", [False, True])
+def test_motion_template_and_motion_vitals_corroboration_without_speech(sandbox, with_vitals):
+    grant(sandbox)
+    for _ in range(3):
+        result = capture(sandbox, is_baseline=True)
+        assert result.status_code == 200, result.text
+    changed = {"sit_to_stand_s": 2.5, "trunk_sway": .12, "step_cadence_spm": 45}
+    assert capture(sandbox, features=changed).status_code == 200
+    result = capture(sandbox, features=changed)
+    assert result.status_code == 200, result.text
+    if with_vitals:
+        import_note(sandbox, rr_payload(datetime.now(UTC)))
+    latest = overview(sandbox)["latest_assessment"]
+    assert latest["sbar"] and latest["check"] is None
+    text = " ".join(s["text"] for s in latest["sbar"]["sentences"])
+    assert "Sit-to-stand time 2.50 vs baseline median 1.20 s" in text
+    assert "speech" not in text.lower()
+    assert latest["corroborated"] is with_vitals
+    if with_vitals:
+        assert "26.00 vs baseline median 16.00 breaths/min" in text
+        assert latest["modalities"]["motion"]["params"]["projection"] == "immutable_capture_current_revision"
+    note = client_for(sandbox).get(note_path(sandbox, latest["id"]))
+    assert note.status_code == 200, note.text
+    assert validate_document_reference(note.json()) == []
+    assert not latest.get("cited_checks")
 
 
 @pytest.mark.parametrize("damage", ["expired", "foreign_check", "revoked"])

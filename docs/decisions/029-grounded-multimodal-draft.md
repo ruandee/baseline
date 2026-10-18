@@ -8,6 +8,8 @@ baseline provenance are available. It does not change signal thresholds, verdict
 The server constructs S sentences from each contributing current modality's declared feature
 labels/units, actual event time, measured values and computed baseline medians. Each comparison
 cites both the current immutable capture/facts and all captures/facts selected for that baseline.
+The bounded per-sentence citation limit is raised from 20 to 64 to accommodate the existing
+ten-check rolling motion baseline (three facts per capture), without dropping provenance.
 Missing measurements, unknown labels/units, unavailable baselines or citation limits withhold
 the whole draft. No voice result is invented for a non-speech primary capture.
 

@@ -73,13 +73,21 @@ def test_expired_multimodal_snapshot_fails_before_retrieval():
     assert exc.value.code == "note_unavailable"
 
 
-def test_multimodal_capture_citation_ui():
+def run_multimodal_js(fixture=None):
+    import os
     import shutil
     import subprocess
 
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not installed")
-    result = subprocess.run([node, "--test", "tests/js/multimodal_sbar.test.js"], cwd=ROOT,
+    env = dict(os.environ)
+    if fixture:
+        env["MULTIMODAL_FIXTURE"] = str(fixture)
+    result = subprocess.run([node, "--test", "tests/js/multimodal_sbar.test.js"], cwd=ROOT, env=env,
                             capture_output=True, text=True, timeout=30)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_multimodal_capture_citation_ui():
+    run_multimodal_js()

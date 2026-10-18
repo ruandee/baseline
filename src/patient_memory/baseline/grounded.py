@@ -28,7 +28,7 @@ def multimodal_template(name, decision, modalities, tags, corroborated=False):
         spec = REGISTRY.get(modality)
         baseline = entry.get("params", {}).get("baseline_evidence_ids", [])
         citations = list(dict.fromkeys([*entry.get("evidence_ids", []), *baseline]))
-        if spec is None or not entry.get("evidence_ids") or not baseline or len(citations) > 20:
+        if spec is None or not entry.get("evidence_ids") or not baseline or len(citations) > 64:
             return None
         comparisons = []
         for feature in spec.features:
@@ -62,6 +62,6 @@ def multimodal_template(name, decision, modalities, tags, corroborated=False):
          "evidence_ids": citations},
         {"section": "R", "text": f"Suggest {ACTION_LABELS[decision.action]}.", "evidence_ids": citations},
     ])
-    if len(sentences) > 12 or any(len(s["evidence_ids"]) > 20 or len(s["text"]) > 1500 for s in sentences):
+    if len(sentences) > 12 or any(len(s["evidence_ids"]) > 64 or len(s["text"]) > 1500 for s in sentences):
         return None
     return {"source": "template", "sentences": sentences}
