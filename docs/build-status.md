@@ -275,7 +275,7 @@ exact-head CI; the results above apply to that reviewed release.
 | BL-17 | Recording/retry/permission/race and MIME engineering tests | Physical iPhone/Android HTTPS/LTE acceptance unrun (#19) |
 | BL-18 | Real cohort/API-captured JS proves API sort order and hidden-tab polling stop/resume | Specified engineering gate accepted; #20 closed |
 | BL-19 | Real API-captured resident DOM proves four bands/markers, every citation readback, action and draft; headless Chrome layouts | Physical-phone hosted readback still unrun; #21's specified engineering gate accepted |
-| BL-20 | Compose release f7f02c0 deployed at baseline.deeruan.com; migration015 applied, refresh exited0, all six containers healthy and public unit/local-demo/out/liveness returned200 | Dedicated capture identities remain to be provisioned; physical LTE capture, hosted latency and rehearsal remain unverified (#22) |
+| BL-20 | Compose release f7f02c0 deployed at baseline.deeruan.com; migration015 applied, refresh exited0, all six containers healthy and public unit/local-demo/out/liveness returned200 | Public API readback verifies twelve scripted residents plus two dedicated capture identities; physical LTE capture, hosted latency and rehearsal remain unverified (#22) |
 | BL-21 | Merged fixture-only current-time reset; DB interruption/resumption/concurrency and volunteer-preservation tests | Hosted reset refused an unexpected recording in a scripted identity and rolled back before deletion; history preserved and services restored. Successful fixture-only reset under1minute remains unmeasured (#23) |
 | BL-22 | Draft submission material only | Public visibility and actual Devpost submission unverified; original deadline is not proof (#24) |
 | BL-23 | README/run guides, draft write-up and video shot list merged | Clean-clone host walkthrough and video saved in two locations unverified (#25) |
@@ -286,7 +286,7 @@ exact-head CI; the results above apply to that reviewed release.
 | BL-28 | Arm/enroll/capture/cancel/countdown/timeline engineering tests | Full two-phone arm/miss/text/ack loop unrun (#30) |
 | BL-29 | KAZE script/prize notes remain preparation material | Two rehearsals and actual Devpost KAZE selection unverified (#31) |
 | BL-30 | Unchanged original speech tests and persisted two-modality corroboration/lifecycle tests; #78 merged | Specified registry gate accepted; #32 closed |
-| BL-31 | Consent, score-free PSW/resident, one-retry and warm-close flows merged | Note attribution #92 and profile/capture fixes #100 merged and deployed; six canonical profiles ready, six unconfigured. Nontechnical tester/physical accessibility acceptance unrun (#33) |
+| BL-31 | Consent, score-free PSW/resident, one-retry and warm-close flows merged | Note attribution #92 and profile/capture fixes #100 merged and deployed; all twelve scripted profiles ready; two capture profiles unconfigured. Nontechnical tester/physical accessibility acceptance unrun (#33) |
 | BL-32 | Mock encounter segmentation, voiced-duration, strict request/stored consent and audio-cleanup tests | Consenting teammate-voiced fixture/real Vox UI acceptance unrun; no real EHR integration (#34) |
 | BL-33 | Preliminary DocumentReference shape/text/provenance tests and actual API-to-button preview | Specified export/preview gate accepted; #35 closed; no real sign-off queue/writeback claimed |
 | BL-34 | Main motion capture/provenance/RLS tests, real Chrome model startup/failure and phone-width layout | Physical chair-to-three-measurements in under15s unverified (#36); client-derived numbers remain unverified |
@@ -306,9 +306,12 @@ not evidence that an old build is running.
 
 The strict reset refused an unexpected real live recording inside a scripted identity and
 rolled back before deleting anything. Services were restored with that history preserved;
-no successful reset or under-one-minute timing is claimed. Separate capture identities have
-not yet been provisioned. Six canonical counting profiles are ready and six remain unconfigured;
-no additional setup or permission is implied. The presenter is confirmed, with a later caller
+no successful reset or under-one-minute timing is claimed. Public API readback after restart
+verified fourteen roster entries: twelve scripted residents and two separate capture identities.
+All twelve scripted counting profiles are ready; both capture profiles remain unconfigured.
+Idempotent profile seeding preserved existing choices and touched no permission decisions.
+The capture helper provisions nurse/importer access only, with no PSW grant or automatic
+standing permission/profile for the capture identities. The presenter is confirmed, with a later caller
 planned; genuine comparison requires each speaker's own five distinct rested recordings.
 The local scripted three-day presentation requires no personal enrollment. Physical phone/LTE,
 SMS recipient/two-phone confirmation, hosted latency and rehearsals remain outstanding.
