@@ -1,3 +1,4 @@
+import hashlib
 import json
 from uuid import uuid4
 
@@ -15,7 +16,8 @@ def clips(tmp_path, monkeypatch):
         path.write_bytes(f"independent-recording-{i}".encode())
     monkeypatch.setattr(enrollment, "normalize", lambda src, dst, **kw:
                         dst.write_bytes(b"normalized-" + src.read_bytes()))
-    monkeypatch.setattr(enrollment, "load_pcm", lambda path: np.zeros(16000 * 10))
+    monkeypatch.setattr(enrollment, "load_pcm", lambda path: np.full(
+        16000 * 10, int(path.stem.rsplit("-", 1)[1]) / 100, dtype=np.float32))
     return paths
 
 
@@ -40,6 +42,8 @@ def test_five_distinct_takes_use_existing_api_and_preserve_receipts(clips, tmp_p
         report = enrollment.enroll(client, uuid4(), clips, "dee-demo-phone", output)
     assert report["status"] == "five_usable_checks_stored"
     assert len(posts) == 5 and len(report["checks"]) == 5
+    assert [check["input_sha256"] for check in report["checks"]] == [
+        hashlib.sha256(path.read_bytes()).hexdigest() for path in clips]
     for request in posts:
         assert b'name="is_baseline"\r\n\r\ntrue' in request.content
         assert b'name="mode"\r\n\r\nrunner' in request.content
@@ -52,6 +56,70 @@ def test_duplicate_recording_never_becomes_five_checks(clips, tmp_path):
     with client_for(lambda request: pytest.fail("must not call API")) as client:
         with pytest.raises(enrollment.EnrollmentError, match="Duplicate audio"):
             enrollment.enroll(client, uuid4(), [clips[0]] * 5, "device", tmp_path / "receipt")
+
+
+def test_different_containers_with_identical_decoded_samples_never_upload(clips, tmp_path, monkeypatch):
+    monkeypatch.setattr(enrollment, "load_pcm", lambda path: np.full(16000 * 10, .125, dtype=np.float32))
+    calls = []
+
+    def handler(request):
+        calls.append((request.method, request.url.path))
+        assert request.method == "GET", "Duplicate decoded audio must not be uploaded"
+        return httpx.Response(200, json={"state": "granted"} if request.url.path.endswith("/consent") else {})
+
+    output = tmp_path / "receipt.json"
+    with client_for(handler) as client:
+        with pytest.raises(enrollment.EnrollmentError, match="Decoded recordings are duplicates"):
+            enrollment.enroll(client, uuid4(), clips, "device", output)
+    assert len(calls) == 2  # consent and authorized overview only
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("seconds", [5, 31])
+def test_decoded_duration_guard_precedes_upload(clips, tmp_path, monkeypatch, seconds):
+    monkeypatch.setattr(enrollment, "load_pcm", lambda path: np.zeros(16000 * seconds, dtype=np.float32))
+
+    def handler(request):
+        assert request.method == "GET"
+        return httpx.Response(200, json={"state": "granted"} if request.url.path.endswith("/consent") else {})
+
+    with client_for(handler) as client:
+        with pytest.raises(enrollment.EnrollmentError, match="6-30 seconds"):
+            enrollment.enroll(client, uuid4(), clips, "device", tmp_path / "receipt")
+
+
+def test_real_wav_metadata_cannot_make_identical_synthetic_audio_distinct(tmp_path):
+    import shutil
+    import struct
+    import wave
+
+    if not shutil.which("ffmpeg"):
+        pytest.skip("ffmpeg is not installed")
+    # Generated tone only: no microphone, personal recording, Whisper or network.
+    samples = (3000 * np.sin(2 * np.pi * 220 * np.arange(16000 * 6) / 16000)).astype("<i2")
+    clips = []
+    for index in range(5):
+        clip = tmp_path / f"synthetic-{index}.wav"
+        with wave.open(str(clip), "wb") as wav:
+            wav.setnchannels(1)
+            wav.setsampwidth(2)
+            wav.setframerate(16000)
+            wav.writeframes(samples.tobytes())
+        title = f"Synthetic export {index}".encode("ascii") + b"\0"
+        info = b"INFOINAM" + struct.pack("<I", len(title)) + title
+        if len(title) % 2:
+            info += b"\0"
+        raw = clip.read_bytes() + b"LIST" + struct.pack("<I", len(info)) + info
+        clip.write_bytes(raw[:4] + struct.pack("<I", len(raw) - 8) + raw[8:])
+        clips.append(clip)
+
+    def handler(request):
+        assert request.method == "GET", "Metadata-only variants must not become baseline uploads"
+        return httpx.Response(200, json={"state": "granted"} if request.url.path.endswith("/consent") else {})
+
+    with client_for(handler) as client:
+        with pytest.raises(enrollment.EnrollmentError, match="Decoded recordings are duplicates"):
+            enrollment.enroll(client, uuid4(), clips, "device", tmp_path / "receipt")
 
 
 @pytest.mark.parametrize("state", ["unknown", "withdrawn", "declined", "expired"])
