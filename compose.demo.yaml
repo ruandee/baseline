@@ -58,6 +58,18 @@ services:
       timeout: 10s
       retries: 40
       start_period: 120s
+  kaze-bootstrap:
+    <<: *demo
+    command: ["python", "-m", "scripts.hosted_demo", "kaze-bootstrap"]
+    profiles: ["setup"]
+    volumes: ["demo_artifacts:/app/artifacts"]
+  kaze-worker:
+    <<: *demo
+    restart: unless-stopped
+    environment:
+      <<: *environment
+      PM_ADMIN_DATABASE_URL: ""
+    command: ["python", "-m", "scripts.hosted_demo", "kaze-worker"]
   worker:
     <<: *demo
     restart: unless-stopped

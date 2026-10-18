@@ -34,15 +34,19 @@ def initialize(path: Path, hostname: str):
         stream.write("\n".join(lines) + "\n")
 
 
-def store_credentials(path: Path, credentials: dict):
+def store_credentials(path: Path, credentials: dict, *, kaze=False):
     if path.is_symlink() or not path.is_file():
         raise ValueError("Initialize a regular private environment file first")
     updates = {}
-    for role, variable in (("nurse", "PM_DEMO_TOKEN"), ("psw", "PM_DEMO_PSW_TOKEN")):
+    roles = (("kaze", "PM_DEMO_KAZE_TOKEN"),) if kaze else (
+        ("nurse", "PM_DEMO_TOKEN"), ("psw", "PM_DEMO_PSW_TOKEN"))
+    for role, variable in roles:
         token = credentials.get(role)
         if not isinstance(token, str) or not TOKEN.fullmatch(token):
             raise ValueError(f"Bootstrap did not supply a valid-shaped {role} token")
         updates[variable] = token
+    if kaze:
+        updates["PM_DEMO_KAZE_PATIENT_ID"] = str(UUID(credentials["kaze_patient_id"]))
     # Token signature/identity/expiry are verified by server startup, not by this file writer.
     lines, seen = [], set()
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -104,6 +108,7 @@ def main():
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("init").add_argument("hostname")
     commands.add_parser("credentials", help="Read bootstrap JSON on stdin; never print tokens")
+    commands.add_parser("kaze-credentials", help="Read private KAZE person credentials on stdin")
     commands.add_parser("runner-profile", help="Preserve UUID profiles and add the synthetic runner")
     args = parser.parse_args()
     try:
@@ -115,8 +120,8 @@ def main():
             payload = json.loads(sys.stdin.read(16 * 1024))
             if not isinstance(payload, dict):
                 raise ValueError("Bootstrap JSON must be an object")
-            store_credentials(args.env_file, payload)
-    except (OSError, ValueError, TypeError):
+            store_credentials(args.env_file, payload, kaze=args.command == "kaze-credentials")
+    except (OSError, ValueError, TypeError, KeyError, AttributeError):
         # Do not echo input, file contents, provider errors or bearer material.
         print("Configuration not written: check hostname, existing file and bootstrap format.",
               file=sys.stderr)

@@ -19,7 +19,11 @@ unset CREDENTIALS
 if [ "$MODE" = first ]; then
   "${C[@]}" run --rm -T load
 fi
-"${C[@]}" up -d --wait --wait-timeout 600 --force-recreate api worker caddy
+# Synthetic KAZE identities only: no consent, session, contact or outbound message is created.
+KAZE_CREDENTIALS=$("${C[@]}" run --rm -T kaze-bootstrap python -m scripts.hosted_demo kaze-bootstrap --json)
+printf '%s' "$KAZE_CREDENTIALS" | python3 -m scripts.prepare_deployment kaze-credentials
+unset KAZE_CREDENTIALS
+"${C[@]}" up -d --wait --wait-timeout 600 --force-recreate api worker kaze-worker caddy
 python3 - <<'PY'
 from pathlib import Path
 values = dict(line.split('=', 1) for line in Path('.env.demo').read_text().splitlines()

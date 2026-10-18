@@ -14,11 +14,15 @@ C=(docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml)
 CREDENTIALS=$("${C[@]}" run --rm -T -e PM_TOKEN_TTL_HOURS=48 bootstrap python -m scripts.hosted_demo bootstrap --json)
 printf '%s' "$CREDENTIALS" | python3 -m scripts.prepare_deployment credentials
 unset CREDENTIALS
+# Refresh the separate self-custody identity without granting consent or creating sessions.
+KAZE_CREDENTIALS=$("${C[@]}" run --rm -T -e PM_TOKEN_TTL_HOURS=48 kaze-bootstrap python -m scripts.hosted_demo kaze-bootstrap --json)
+printf '%s' "$KAZE_CREDENTIALS" | python3 -m scripts.prepare_deployment kaze-credentials
+unset KAZE_CREDENTIALS
 ARGS=()
 [ -z "${1:-}" ] || ARGS=(--demo-at "$1")
 # load supplies the admin setup role and ignored artifacts volume; no running worker races it.
 "${C[@]}" run --rm -T load python -m scripts.demo_reset "${ARGS[@]}"
-"${C[@]}" up -d --wait --wait-timeout 600 --force-recreate api worker caddy
+"${C[@]}" up -d --wait --wait-timeout 600 --force-recreate api worker kaze-worker caddy
 python3 - <<'PY'
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5

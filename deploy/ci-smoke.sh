@@ -32,6 +32,11 @@ TOKEN=$(jq -er .nurse <<<"$CREDENTIALS")
 PSW_TOKEN=$(jq -er .psw <<<"$CREDENTIALS")
 unset CREDENTIALS
 [ -n "$TOKEN" ] || fail "bootstrap printed no token"
+KAZE_CREDENTIALS=$("${C[@]}" run --rm -T kaze-bootstrap python -m scripts.hosted_demo kaze-bootstrap --json)
+printf '%s' "$KAZE_CREDENTIALS" | python3 -m scripts.prepare_deployment kaze-credentials
+KAZE_TOKEN=$(jq -er .kaze <<<"$KAZE_CREDENTIALS")
+KAZE_PID=$(jq -er .kaze_patient_id <<<"$KAZE_CREDENTIALS")
+unset KAZE_CREDENTIALS
 
 # Guards: each refusal must exit nonzero within 60 s AND name the reason on its output.
 refuse() {
@@ -83,6 +88,12 @@ else:
 [ "$(status -H "Authorization: Bearer $TOKEN" -H "Origin: $BASE" \
      "$BASE/v1/patients/00000000-0000-0000-0000-000000000000/overview")" = 404 ] \
   || fail "unassigned patient not 404"
+[ "$(status -H "Authorization: Bearer $TOKEN" "$BASE/v1/patients/$KAZE_PID/sessions")" = 404 ] \
+  || fail "resident tenant could read KAZE sessions"
+curl -fsSk -H "Authorization: Bearer $KAZE_TOKEN" "$BASE/v1/patients/$KAZE_PID/consent" \
+  | jq -e '.state == "unknown"' >/dev/null || fail "KAZE bootstrap silently granted consent"
+curl -fsSk -H "Authorization: Bearer $KAZE_TOKEN" "$BASE/v1/patients/$KAZE_PID/sessions" \
+  | jq -e '.sessions | length == 0' >/dev/null || fail "KAZE bootstrap armed a session"
 
 # BL-14 loader in the image: one-off admin step, then recreate api to pick up the roster.
 timeout 900 "${C[@]}" run --rm -T load
@@ -114,8 +125,10 @@ jq -e '.timings_ms.asr | numbers' "$TMP/check.json" >/dev/null || fail "upload d
 
 
 # The loader drains its own source jobs; start the long-running consumer afterwards.
-"${C[@]}" up -d --wait worker
+"${C[@]}" up -d --wait worker kaze-worker
 sleep 3
 [ -n "$("${C[@]}" ps --status running -q worker)" ] || fail "worker not running"
 if "${C[@]}" logs worker | grep -q Traceback; then fail "worker raised"; fi
+[ -n "$("${C[@]}" ps --status running -q kaze-worker)" ] || fail "KAZE worker not running"
+if "${C[@]}" logs kaze-worker | grep -q Traceback; then fail "KAZE worker raised"; fi
 echo "SMOKE OK"

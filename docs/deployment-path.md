@@ -66,6 +66,22 @@ an already running worker rather than racing an existing deployment. Refresh kee
 secret and existing data. Startup validates both seeded identities and fails if a nurse token is
 substituted for PSW. Never run these scripts with shell tracing enabled.
 
+It also provisions the separate fictional KAZE tenant and starts `kaze-worker` as that tenant's
+service principal. The KAZE person's token/ID are refreshed privately alongside nurse/PSW tokens;
+the service token is not exposed. This setup creates no contacts, sessions or consent decisions.
+For the fictional KAZE identities only, explicitly grant fixture consent before testing capture:
+
+```sh
+docker compose --env-file .env.demo -f compose.yaml -f compose.demo.yaml run --rm -T \
+  kaze-bootstrap python -m scripts.hosted_demo kaze-bootstrap --grant-fixture-consent
+```
+
+This grants only absent synthetic consent; reload never replaces a withdrawal or decline. It
+does not consent for a real person. Unknown consent blocks capture until a recorded decision is
+made. The pages still require their BL-28 integration. The default sender logs offline and sends
+no real SMS. Scheduling runs every 15 seconds and 24-hour session retention runs every 60 seconds
+between ingestion passes. Verify both `worker` and `kaze-worker` are running.
+
 ## First setup order
 
 1. Build the reviewed image.

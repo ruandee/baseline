@@ -192,9 +192,11 @@ BL-25 loud-venue follow-up scopes the specified 3 dB SNR tolerance to authorized
 context and adds the open-session quiet-place hint. All other quality gates remain unchanged;
 synthetic checks do not establish real venue or golden-recording acceptance.
 
-BL-21 reset (pending combined CI): one-command fixture-only reset translates copied scenario
-prefixes to one UTC anchor, verifies all twelve canonical outcomes and refreshes private
-48-hour nurse/PSW tokens. Separate live/runner patients preserve recordings; exact immutable
-fixture validation, scoped cleanup and resumable markers protect unrelated data and consent.
-The wrapper configures server-side runner suppression before services start. Hosted reset
-under one minute and phone/latency acceptance remain open (Refs #23 #22).
+Hosted KAZE integration (BL-26 / decision026) adds a separate runtime-role safety worker,
+explicit contact-free bootstrap and private safety-person credentials. Consent remains unknown
+unless explicitly granted for fixtures; existing withdrawals remain preserved. Public-phone and
+real-SMS acceptance remain open.
+
+BL-21 reset (pending combined CI): fixture-only current-time reset verifies all twelve
+canonical outcomes, preserves unrelated recordings/consent, refreshes private nurse/PSW/KAZE
+credentials and configures runner suppression. Hosted reset under one minute remains unverified.
