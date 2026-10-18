@@ -167,10 +167,23 @@ analysis cap; staff-containing temporary audio is always removed regardless of K
 Checks remain prompt-scoped; first-change marker uses the displayed prompt. Real speech/Vox
 UI remain unvalidated, and overview prompt switching stays on hold (decision016).
 
-BL-27 pending integration: fixed neutral SMS events are prepared atomically, durably claimed
-once, and delivered outside DB locks. Default sender logs redacted messages only; optional
-Twilio requires explicit allowlisted configuration. Public GET/POST acknowledgement uses hashed
-tokens and fresh after-lock expiry checks. No real SMS receipt or phone-link acceptance claimed;
-held ADR018 choices remain open (decision023).
+BL-19 resident integration (review branch): live authorized overview, four speech charts,
+clickable source evidence, server-labelled action handoff button, and structured engine
+parameters. Recorded temperature includes source/time (Mrs. K 37.1 Celsius); no absence or
+normal-range inference. The available stored SBAR mounts BL-33 exact preliminary export and
+local human-edited, unverified preview. API-captured cohort/DOM and lifecycle tests are added;
+DB-backed CI and real phone/host acceptance remain gates until their actual results.
 
-BL-26 dependency: session assessments bypass PCC budget/no-escalate flags; session explainers and escalation_enabled govern the KAZE ladder.
+BL-19 follow-up makes every check citation interactive with matching assessment/check identity
+and refreshed authorization. All reason, observation and SBAR citation buttons are exercised,
+including withheld readback after assessment change/revocation. Headless Chrome renders desktop
+and phone-width synthetic fixtures; this does not claim physical-phone or live-audio acceptance.
+
+BL-26 scheduler integration records the standard missed-check/speech-change ladder with
+serialized reset/acknowledgement/expiry and independent KAZE assessment/profile rules. Session
+checks do not consume the resident shift budget. Exact integrated CI and phone gates remain
+required; no live SMS is enabled by this scheduler-only branch.
+
+BL-27 adds token-scoped public acknowledgement and immutable delivery claims outside DB locks,
+with explicit logged/sent/failed/pending outcomes and migration008/009. Hosted external document
+navigation reaches only the public token capability; verified phone receipt remains open.
