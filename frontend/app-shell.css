@@ -255,3 +255,10 @@ body.care-app:has(.bl-motion[data-mode=resident]) .nav-foot { flex: 0 1 auto; ma
 .care-app .bl-demo-timeline [aria-current=step] { border: 0; }
 .care-app .bl-source-quote,.notes-app blockquote { border: 0; }
 .care-app .bl-check-card[data-mode=resident] .bl-prompt { border: 0; }
+/* Resident details: the decision table scrolls inside its panel on phones, and the draft-note
+   preview button matches the other secondary buttons instead of the browser default. */
+.care-app [data-workspace=resident-details] .bl-section .bl-table { display: block; overflow-x: auto; }
+.care-app .bl-note-export button { min-height: 48px; padding: 10px 16px; border: 1px solid #b6c4b7; border-radius: 4px; background: #fff; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.care-app .bl-note-export button:hover { background: var(--pale); }
+.care-app .bl-note-export button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.care-app .bl-note-export button:disabled { opacity: .55; cursor: default; }
