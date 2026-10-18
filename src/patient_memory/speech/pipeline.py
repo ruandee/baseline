@@ -13,7 +13,7 @@ from patient_memory.speech.features import timing_features
 from patient_memory.speech.prosody import f0_median_hz
 from patient_memory.speech.quality import MAX_CLIPPED, assess, clipping_fraction, snr_db
 
-# The prompt auto-stops at 15 s; anything much longer is not a check and would hold a worker in
+# Browser checks allow up to 30 s; anything longer is not a check and would hold a worker in
 # Whisper for minutes (2 MB of opus is about 16 minutes).
 MAX_DURATION_S = 30
 

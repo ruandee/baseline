@@ -121,9 +121,10 @@ and cited evidence. The model never decides a verdict, has no tools, and cannot 
   33 patients. We call the idea promising, not proven.
 - **Synthetic residents.** Every resident record in the repository and demo is fictional and
   labelled synthetic. No real patient data is used.
-- **The runner proves the pipeline, not the medicine.** A teammate's real voice during exertion
-  shows that the system measures physical change against a personal baseline; it says nothing
-  about delirium. [Keep only if the runner segment runs; BL-15 is on hold.]
+- **Live volunteer check-in.** Dee replaces the remote runner caller. An actual browser check is
+  compared with Dee's own rested baseline; its real result may be normal. Synthetic residents
+  demonstrate the change/context/verdict story separately. No exertion or breathlessness detection
+  is claimed (decision 030). [Claim the live segment only after successful enrollment/rehearsal.]
 - **Privacy.** Audio is deleted after processing unless a developer flag is set; the four
   measurements, the transcript and word timings are stored with the check. A real deployment would need consent and Canadian hosting.
 

@@ -87,3 +87,9 @@ PSW authorship requires that explicit principal; no PSW import capability is gra
 attribution retains exact legacy source serialization and remains unknown. The score-free due
 list returns `observation_helped: true` only for an exact own-note citation in a current eligible
 fresh escalation; all other cases return null and expose no clinical evidence or score.
+
+
+Decision032 adds no consent schema or expiry default: the assigned importer custodian in a
+safety-mode tenant may append only `scope=voice_check`, `decided_by=resident` decisions through
+the existing consent endpoint. Nurse/SDM and explicit synthetic-fixture authorization retain
+their existing scope. Session arm/end does not grant or withdraw standing voice permission.

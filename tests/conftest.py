@@ -5,6 +5,7 @@ import psycopg
 import pytest
 
 from patient_memory.auth import Identity
+from patient_memory.check_profiles import seed_english_profile
 from patient_memory.config import Settings
 from patient_memory.consent import grant_fixture_consent
 from patient_memory.objects import ObjectStore
@@ -53,6 +54,7 @@ def sandbox(db_clock_in_step):
                          (tenant, patient, actors[role], role))
         # Decision 017: checks need recorded consent. Granted deliberately for the fixture.
         grant_fixture_consent(conn, tenant, patient, actors["importer"])
+        seed_english_profile(conn, tenant, patient, actors["importer"])
     objects = ObjectStore(cfg)
     objects.initialize()
     return cfg, patient, {role: Identity(actor, tenant) for role, actor in actors.items()}, objects
