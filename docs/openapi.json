@@ -704,7 +704,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CheckResult"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/CheckResult"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CheckReceipt"
+                    }
+                  ],
+                  "title": "Response Create Check V1 Patients  Patient Id  Checks Post"
                 }
               }
             }
@@ -728,7 +736,7 @@
           "mock integrations"
         ],
         "summary": "MOCK Vox Advantage encounter (not a real PointClickCare/Vox integration)",
-        "description": "Mock adapter contract defined by this project (decision 016); no Vox API exists to us.\n\nAuthorization comes first (404 before anything else). Consent must be the literal\n`true`; otherwise the refusal is audited, nothing else is stored and the answer is 422\n`consent_required`. Only resident segments are analyzed, as `free-conversation-v1`.",
+        "description": "Mock adapter contract defined by this project (decision 016); no Vox API exists to us.\n\nAuthorization comes first (404 before anything else). Consent must be exactly one part\nwhose raw value is `true`; otherwise the refusal is audited, nothing else is stored and\nthe answer is 422 `consent_not_given` (distinct from stored-consent 403\n`consent_required`, BL-31). Only resident segments are analyzed, as free conversation.",
         "operationId": "vox_encounter_v1_integrations_vox_encounters_post",
         "requestBody": {
           "content": {
@@ -767,6 +775,198 @@
             "HTTPBearer": []
           }
         ]
+      }
+    },
+    "/v1/checks/due": {
+      "get": {
+        "summary": "Checks Due",
+        "operationId": "checks_due_v1_checks_due_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DueList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/patients/{patient_id}/checks/skips": {
+      "post": {
+        "summary": "Check Skip",
+        "operationId": "check_skip_v1_patients__patient_id__checks_skips_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkipInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkipReceipt"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/patients/{patient_id}/consent": {
+      "get": {
+        "summary": "Get Consent",
+        "operationId": "get_consent_v1_patients__patient_id__consent_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "voice_check",
+                "vox_encounter"
+              ],
+              "type": "string",
+              "default": "voice_check",
+              "title": "Scope"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/patients/{patient_id}/consents": {
+      "post": {
+        "summary": "Add Consent",
+        "operationId": "add_consent_v1_patients__patient_id__consents_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/watchlist": {
@@ -1255,7 +1455,8 @@
             "enum": [
               "importer",
               "nurse",
-              "patient"
+              "patient",
+              "psw"
             ],
             "title": "Role"
           },
@@ -1354,7 +1555,10 @@
           "consent": {
             "anyOf": [
               {
-                "type": "string"
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
@@ -1500,6 +1704,33 @@
           "reasons"
         ],
         "title": "CheckQuality"
+      },
+      "CheckReceipt": {
+        "properties": {
+          "check_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Check Id"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "usable": {
+            "type": "boolean",
+            "title": "Usable"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "check_id",
+          "ts",
+          "usable"
+        ],
+        "title": "CheckReceipt",
+        "description": "What a PSW gets back from POST /checks: no features, change, verdict or SBAR."
       },
       "CheckResult": {
         "properties": {
@@ -1700,6 +1931,150 @@
         ],
         "title": "Conflict"
       },
+      "ConsentInput": {
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "voice_check",
+              "vox_encounter"
+            ],
+            "title": "Scope",
+            "default": "voice_check"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "granted",
+              "declined",
+              "withdrawn"
+            ],
+            "title": "Status"
+          },
+          "decided_by": {
+            "type": "string",
+            "enum": [
+              "resident",
+              "substitute_decision_maker",
+              "synthetic_fixture"
+            ],
+            "title": "Decided By"
+          },
+          "sdm_reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sdm Reference"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "decided_by"
+        ],
+        "title": "ConsentInput",
+        "description": "Appends a consent row; the latest row wins and applies to the next check."
+      },
+      "ConsentView": {
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "voice_check",
+              "vox_encounter"
+            ],
+            "title": "Scope"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "granted",
+              "declined",
+              "withdrawn",
+              "expired",
+              "unknown"
+            ],
+            "title": "State"
+          },
+          "decided_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By"
+          },
+          "recorded_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded At"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "scope",
+          "state",
+          "decided_by",
+          "recorded_at",
+          "expires_at"
+        ],
+        "title": "ConsentView"
+      },
       "ContextInput": {
         "properties": {
           "kind": {
@@ -1862,6 +2237,95 @@
           "truncated"
         ],
         "title": "Coverage"
+      },
+      "DueList": {
+        "properties": {
+          "day_start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Day Start"
+          },
+          "residents": {
+            "items": {
+              "$ref": "#/components/schemas/DueResident"
+            },
+            "type": "array",
+            "title": "Residents"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "day_start",
+          "residents"
+        ],
+        "title": "DueList"
+      },
+      "DueResident": {
+        "properties": {
+          "patient_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Patient Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "due",
+              "done",
+              "skipped",
+              "consent_needed"
+            ],
+            "title": "Status"
+          },
+          "consent_state": {
+            "type": "string",
+            "enum": [
+              "granted",
+              "declined",
+              "withdrawn",
+              "expired",
+              "unknown"
+            ],
+            "title": "Consent State"
+          },
+          "last_check_ts": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Check Ts"
+          },
+          "skipped_today": {
+            "type": "boolean",
+            "title": "Skipped Today"
+          },
+          "observation_helped": {
+            "type": "null",
+            "title": "Observation Helped"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "patient_id",
+          "display_name",
+          "status",
+          "consent_state",
+          "last_check_ts",
+          "skipped_today"
+        ],
+        "title": "DueResident",
+        "description": "Deliberately score-free: no verdict, fused z, feature, sparkline or SBAR fields."
       },
       "Evidence": {
         "properties": {
@@ -2147,6 +2611,60 @@
           "value"
         ],
         "title": "Record"
+      },
+      "SkipInput": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "enum": [
+              "declined",
+              "asleep",
+              "unwell",
+              "not_available",
+              "other"
+            ],
+            "title": "Reason"
+          },
+          "device_ts": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Ts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "SkipInput"
+      },
+      "SkipReceipt": {
+        "properties": {
+          "skip_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Skip Id"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Recorded At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "skip_id",
+          "recorded_at"
+        ],
+        "title": "SkipReceipt"
       },
       "SourceInput": {
         "properties": {

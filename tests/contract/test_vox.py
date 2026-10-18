@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 
 from patient_memory.api import create_app
 from patient_memory.auth import synthetic_token
+from patient_memory.consent import grant_fixture_consent
 from patient_memory.integrations import vox
 from patient_memory.speech.vad import SAMPLE_RATE
 from tests.unit.synthetic_audio import encounter
@@ -26,6 +27,14 @@ pytestmark = pytest.mark.skipif(shutil.which("ffmpeg") is None and not os.enviro
 ROUTE = "/v1/integrations/vox/encounters"
 FIXTURE = json.loads((Path(__file__).resolve().parents[2] / "fixtures/synthetic/"
                       "vox_encounter_mrs_k.json").read_text(encoding="utf-8"))
+
+
+@pytest.fixture(autouse=True)
+def standing_vox_consent(sandbox):
+    cfg, pid, actors, _ = sandbox
+    with psycopg.connect(cfg.admin_database_url) as conn:
+        grant_fixture_consent(conn, actors["importer"].tenant_id, pid,
+                              actors["importer"].principal_id, "vox_encounter")
 
 
 def wav(segments):
@@ -144,6 +153,47 @@ def test_consent_is_refused_even_when_the_rest_of_the_request_is_malformed(sandb
     assert audits(sandbox) == [("vox_encounter", "consent_refused")]
 
 
+@pytest.mark.parametrize("state", ["unknown", "withdrawn", "expired"])
+def test_standing_consent_blocks_before_decode_even_with_request_consent(
+        sandbox, no_audio_work, state):
+    cfg, pid, actors, _ = sandbox
+    with psycopg.connect(cfg.admin_database_url) as conn:
+        if state == "unknown":
+            # Admin-only fixture setup: voice_check consent deliberately remains granted.
+            conn.execute("DELETE FROM resident_consents WHERE patient_id=%s AND scope='vox_encounter'",
+                         (pid,))
+        elif state == "expired":
+            conn.execute("UPDATE resident_consents SET recorded_at=now()-interval '2 hours',"
+                         "expires_at=now()-interval '1 hour' WHERE patient_id=%s "
+                         "AND scope='vox_encounter'", (pid,))
+        else:
+            conn.execute("INSERT INTO resident_consents(tenant_id,patient_id,id,scope,status,"
+                         "decided_by,recorded_by) VALUES(%s,%s,%s,'vox_encounter','withdrawn',"
+                         "'resident',%s)", (actors["nurse"].tenant_id, pid, uuid4(),
+                                            actors["nurse"].principal_id))
+    response = post(client_for(sandbox), pid, b"must not decode", consent="true")
+    assert response.status_code == 403 and response.json()["error"]["code"] == "consent_required"
+    assert checks(sandbox) == []
+    assert audits(sandbox) == [("check_blocked_consent", "denied")]
+
+
+def test_standing_withdrawal_during_analysis_prevents_publication(sandbox, fixture_audio):
+    def withdraw(audio):
+        cfg, pid, actors, _ = sandbox
+        with psycopg.connect(cfg.admin_database_url) as conn:
+            conn.execute("INSERT INTO resident_consents(tenant_id,patient_id,id,scope,status,"
+                         "decided_by,recorded_by) VALUES(%s,%s,%s,'vox_encounter','withdrawn',"
+                         "'resident',%s)", (actors["nurse"].tenant_id, pid, uuid4(),
+                                            actors["nurse"].principal_id))
+        return chatter(audio)
+    response = post(client_for(sandbox, transcriber=withdraw), sandbox[1], fixture_audio)
+    assert response.status_code == 403 and response.json()["error"]["code"] == "consent_required"
+    assert checks(sandbox) == []
+    assert admin_rows(sandbox, "SELECT count(*) FROM assessments WHERE patient_id=%s",
+                      sandbox[1]) == [(0,)]
+    assert audits(sandbox) == [("check_blocked_consent", "denied")]
+
+
 def other_tenant_patient(sandbox):
     tenant, patient = uuid4(), uuid4()
     with psycopg.connect(sandbox[0].admin_database_url) as admin:
@@ -166,7 +216,7 @@ def test_wrong_tenant_patient_or_role_is_404_before_any_audio_or_consent_work(
         sandbox, fixture_audio, no_audio_work, consent):
     targets = [("nurse", uuid4()), ("nurse", other_tenant_patient(sandbox)),
                ("nurse", unassigned_patient(sandbox)), ("patient", sandbox[1]),
-               ("admin", sandbox[1])]
+               ("admin", sandbox[1]), ("psw", sandbox[1])]
     for role, patient in targets:
         response = post(client_for(sandbox, role), patient, fixture_audio, consent=consent)
         assert response.status_code == 404, (role, response.text)
