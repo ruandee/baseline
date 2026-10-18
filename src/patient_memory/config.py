@@ -1,7 +1,10 @@
+import re
 from urllib.parse import urlparse
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+E164 = r"\+[1-9][0-9]{7,14}"
 
 
 class Settings(BaseSettings):
@@ -37,11 +40,20 @@ class Settings(BaseSettings):
     shift_timezone: str = "America/Toronto"
     # Comma-separated patient UUIDs that never escalate (the demo runner).
     no_escalate_patients: str = ""
+    # KAZE escalation texts (decision 023). "log" never sends; "twilio" needs every field below.
+    sms_provider: str = "log"
+    sms_allowed_recipients: str = ""  # comma-separated E.164 numbers Twilio may text
+    twilio_sid: str = ""
+    twilio_token: str = Field(default="", repr=False)
+    twilio_from: str = ""  # E.164 number or a Messaging Service SID (MG...)
+    ack_base_url: str = "http://127.0.0.1:8000"
+    ack_ttl_min: int = Field(default=360, ge=5, le=1440)
 
     @model_validator(mode="after")
     def safe_mode(self):
         if self.environment != "synthetic":
             raise ValueError("Only synthetic mode is supported until pilot decisions are approved")
+        self._check_sms()
         if self.provider not in {"stub", "compatible", "ollama"}:
             raise ValueError("Unknown model provider")
         if self.provider in {"compatible", "ollama"}:
@@ -51,6 +63,25 @@ class Settings(BaseSettings):
                     or url.query or url.fragment or (url.scheme != "https" and not (local and url.scheme == "http"))):
                 raise ValueError("Configure a model and HTTPS provider URL (HTTP allowed only for loopback)")
         return self
+
+    def _check_sms(self):
+        if self.sms_provider not in {"log", "twilio"}:
+            raise ValueError("Unknown SMS provider")
+        url = urlparse(self.ack_base_url)
+        local = url.hostname in {"127.0.0.1", "localhost", "::1"}
+        if (not url.hostname or url.username or url.password or url.query or url.fragment
+                or (url.scheme != "https" and not (local and url.scheme == "http"))):
+            raise ValueError("PM_ACK_BASE_URL must be HTTPS (HTTP allowed only for loopback)")
+        if self.sms_provider == "twilio":
+            recipients = [p.strip() for p in self.sms_allowed_recipients.split(",") if p.strip()]
+            if (not re.fullmatch(r"AC[0-9a-fA-F]{32}", self.twilio_sid) or not self.twilio_token
+                    or not (re.fullmatch(E164, self.twilio_from)
+                            or re.fullmatch(r"MG[0-9a-fA-F]{32}", self.twilio_from))):
+                raise ValueError("Twilio needs PM_TWILIO_SID, PM_TWILIO_TOKEN and PM_TWILIO_FROM")
+            if not recipients or not all(re.fullmatch(E164, p) for p in recipients):
+                raise ValueError("Twilio needs PM_SMS_ALLOWED_RECIPIENTS (approved E.164 numbers)")
+            if url.scheme != "https":
+                raise ValueError("Real texts need an HTTPS PM_ACK_BASE_URL a phone can open")
 
 
 def settings() -> Settings:
