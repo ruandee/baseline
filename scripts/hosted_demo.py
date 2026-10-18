@@ -59,8 +59,11 @@ def roster(cfg, reader):
         raise ValueError("No patients assigned to the seeded nurse: run migrate and bootstrap")
     captures = {uid(f"0/{mode}-capture"): mode for mode in ("live", "runner")}
     scripted = {uid(f"0/patient-{index}") for index in range(12)}
-    return [{"id": str(row["id"]), "name": row["external_id"], "reference": row["external_id"],
+    return [{"id": str(row["id"]), "name": cfg.demo_live_name
+             if captures.get(row["id"]) == "live" and cfg.demo_live_name else row["external_id"],
+             "reference": row["external_id"],
              "questions": [], "scripted_cohort": row["id"] in scripted,
+             "can_add_demo_context": row["id"] == uid("0/patient-2"),
              "capture_mode": captures.get(row["id"])} for row in rows]
 
 

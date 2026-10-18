@@ -3,7 +3,7 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const {loadPage, until, tick} = require('./harness');
 const q = (p, s) => p.main.querySelector(s);
-const url = '/check?demo=handoff&resident=runner#room=room1&key=runner-key';
+const url = '/check?demo=archived-handoff&resident=runner#room=room1&key=runner-key';
 function exit(page) { page.window.listeners.pagehide.forEach(fn => fn()); }
 async function record(page) {
   q(page, '.bl-handoff-record').click();
@@ -76,7 +76,7 @@ test('nurse receives runner and must explicitly apply context to explain it', as
   const data = () => ({revision, exertion: revision === 2, capture_keys: {runner: 'r', resident: 'd'},
     checks: [{resident: 'runner', take: 1, received_at: '2026-10-18T03:00:00Z',
       verdict: revision === 2 ? 'explained' : 'watch'}]});
-  const page = loadPage('/unit?demo=handoff#room=room1&key=nurse-key', {routes: {
+  const page = loadPage('/unit?demo=archived-handoff#room=room1&key=nurse-key', {routes: {
     'GET /demo/handoff/room1': data,
     'POST /demo/handoff/room1/context': () => { revision = 2; return data(); },
   }});
@@ -95,7 +95,7 @@ test('nurse receives runner and must explicitly apply context to explain it', as
 test('nurse screen says Reconnecting on a dropped network and recovers, without phone wording', async () => {
   const data = {revision: 1, exertion: false, capture_keys: {runner: 'r', resident: 'd'},
     checks: [{resident: 'runner', take: 1, received_at: '2026-10-18T03:00:00Z', verdict: 'watch'}]};
-  const page = loadPage('/unit?demo=handoff#room=room1&key=nurse-key', {routes: {
+  const page = loadPage('/unit?demo=archived-handoff#room=room1&key=nurse-key', {routes: {
     'GET /demo/handoff/room1': () => data,
     'POST /demo/handoff/room1/context': () => data,
   }});
@@ -115,7 +115,7 @@ test('nurse screen says Reconnecting on a dropped network and recovers, without 
 });
 
 test('expired nurse room removes stale findings and offers fresh setup', async () => {
-  const page = loadPage('/unit?demo=handoff#room=gone&key=old', {routes: {}});
+  const page = loadPage('/unit?demo=archived-handoff#room=gone&key=old', {routes: {}});
   await until(() => page.main.textContent.includes('Start a new demo room'));
   assert(!page.main.textContent.includes('Run 4AT now'));
   assert.equal(page.calls.length, 1);

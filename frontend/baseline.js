@@ -107,13 +107,14 @@ function unitRow(resident) {
   const row = document.createElement('tr');
   row.setAttribute('data-verdict', resident.latest_verdict || 'unknown');
   const name = document.createElement('td');
-  const link = el('a', resident.display_name, {href: `/resident/${resident.patient_id}`,
+  const displayName = unitCapture(resident)?.name || resident.display_name;
+  const link = el('a', displayName, {href: `/resident/${resident.patient_id}`,
                                                class: 'bl-name',
-                                               'aria-label': `Open details for ${resident.display_name}`});
+                                               'aria-label': `Open details for ${displayName}`});
   name.append(link);
   if (resident.synthetic) name.append(' ', el('span', 'synthetic', {class: 'bl-synthetic', hidden: ''}));
   const capture = unitCapture(resident);
-  if (capture) name.append(el('span', `${capture.capture_mode} capture identity`,
+  if (capture) name.append(el('span', capture.capture_mode === 'live' ? 'Live volunteer' : 'Runner capture identity',
                               {class: 'unit-identity-label'}));
   let column = 1;
   const cell = (...children) => {
@@ -145,7 +146,11 @@ function unitPriorityCard(resident) {
   const card = el('article', '', {class: 'unit-priority-card',
     'data-priority': resident.patient_id, 'data-verdict': resident.latest_verdict});
   const heading = el('div', '', {class: 'unit-card-heading'});
-  heading.append(el('h3', resident.display_name), unitVerdict(resident));
+  const displayName = unitCapture(resident)?.name || resident.display_name;
+  heading.append(el('h3', displayName), unitVerdict(resident));
+  if (unitCapture(resident)?.capture_mode === 'live') {
+    heading.append(el('span', 'Live volunteer', {class: 'unit-identity-label'}));
+  }
   const description = {
     escalate: resident.over_budget
       ? 'Flagged for review; the shift interruption budget has been reached.'
@@ -158,7 +163,7 @@ function unitPriorityCard(resident) {
   meta.append(el('span', `Last check · ${formatTime(resident.last_check_ts)}`));
   if (resident.watch_window && resident.watch_window.open) meta.append(windowChip(resident.watch_window));
   card.append(meta, el('a', 'Open resident →', {href: `/resident/${encodeURIComponent(resident.patient_id)}`,
-    class: 'unit-open', 'aria-label': `Open ${resident.display_name}: assessment and source records`}),
+    class: 'unit-open', 'aria-label': `Open ${displayName}: assessment and source records`}),
   el('p', 'Measurements, context and source records inside', {class: 'unit-card-footnote'}));
   return card;
 }
@@ -181,7 +186,7 @@ function renderUnitData(body, data) {
   const matches = data.residents.filter((resident) => {
     const person = ((state.session && state.session.patients) || [])
       .find((entry) => entry.id === resident.patient_id);
-    return `${resident.display_name || ''} ${(person && person.reference) || ''}`
+    return `${resident.display_name || ''} ${person?.name || ''} ${(person && person.reference) || ''}`
       .toLocaleLowerCase().includes(query);
   });
   const rows = body.querySelector('tbody');
@@ -191,7 +196,7 @@ function renderUnitData(body, data) {
   const searchStatus = body.querySelector('[data-unit=search-status]');
   const searchText = query ? `${matches.length} of ${data.residents.length} visible people match. Unit totals are unchanged.` : '';
   if (searchStatus.textContent !== searchText) searchStatus.textContent = searchText;
-  const roster = data.residents.filter((resident) => !unitCapture(resident));
+  const roster = data.residents.filter((resident) => unitCapture(resident)?.capture_mode !== 'runner');
   const allPriority = roster.filter((resident) => ['escalate', 'watch', 'explained'].includes(resident.latest_verdict));
   const matchingIds = new Set(matches.map((resident) => resident.patient_id));
   const priority = allPriority.filter((resident) => matchingIds.has(resident.patient_id));
@@ -205,13 +210,13 @@ function renderUnitData(body, data) {
     : roster.length ? 'No review flags in the current response' : 'No roster residents in the current response';
   body.querySelector('[data-unit=incomplete]').textContent = incomplete.length
     ? `${incomplete.length} residents have an unavailable assessment or are still enrolling. This is not a normal finding.` : '';
-  const captures = matches.filter(unitCapture);
+  const captures = matches.filter((resident) => unitCapture(resident)?.capture_mode === 'runner');
   const captureList = body.querySelector('[data-unit=capture-list]');
   captureList.replaceChildren(...captures.map((resident) => {
     const item = el('li', '', {class: 'unit-capture-item', 'data-capture': resident.patient_id});
     const label = unitCapture(resident).capture_mode === 'runner' ? 'Runner capture' : 'Live voice capture';
     item.append(el('div', label, {class: 'unit-capture-kind'}),
-      el('a', resident.display_name, {href: `/resident/${encodeURIComponent(resident.patient_id)}`}),
+      el('a', unitCapture(resident).name || resident.display_name, {href: `/resident/${encodeURIComponent(resident.patient_id)}`}),
       unitVerdict(resident), el('span', `Last check · ${formatTime(resident.last_check_ts)}`));
     return item;
   }));
@@ -230,7 +235,19 @@ function renderUnitData(body, data) {
   body.querySelector('[data-unit=count-total]').textContent = String(data.residents.length);
 }
 
+function personalDemoDisclosure() {
+  const disclosure = document.getElementById('nav-disclosure');
+  if (!disclosure) return;
+  const summary = disclosure.querySelector('summary');
+  const description = disclosure.querySelector('div');
+  if (!summary || !description) return;
+  summary.textContent = 'Live volunteer demo';
+  description.textContent = 'Volunteer check-ins use real voice analysis and report when a personal baseline is unavailable. Other residents and records are fictional. Research prototype; no clinical validation.';
+}
+
 async function renderUnit(main) {
+  const pollMs = (state.session?.patients || []).some((p) => p.capture_mode === 'live') ? 2000 : POLL_MS;
+  if (new URLSearchParams(location.search).get('demo') === 'personal') personalDemoDisclosure();
   if (state.unitStop) state.unitStop();
   main.replaceChildren();
   const body = document.createElement('section');
@@ -272,7 +289,7 @@ async function renderUnit(main) {
        {class: 'unit-roster-note'}), table);
   const captures = el('section', '', {'data-unit': 'captures', class: 'unit-captures', hidden: ''});
   captures.append(el('h2', 'Separate capture identities'),
-    el('p', 'Live and runner recording identities are shown separately from the resident roster. Their assessments are not scripted cohort cases.'),
+    el('p', 'Runner recording identities are shown separately. Live volunteers appear in the unit roster with their measured results; they are not scripted cohort cases.'),
     el('ul', '', {'data-unit': 'capture-list'}));
   const retry = el('button', 'Refresh overview', {type: 'button', class: 'unit-refresh', 'data-unit': 'retry'});
   const updates = el('div', '', {class: 'unit-update-bar'});
@@ -327,7 +344,7 @@ async function renderUnit(main) {
       renderUnitData(body, data);
       loaded = true;
       notice.hidden = true;
-      freshness.textContent = `Updated ${new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} · refreshes every 10 seconds while visible`;
+      freshness.textContent = `Updated ${new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} · refreshes every ${pollMs / 1000} seconds while visible`;
     } catch (error) {
       if (stopped) return;
       if ([401, 403, 404].includes(error.status)) {
@@ -367,7 +384,7 @@ async function renderUnit(main) {
     stopTimer();
     if (document.visibilityState === 'visible') {
       refresh();
-      timer = setInterval(refresh, POLL_MS);
+      timer = setInterval(refresh, pollMs);
     }
   }
   document.addEventListener('visibilitychange', onVisibility);
@@ -378,7 +395,7 @@ async function renderUnit(main) {
   };
   retry.addEventListener('click', refresh);
   refresh();  // load once even if the tab opened in the background
-  if (document.visibilityState === 'visible') timer = setInterval(refresh, POLL_MS);
+  if (document.visibilityState === 'visible') timer = setInterval(refresh, pollMs);
 }
 
 async function renderPage(current, renderer) {
@@ -401,8 +418,22 @@ async function render() {
   const current = route();
   document.title = `${current.title} | Baseline`;
   const demo = location.search ? new URLSearchParams(location.search).get('demo') : null;
+  if (['handoff', 'days', 'legacy-days'].includes(demo) && ['unit', 'check'].includes(current.name)) {
+    location.replace(current.name === 'unit' ? '/unit?demo=personal' : '/check?mode=resident&demo=personal');
+    return;
+  }
+  const query = new URLSearchParams(location.search);
+  if (current.name === 'check' && demo === 'personal' && query.get('mode') === 'live'
+      && query.get('enroll') !== '1') {
+    const target = new URLSearchParams({mode: 'resident', demo: 'personal'});
+    for (const key of ['patient', 'device', 'mock', 'lang']) {
+      if (query.has(key)) target.set(key, query.get(key));
+    }
+    location.replace(`/check?${target}`);
+    return;
+  }
   const handoff = (current.name === 'unit' || current.name === 'check')
-    && (demo === 'handoff' || demo === 'days');
+    && demo === 'archived-handoff';
   // The handoff room carries its own "Demo scenario" disclosure; show only one.
   const navDisclosure = document.getElementById('nav-disclosure');
   if (navDisclosure) navDisclosure.hidden = handoff;
@@ -416,7 +447,7 @@ async function render() {
     return;
   }
   if (current.name === 'unit') {
-    await renderPage(current, renderUnit);
+    await renderPage(current, demo === 'personal' ? window.renderPersonalDemo : renderUnit);
     return;
   }
   if (current.name === 'check') {
@@ -425,7 +456,7 @@ async function render() {
       await renderPage(current, (main) => window.renderNurseChecks(main, {api, el, session: state.session}));
       return;
     }
-    if (query.get('mode') === 'live' && query.get('demo') === 'legacy-days') {
+    if (query.get('mode') === 'live' && query.get('demo') === 'archived-days') {
       // Public fictional presentation only: no session bootstrap, retrieval or API writes.
       window.renderDemoDays(document.getElementById('bl-main'), {el, chip, maxSeconds: CHECK_MAX_S});
       return;
@@ -454,7 +485,9 @@ async function render() {
       const mock = new URLSearchParams(location.search).get('mock') === '1';
       if (!mock) await bootstrap();
       await window.renderResident(main, current.id,
-        {api, el, svgEl, chip, formatTime, VERDICT_LABELS, mock});
+        {api, el, svgEl, chip, formatTime, VERDICT_LABELS, mock,
+          demoContext: state.session?.patients?.some((p) => p.id === current.id && p.can_add_demo_context === true),
+          displayName: state.session?.patients?.find((p) => p.id === current.id && p.capture_mode)?.name});
     } catch (error) {
       main.replaceChildren(el('h1', current.title),
         el('div', `API check failed: ${error.message}`, {class: 'bl-status', 'data-state': 'error'}));

@@ -1,5 +1,72 @@
 # Implementation status and remaining gates
 
+Latest runtime: `f9adf9d` (2026-10-18). Existing scenario records are renamed Alina, Danny and
+Yuhan, preserving their UUIDs, assignments, captured measurements and assessments. Given names
+are explicitly updated without changing language preferences. The Yuhan context panel remains
+bound to the same authorized record; current template headings use the current display name.
+Hosted readiness and unchanged-recording/assessment fingerprints passed; CI was not awaited.
+
+The user requested rolling back the latest care-aide demo check after an eligible Escalate was
+shown as Watch. Inspection found the correct baseline/device and a qualifying repeated change,
+but the initial private no-escalate setting converted its verdict to Watch. Only that latest
+check/assessment/profile sidecar was recoverably archived, retaining five usable baseline takes,
+the prior Watch check, permission and counting profile. The live volunteer was then removed
+from the private no-escalate list at the user's request, preserving other configured identities.
+The running API verified this configuration and the unchanged rule can return Escalate for
+qualifying repeated change. No score or threshold was changed. The current row intentionally
+shows the earlier Watch; a new physical check is still required to observe the next verdict.
+
+Earlier runtime: `839f042` (2026-10-18), adding vertical field layout and spacing to the BL-19
+Mrs. L context form. Labels sit above full-width controls, the confirmation has its own row,
+and the save action sits below it. The deployed expanded form was visually checked in Chrome;
+hosted readiness passed. CI was not awaited as requested. This is a CSS-only follow-up to
+`4bcc848`, adding BL-19 Mrs. L context to the phone-to-unit demo.
+Mrs. L's resident page exposes Add context / possible explanation, confirmed observation entry,
+and Save context and reassess. A hosted endpoint restricts this operation to the canonical nurse
+and authored Mrs. L record. Existing importer service scope publishes source-backed structured
+context and appends a genuine reassessment of the same synthetic check, preserving its ID,
+event time and measurements. No nurse credential gains a broader role and no verdict is forced.
+See decision039 for delegation, idempotency, temporal and source-lifecycle behavior. Three focused
+frontend scenarios and two authorization checks passed, as did lint. A real runtime-role database
+publication/reassessment check produced Explained and rolled back all DB writes using an
+in-memory object sink; Mrs. L remained Watch for the user to exercise. Hosted readiness and
+recording-preservation checks passed. Full CI was not awaited, per the user's priority.
+
+Earlier runtime: `38fbee2` (2026-10-18), BL-15 phone-to-unit follow-up. The existing live volunteer
+is persisted under the requested name and included in ordinary Unit priority/counts, with a
+live-volunteer label and the actual verdict. Five usable baseline captures are verified on the
+same device and prompt. The user confirmed phone capture and nurse Watch readback. At the user's
+request the intentional rehearsal was first archived reversibly, then restored with original
+capture/assessment IDs and timestamps for the Unit demonstration. No score is forced.
+The phone uses `/check?mode=resident&demo=personal`: the existing score-free care-aide flow,
+fresh demo repeats, and the original baseline device key. The PSW is assigned only to this
+volunteer and remains unable to read verdicts or mutate profile/consent. Voice checks links to
+the scoped care-aide recorder; previous personal phone links redirect there. Unit refreshes every
+two seconds while visible when a live volunteer is assigned. Baseline management uses explicit
+`enroll=1`. Header demo links remain absent. Offline frontend checks and Ruff passed before the
+user requested immediate rollout without waiting for full CI. Hosted readiness, exact changed
+assets, persisted Unit name/Watch verdict, care-aide profile/consent readiness and denial of PSW
+watchlist access were verified after deployment. Stored capture fingerprints were preserved
+through the API-only rollout. A fresh physical recording through this new care-aide link remains
+to be confirmed. PR127 remains draft for that final rehearsal; full CI was not awaited.
+
+BL-15 personal-phone replacement is deployed (decision038): `/unit?demo=personal`
+shows the actual volunteer assessment and provides its phone link. The phone has explicit rested
+baseline/check-in modes and repeated genuine recording. Nurse readback polls every two seconds
+while visible. Demo links are removed from website headers; old entry URLs redirect to this flow.
+An optional private display alias labels the existing live volunteer without changing identity.
+No scoring or temporal override is introduced. Release `0c94d3f` was deployed on 2026-10-18 at
+13:56 UTC after CI passed Ruff, 691 unit tests (five optional tests deselected), 384 service-backed
+tests, stub evaluation and image smoke. All 180 JavaScript scenarios and 36 public rollout checks
+passed. The API is healthy; stored voice-check counts/identity fingerprints and volumes were
+preserved. Private hosting configuration labels the existing live identity and disables external
+escalation for it, retaining all previous no-escalate identities and disabled audio retention.
+This builds on Danny's overnight polish in `4bf714c`, merged and deployed at 13:06 UTC.
+At that initial rollout, real baseline takes and physical-phone/nurse rehearsal were pending;
+the follow-up status above supersedes that gate. The hosted live capture identity had an unconfigured
+profile, unknown consent and zero baseline checks at rollout. No recording or permission write
+was performed by the implementation agent.
+
 Frontend redesign is deployed, including Unit resident search. All seven areas/fifteen screen
 types have an implementation and screenshot pass. The initial deployed source `20be74b` passed
 backend/image CI and twelve public HTTPS checks; stored recording identifiers/counts were
@@ -7,13 +74,14 @@ preserved. See [the deployment record](frontend-release-2026-10-18.md),
 [screen inventory](frontend-redesign.md) and tracker #38 for current release evidence and
 unverified physical/usability gates. Follow-up visual polish removes decorative dividers.
 
-BL-17 replacement (decision036): `/unit?demo=handoff` hosts a two-resident presentation room.
+Archived BL-17 presentation (decision036): `/unit?demo=archived-handoff` hosts a two-resident room.
 Separate phone links record locally and submit only a duration/idempotency receipt. The runner
 arrives as Watch; nurse-added exertion context changes it to Explained. Dee's first/second
 submissions show Watch/Escalate. Findings/baselines are authored and disclosed as a demo scenario.
 Rooms are isolated from clinical history, expire in two hours, and require the single-process
-host. Old `demo=days` links enter the replacement; `demo=legacy-days` retains the old local mode.
-This supersedes the selected presentation in decision034, not genuine engine or consent rules.
+host. Decision038 replaces the selected presentation: `demo=handoff`, `demo=days` and
+`demo=legacy-days` now redirect to the genuine personal flow. The older local mode is explicitly
+archived as `demo=archived-days`. Genuine engine and consent rules remain authoritative.
 Verified deployment checkpoint: merged release `204f545` on 2026-10-18 UTC. CI passed 659 unit
 and 383 database-backed tests (five optional slow tests deselected), Ruff, synthetic stub eval
 and image smoke. Public HTTPS checks verified release assets, readiness, authorized watchlist,

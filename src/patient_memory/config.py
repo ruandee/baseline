@@ -10,6 +10,8 @@ E164 = r"\+[1-9][0-9]{7,14}"
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="PM_", env_file=".env", extra="ignore")
     environment: str = "synthetic"
+    demo_live_name: str | None = Field(default=None, min_length=1, max_length=80,
+                                       pattern=r"^\S(?:[^\r\n]*\S)?$")
     database_url: str = "postgresql://pm_runtime:synthetic-runtime@127.0.0.1:55432/patient_memory?connect_timeout=5"
     admin_database_url: str = "postgresql://postgres:synthetic-admin@127.0.0.1:55432/patient_memory?connect_timeout=5"
     jwt_secret: str = "synthetic-local-only-change-before-any-deployment"

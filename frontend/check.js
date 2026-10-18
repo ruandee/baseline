@@ -29,6 +29,8 @@ function checkParams() {
   const mode = CHECK_MODES.includes(q.get('mode')) ? q.get('mode')
     : q.get('type') === 'motion' ? 'live' : 'resident';
   return {mode, patient: q.get('patient'), mock: q.get('mock') === '1',
+          personalDemo: q.get('demo') === 'personal' && mode === 'live',
+          careAideDemo: q.get('demo') === 'personal' && mode === 'resident',
           fixture: q.get('fixture') || 'change', lang: q.get('lang'),
           device: q.get('device')};
 }
@@ -50,10 +52,11 @@ function checkDeviceId(params, storage = () => window.localStorage) {
   if (params.mode === 'runner') return 'runner-phone';
   try {
     const store = storage();
-    const key = `${DEVICE_KEY}-${params.mode}`;
+    const deviceMode = params.careAideDemo ? 'live' : params.mode;
+    const key = `${DEVICE_KEY}-${deviceMode}`;
     let id = clean(store.getItem(key));
     if (!id) {
-      id = `${params.mode}-device-${Math.random().toString(36).slice(2, 12)}`;
+      id = `${deviceMode}-device-${Math.random().toString(36).slice(2, 12)}`;
       store.setItem(key, id);
     }
     return id;
@@ -255,10 +258,22 @@ function renderResult(host, result, blob) {
 async function renderCheck(main) {
   const params = checkParams();
   if (params.mode === 'resident') {  // BL-31 resident and PSW experience, check-resident.js
+    if (params.careAideDemo) {
+      const person = (state.session.patients || []).find((p) => p.capture_mode === 'live'
+        && p.scripted_cohort !== true && (!params.patient || p.id === params.patient));
+      if (!person || params.mock) {
+        main.replaceChildren(el('h1', 'Voice check unavailable'),
+          el('p', 'Choose the assigned live volunteer. This flow requires a real recording.'));
+        return;
+      }
+      params.patient = person.id;
+      personalDemoDisclosure();
+    }
     if (params.patient) return renderResidentCheck(main, params, params.patient);
     return renderResidentLanding(main, params);
   }
   const patientId = checkPatientId(params, state.session.patients || []);
+  const person = (state.session.patients || []).find((p) => p.id === patientId);
   main.replaceChildren();
   const card = el('section', '', {class: 'bl-check-card'});
   const prompt = el('p', CHECK_PROMPT, {class: 'bl-prompt'});
@@ -273,6 +288,38 @@ async function renderCheck(main) {
   baselineLabel.hidden = !(params.mode === 'runner' && new Date().getDay() === 6);
   card.append(el(new URLSearchParams(location.search).get('from') === 'nurse' ? 'h2' : 'h1', 'Voice check'), prompt, button, countdown, status, retry, baselineLabel);
   main.append(card, result);
+
+  // Genuine uploads for the dedicated volunteer identity; never use a scripted resident.
+  let demoBaseline, demoChecks, demoProgress, savedBaselines = 0;
+  if (params.personalDemo) {
+    if (params.mock || person?.capture_mode !== 'live' || person.scripted_cohort === true) {
+      button.disabled = true;
+      status.hidden = false;
+      status.textContent = 'Select the dedicated live volunteer identity in the nurse workspace. Personal demos require real uploads; mock mode is unavailable.';
+      return;
+    }
+    personalDemoDisclosure();
+    const demo = el('section', '', {class: 'workspace-panel', 'aria-label': 'Personal voice demo'});
+    demoBaseline = el('button', 'Enroll rested baseline', {type: 'button', class: 'workspace-secondary'});
+    demoChecks = el('button', 'Start check-ins', {type: 'button', class: 'workspace-secondary'});
+    demoProgress = el('p', 'Check-in mode. Results are measured from your recording.', {role: 'status'});
+    const choose = (baseline) => {
+      baselineBox.checked = baseline;
+      demoBaseline.setAttribute('aria-pressed', String(baseline));
+      demoChecks.setAttribute('aria-pressed', String(!baseline));
+      demoProgress.textContent = baseline
+        ? 'Baseline mode: record five separate rested takes, then tap Start check-ins. Use this phone for every take.'
+        : 'Check-in mode. Each new recording uses your own prior baseline; a normal result is valid.';
+    };
+    demoBaseline.addEventListener('click', () => choose(true));
+    demoChecks.addEventListener('click', () => choose(false));
+    choose(false);
+    demo.append(el('h2', 'Your personal voice demo'),
+      el('p', 'Real recordings and real measurements. Each saved check remains in this volunteer history.'),
+      demoBaseline, demoChecks, demoProgress,
+      el('a', 'Open nurse overview on the other screen', {href: '/unit?demo=personal'}));
+    main.prepend(demo);
+  }
 
   const resident = params.mode === 'resident';
   // Residents never see technical errors (docs/06-baseline.md, BL-31); the detail goes to the console.
@@ -295,6 +342,10 @@ async function renderCheck(main) {
   let lastBlob = null;
   let setup = null, captureProfile = null, capturePending = false, discard = false, disposed = false, sending = false;
   let captureMutationEpoch = null;
+  let capturedBaseline = false;
+  const lockDemo = (locked) => {
+    if (demoBaseline) { demoBaseline.disabled = locked; demoChecks.disabled = locked; }
+  };
   window.addEventListener('pagehide', () => {
     disposed = true; discard = true;
     if (setup) setup.dispose();
@@ -328,13 +379,14 @@ async function renderCheck(main) {
     const admittedMutationEpoch = captureMutationEpoch;
     const fields = {patient_id: patientId, mode: params.mode, device_id: checkDeviceId(params),
                     device_ts: new Date().toISOString(),
-                    is_baseline: baselineBox.checked ? 'true' : 'false',
+                    is_baseline: capturedBaseline ? 'true' : 'false',
                     ...(captureProfile ? {profile_version: captureProfile.version,
                                           protocol_locale: captureProfile.protocol_locale} : {})};
     try {
       const data = params.mock
         ? await mockCheck(params.fixture)
-        : await uploadCheck(blob, fields, (s) => { if (!disposed) setStatus(s); }, {send: async (audio, values) => {
+        : await uploadCheck(blob, fields, (s) => { if (!disposed) setStatus(s); }, {
+          ...(params.personalDemo ? {delays: []} : {}), send: async (audio, values) => {
           if (disposed) { const error = new Error('Capture ended.'); error.status = 409; throw error; }
           if (setup && (setup.mutationEpoch !== admittedMutationEpoch
               || !await setup.refresh() || !setup.ready || disposed
@@ -346,6 +398,16 @@ async function renderCheck(main) {
           return postCheck(audio, values);
         }});
       if (disposed) return;
+      if (params.personalDemo) {
+        lastBlob = null;
+        if (capturedBaseline && data.usable) savedBaselines++;
+        demoProgress.textContent = capturedBaseline
+          ? `${savedBaselines} usable rested takes saved this visit. Record five distinct takes in total, then tap Start check-ins.`
+          : data.usable
+            ? 'Check saved. The nurse overview refreshes every two seconds after processing finishes.'
+            : 'Recording saved but unusable. Record a fresh check; this clip does not produce an assessment.';
+        button.textContent = capturedBaseline ? 'Record next rested take' : 'Record another demo check';
+      }
       setStatus(resident ? '' : params.mock ? 'Sent (mock)' : 'Sent', 'ok');
       if (params.mode === 'live') renderResult(result, data, blob);
       else result.replaceChildren(el('p', data.usable ? 'Thank you.' : 'Please tap Record to try again.',
@@ -353,12 +415,15 @@ async function renderCheck(main) {
     } catch (error) {
       if (disposed) return;
       const blocked = error.status === 403 || error.status === 409;
-      failure(blocked ? 'Recording discarded. Check permission and counting setup, then record a new check.'
+      failure(params.personalDemo && !blocked
+        ? 'No successful receipt. Check the nurse history before recording again; the server may have saved this check. This demo does not resend recordings.'
+        : blocked ? 'Recording discarded. Check permission and counting setup, then record a new check.'
         : `Could not send the recording (${error.message}). It is kept here; tap Try again.`, error);
-      retry.hidden = blocked;
+      retry.hidden = blocked || params.personalDemo;
       if (retry.hidden) lastBlob = null;
     } finally {
       sending = false;
+      lockDemo(disposed);
       button.disabled = disposed || (setup ? !setup.ready : false);
     }
   }
@@ -372,7 +437,7 @@ async function renderCheck(main) {
   button.addEventListener('click', async () => {
     if (disposed) return;
     if (recorder && recorder.state === 'recording') { stop(); return; }
-    if (capturePending) return;
+    if (capturePending || sending) return;
     const mimeType = pickMimeType();
     if (mimeType === null || !navigator.mediaDevices) {
       failure('This browser cannot record audio. Use HTTPS and a current browser.');
@@ -381,6 +446,8 @@ async function renderCheck(main) {
     let admittedGeneration;
     try {
       capturePending = true;
+      lockDemo(true);
+      capturedBaseline = baselineBox.checked;
       button.disabled = true;
       if (setup) {
         const ready = await setup.refresh();
@@ -395,13 +462,17 @@ async function renderCheck(main) {
       if (disposed) return;
       failure('Microphone access was not allowed.', error);
       return;
-    } finally { capturePending = false; button.disabled = disposed || (setup ? !setup.ready : false); }
+    } finally {
+      capturePending = false; button.disabled = disposed || (setup ? !setup.ready : false);
+      lockDemo(disposed);
+    }
     if (disposed || (setup && (!setup.ready || setup.generation !== admittedGeneration
         || setup.profile.version !== captureProfile.version))) {
       stream.getTracks().forEach((track) => track.stop());
       return;
     }
     discard = false;
+    lockDemo(true);
     const chunks = [];
     const recordingStream = stream;
     recorder = new MediaRecorder(recordingStream, mimeType ? {mimeType} : undefined);
@@ -416,6 +487,7 @@ async function renderCheck(main) {
       recordingStream.getTracks().forEach((t) => t.stop());
       if (recorder !== recordingRecorder) return;
       button.textContent = 'Record';
+      lockDemo(false);
       countdown.textContent = '';
       if (discard || disposed || recordingFailed
           || (setup && setup.generation !== admittedGeneration)) return;

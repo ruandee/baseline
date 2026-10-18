@@ -64,7 +64,7 @@ class FakeNode {
   querySelectorAll(selector) { return [...this.walk()].filter((n) => n.matches(selector)); }
 }
 
-function harness({visible = true, responses = [FIXTURE], patients = []} = {}) {
+function harness({visible = true, responses = [FIXTURE], patients = [], search = ''} = {}) {
   const main = new FakeNode('main');
   const root = new FakeNode('body');
   root.append(main);
@@ -99,7 +99,7 @@ function harness({visible = true, responses = [FIXTURE], patients = []} = {}) {
     return {ok: false, status: 404, json: async () => ({})};
   };
   const context = vm.createContext({
-    document, fetch, console, location: {pathname: '/unit'},
+    document, fetch, console, URLSearchParams, location: {pathname: '/unit', search},
     setInterval: (fn, ms) => { intervals.set(nextId, {fn, ms}); return nextId++; },
     clearInterval: (id) => { intervals.delete(id); },
   });
@@ -234,22 +234,41 @@ test('over-budget escalation warning follows its own row and clears after a new 
   assert.equal(card().getAttribute('data-priority'), resident.patient_id);
 });
 
-test('capture identities use session metadata only and never masquerade as roster priority', async () => {
-  const capture = {...FIXTURE.residents[0], patient_id: 'arbitrary-capture-id', display_name: 'Person A'};
+test('live volunteers join unit priority with measured verdicts; runner identities remain separate', async () => {
+  const capture = {...FIXTURE.residents[0], patient_id: 'arbitrary-capture-id', display_name: 'Person A', latest_verdict: 'watch'};
+  const runner = {...FIXTURE.residents[0], patient_id: 'runner-id', display_name: 'Runner A'};
   const namedRunner = {...FIXTURE.residents[0], patient_id: 'ordinary-resident', display_name: 'Runner Capture'};
-  const data = {...FIXTURE, residents: [capture, namedRunner, ...FIXTURE.residents]};
-  const page = harness({responses: [data], patients: [{id: capture.patient_id, capture_mode: 'live'}]});
+  const data = {...FIXTURE, residents: [capture, runner, namedRunner, ...FIXTURE.residents]};
+  const refreshed = {...data, residents: data.residents.map((r) => r.patient_id === capture.patient_id
+    ? {...r, latest_verdict: 'within_normal'} : r)};
+  const page = harness({responses: [data, refreshed], patients: [
+    {id: capture.patient_id, capture_mode: 'live', name: 'Volunteer A', scripted_cohort: false},
+    {id: runner.patient_id, capture_mode: 'runner'},
+  ]});
   await page.settle();
   const ids = page.main.querySelector('[data-unit=priority]').children.map((c) => c.getAttribute('data-priority'));
-  assert(!ids.includes(capture.patient_id));
+  assert(ids.includes(capture.patient_id));
+  assert(!ids.includes(runner.patient_id));
   assert(ids.includes(namedRunner.patient_id), 'a display name must not determine identity type');
   const list = page.main.querySelector('[data-unit=capture-list]');
   assert.equal(list.children.length, 1);
-  assert.equal(list.children[0].getAttribute('data-capture'), capture.patient_id);
-  assert.match(list.textContent, /Live voice capture/);
+  assert.equal(list.children[0].getAttribute('data-capture'), runner.patient_id);
+  assert.match(list.textContent, /Runner capture/);
+  const volunteer = page.main.querySelector('[data-unit=priority]').children.find((card) =>
+    card.getAttribute('data-priority') === capture.patient_id);
+  assert.equal(volunteer.querySelector('h3').textContent, 'Volunteer A');
+  assert.match(volunteer.textContent, /Watch/);
+  assert.match(volunteer.textContent, /Live volunteer/);
+  assert.equal(page.main.querySelector('[data-unit=count-watch]').textContent,
+               String(data.residents.filter((r) => r.latest_verdict === 'watch').length));
+  assert.deepEqual([...page.intervals.values()].map((interval) => interval.ms), [2000]);
   assert.deepEqual(renderedRows(page.main).map((r) => r.href), data.residents.map((r) => `/resident/${r.patient_id}`));
   assert.equal(page.main.querySelector('[data-unit=count-escalate]').textContent,
                String(data.residents.filter((r) => r.latest_verdict === 'escalate').length - 1));
+  await page.tick();
+  assert(!page.main.querySelector('[data-unit=priority]').children.some((card) =>
+    card.getAttribute('data-priority') === capture.patient_id), 'no forced Watch when the measured result changes');
+  assert.equal(renderedRows(page.main).find((row) => row.href.endsWith(capture.patient_id)).verdict, 'Within normal');
 });
 
 test('no priority flags keeps unknown and enrolling explicit instead of implying normal', async () => {

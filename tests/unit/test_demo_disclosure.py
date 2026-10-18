@@ -21,3 +21,10 @@ def test_each_shell_has_exactly_one_demo_scenario_disclosure():
         html = (FRONTEND / name).read_text(encoding="utf-8")
         assert len(re.findall(r'class="demo-badge"', html)) == 1, name
         assert len(re.findall(r"<summary[^>]*>Demo scenario</summary>", html)) == 1, name
+
+
+def test_demo_is_not_linked_from_either_website_header():
+    for name in SHELLS:
+        html = (FRONTEND / name).read_text(encoding="utf-8")
+        navigation = re.search(r"<nav\b.*?</nav>", html, re.DOTALL).group()
+        assert "demo=" not in navigation, name

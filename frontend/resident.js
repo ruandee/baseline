@@ -226,7 +226,11 @@
       if (!lines.length) return;
       section.append(h.el('h3', label));
       lines.forEach((s) => {
-        const p = h.el('p', s.text);
+        const text = sbar.source === 'template' && key === 'S'
+          ? s.text.replace(/^.+?'s speech differs from their usual/,
+            () => `${data.display_name}'s speech differs from their usual`)
+          : s.text;
+        const p = h.el('p', text);
         s.evidence_ids.forEach((id) => {
           if (id.startsWith('check:')) {  // the check itself, not a source document
             const check = h.el('button', 'check', {type: 'button', class: 'bl-cite bl-check-cite',
@@ -314,6 +318,63 @@
     return h.api(`/v1/patients/${encodeURIComponent(ctx.id)}/overview?days=30`);
   }
 
+  function explanationPanel(main, h, ctx, data) {
+    if (ctx.mock || !h.demoContext || !data.latest_assessment?.check) return null;
+    const assessment = data.latest_assessment;
+    const panel = h.el('details', '', {class: 'workspace-panel', 'data-explain': 'panel'});
+    panel.append(h.el('summary', 'Add context / possible explanation'),
+      h.el('p', `${data.display_name} demo: record an observation that applies to this check. The source is saved and the stored check is reassessed. An explanation does not rule out other concerns.`),
+      h.el('p', `Check recorded ${h.formatTime(assessment.ts)}`));
+    const tag = h.el('select', '', {'aria-label': 'Possible explanation'});
+    [['', 'Choose an observation'], ['dentures', 'New or loose dentures'],
+     ['hearing_aid', 'Hearing aid issue'], ['poor_sleep', 'Poor sleep'], ['exertion', 'Recent exertion']]
+      .forEach(([value, label]) => tag.append(h.el('option', label, {value})));
+    const note = h.el('textarea', '', {maxlength: '500', rows: '3', 'aria-label': 'Observed context',
+      placeholder: 'Describe what was observed. No explanation is assumed.'});
+    const from = h.el('input', '', {type: 'datetime-local', 'aria-label': 'Observation applies from'});
+    const at = new Date(assessment.ts);
+    from.value = new Date(at.getTime() - at.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    const until = h.el('input', '', {type: 'datetime-local', 'aria-label': 'Observation applies until'});
+    const confirmed = h.el('input', '', {type: 'checkbox', 'aria-label': 'Confirm observed context'});
+    const confirmLabel = h.el('label', ' I confirmed this observation and the period it applies to.');
+    confirmLabel.prepend(confirmed);
+    const save = h.el('button', 'Save context and reassess', {type: 'button', class: 'workspace-primary', disabled: ''});
+    const status = h.el('p', '', {role: 'status', 'data-explain': 'status'});
+    const field = (label, input) => { const node = h.el('label', label); node.append(input); return node; };
+    panel.append(field('Possible explanation', tag), field('Observation', note),
+      field('Applies from (local time)', from), field('Applies until (optional; otherwise uses the standard context window)', until),
+      confirmLabel, save, status);
+    let pending = false, request = null;
+    const enable = () => { save.disabled = pending || !confirmed.checked || !tag.value || !note.value.trim(); };
+    [tag, note, from, until, confirmed].forEach((input) => {
+      input.addEventListener('input', () => { request = null; enable(); });
+      input.addEventListener('change', () => { request = null; enable(); });
+    });
+    save.addEventListener('click', async () => {
+      if (save.disabled || pending) return;
+      pending = true; enable();
+      try {
+        if (!request) {
+          const start = new Date(from.value), end = until.value ? new Date(until.value) : null;
+          if (!Number.isFinite(start.getTime()) || (end && !Number.isFinite(end.getTime()))) throw new Error('Choose valid observation times.');
+          request = {key: crypto.randomUUID(), body: {assessment_id: assessment.id,
+            kind: 'explainer', tag: tag.value, label: note.value.trim(),
+            valid_from: start.toISOString(), valid_to: end ? end.toISOString() : null}};
+        }
+        status.textContent = 'Saving the observation and reassessing the stored check…';
+        await h.api(`/demo/residents/${encodeURIComponent(ctx.id)}/context`, {method: 'POST',
+          headers: {'Content-Type': 'application/json', 'X-PM-Demo': '1', 'Idempotency-Key': request.key},
+          body: JSON.stringify(request.body)});
+        await window.renderResident(main, ctx.id, {...h, contextSaved: true});
+      } catch (error) {
+        status.textContent = error.status === 409
+          ? 'The assessment changed. Reload this resident before adding context.'
+          : `Could not confirm the save (${error.message}). Retry without changing the fields to reuse the same request.`;
+      } finally { pending = false; enable(); }
+    });
+    return panel;
+  }
+
   window.renderResident = async function (main, id, h) {
     main.setAttribute('data-workspace', 'resident-details');
     const ctx = {id, mock: h.mock};
@@ -326,7 +387,7 @@
         h.el('div', `Could not load this resident (${error.message}).`, {class: 'bl-status', 'data-state': 'error'}));
       return;
     }
-    const title = h.el('h1', data.display_name);
+    const title = h.el('h1', h.displayName || data.display_name);
     if (data.synthetic) title.append(' ', h.el('span', 'synthetic', {class: 'bl-synthetic', hidden: ''}));
     const grid = h.el('div', '', {class: 'bl-charts'});
     Object.entries(data.features || {}).forEach(([name, meta]) => {
@@ -341,13 +402,15 @@
       h.el('p', 'These describe the recording and its comparison with personal history. They are not a diagnosis or a probability of illness. Missing values are unavailable, not zero.'));
     const sbar = sbarPanel(h, ctx, data);
     const signals = window.signalPanel && window.signalPanel(h, ctx, data);
+    const explanation = explanationPanel(main, h, ctx, data);
     const navigation = h.el('div', '', {class: 'resident-context-links'});
     navigation.append(h.el('a', 'Unit overview', {href: '/unit'}),
       h.el('a', 'Notes and source history', {href: '/?patient=' + encodeURIComponent(id)}),
       h.el('a', 'Voice-check readiness', {href: '/check?nurse=1&patient=' + encodeURIComponent(id)}));
-    main.replaceChildren(navigation, title, verdictCard(h, data), ...(signals ? [signals] : []), h.el('h2', 'Last 30 days'), grid, legend, guide,
+    main.replaceChildren(navigation, title, verdictCard(h, data), ...(explanation ? [explanation] : []), ...(signals ? [signals] : []), h.el('h2', 'Last 30 days'), grid, legend, guide,
                          evidenceChain(h, ctx, data), ...(sbar ? [sbar] : []),
                          decisionTable(h, data));
+    if (h.contextSaved) main.prepend(h.el('p', 'Context saved. The verdict below is the actual reassessment; review its source evidence.', {role: 'status'}));
     if (!ctx.mock && data.latest_assessment && data.latest_assessment.sbar && window.noteExportPanel) {
       main.append(window.noteExportPanel(h, ctx.id, data.latest_assessment.id));
     }

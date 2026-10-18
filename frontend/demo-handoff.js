@@ -57,7 +57,7 @@
     window.addEventListener('pagehide', () => { stopped = true; release(); });
     const name = r => r === 'runner' ? 'Resident A · runner' : 'Resident B · Dee';
     function captureLink(r, value) {
-      return location.origin + '/check?demo=handoff&resident=' + r
+      return location.origin + '/check?demo=archived-handoff&resident=' + r
         + '#room=' + encodeURIComponent(room) + '&key=' + encodeURIComponent(value);
     }
     if (nurse) {
@@ -68,7 +68,7 @@
             headers: {'Content-Type': 'application/json'}, body: '{}'});
           if (stopped) return;
           room = created.room; key = created.keys.nurse;
-          history.replaceState(null, '', '/unit?demo=handoff#room=' + room + '&key=' + key);
+          history.replaceState(null, '', '/unit?demo=archived-handoff#room=' + room + '&key=' + key);
         }
         const links = h.el('details', '', {class: 'bl-card bl-handoff-links', open: ''});
         links.append(h.el('summary', 'Phone recording links'), h.el('p',
@@ -77,7 +77,7 @@
         const reset = h.el('button', 'Start a new rehearsal', {type: 'button'});
         reset.addEventListener('click', async () => {
           reset.disabled = true;
-          try { await request('', 'DELETE'); location.replace('/unit?demo=handoff'); }
+          try { await request('', 'DELETE'); location.replace('/unit?demo=archived-handoff'); }
           catch (error) { status.textContent = nurseMessage(error, 'Connection failed. Try again.'); reset.disabled = false; }
         });
         content.append(links, cards, reset);
@@ -155,7 +155,7 @@
             if (!stopped) status.textContent = nurseMessage(error, 'Reconnecting…');
             if (error.status === 404) {
               cards.replaceChildren(); links.replaceChildren(); reset.disabled = true;
-              content.append(h.el('a', 'Start a new demo room', {href: '/unit?demo=handoff'}));
+              content.append(h.el('a', 'Start a new demo room', {href: '/unit?demo=archived-handoff'}));
               return;
             }
           }
