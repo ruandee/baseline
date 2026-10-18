@@ -149,3 +149,15 @@ def test_psw_voice_scoring_can_corroborate_privately_without_receipt_leak(sandbo
     assert set(response.json()) == {"check_id", "ts", "usable"}
     assert overview(sandbox)["latest_assessment"]["corroborated"]
     assert client_for(sandbox, "psw").get(f"/v1/patients/{sandbox[1]}/overview").status_code == 404
+
+
+def test_expired_latest_resting_observation_is_unknown_not_older_quiet_fallback(sandbox):
+    at = datetime.now(UTC)
+    payload = rr_payload(at-timedelta(hours=2))
+    payload["records"][-1]["effective_to"] = (at-timedelta(hours=1)).isoformat()
+    import_note(sandbox, payload)
+    assert refresh(sandbox) is None
+    seed_checks(sandbox, 6)
+    result = store(sandbox, SLOW)
+    assert not result.assessment["corroborated"]
+    assert result.change["modalities"]["vitals"]["status"] == "unavailable"

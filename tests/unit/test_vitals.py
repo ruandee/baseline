@@ -65,7 +65,8 @@ class Result:
 
 class Conn:
     def __init__(self, rows): self.rows = rows
-    def execute(self, sql, params=None): return Result(self.rows)
+    def execute(self, sql, params=None):
+        return Result([] if "valid_to<=%s" in sql else self.rows)
 
 
 def test_projection_echoes_unvalidated_policy_and_actual_event_time():

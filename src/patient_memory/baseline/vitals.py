@@ -66,18 +66,17 @@ def observation_checks(rows, patient_id):
 
 def load_checks(conn, patient_id, at):
     rows = conn.execute(
-        "SELECT f.id,f.concept,f.value,f.unit,f.valid_from FROM facts f JOIN sources s "
+        "SELECT f.id,f.concept,f.value,f.unit,f.valid_from,f.valid_to FROM facts f JOIN sources s "
         "ON s.tenant_id=f.tenant_id AND s.patient_id=f.patient_id AND s.id=f.source_id "
         "WHERE f.patient_id=%s AND f.concept=ANY(%s) AND f.polarity='present' "
         "AND f.experiencer='patient' AND f.valid_from IS NOT NULL AND f.valid_from<=%s "
-        "AND (f.valid_to IS NULL OR f.valid_to>%s) "
         "AND s.payload->>'kind'='observation' AND s.payload->>'author_role'='system' "
         "AND s.recorded_at<=clock_timestamp() AND s.published_at IS NOT NULL "
         "AND s.retracted_at IS NULL AND s.purged_at IS NULL "
         "AND NOT EXISTS(SELECT FROM sources newer WHERE newer.tenant_id=s.tenant_id "
         "AND newer.patient_id=s.patient_id AND newer.supersedes=s.id "
         "AND newer.published_at IS NOT NULL AND newer.retracted_at IS NULL AND newer.purged_at IS NULL) "
-        "ORDER BY f.valid_from,f.id", (patient_id, list(UNITS), at, at)).fetchall()
+        "ORDER BY f.valid_from,f.id", (patient_id, list(UNITS), at)).fetchall()
     return observation_checks(rows, patient_id)
 
 
@@ -88,6 +87,11 @@ def projection(conn, cfg, patient_id, at):
     if not checks or not checks[-1].usable or checks[-1].ts < at-CORROBORATION_WINDOW:
         return None
     check = checks[-1]
+    expired = conn.execute(
+        "SELECT id FROM facts WHERE patient_id=%s AND id=ANY(%s) AND valid_to IS NOT NULL AND valid_to<=%s",
+        (patient_id, list(check.evidence_ids), at)).fetchall()
+    if expired:
+        return None
     result = evaluate(check, checks[:-1], "rolling", cfg)
     result = replace(result, params={**result.params, "capture_adapter": PROMPT,
                      "measurement_attribution": "documented_system_observation",
