@@ -7,6 +7,7 @@ PM_DEMO_PSW_TOKEN optionally pre-mints the PSW token used by /check resident mod
 """
 import json
 import os
+import re
 from pathlib import Path
 from uuid import NAMESPACE_URL, UUID, uuid5
 
@@ -79,6 +80,8 @@ def require_deployment_secret(cfg):
 
 
 SHELL_ROUTES = ("/unit", "/check", "/resident/{patient_id}", "/out", "/out/session/{session_id}")
+PUBLIC_SHELL_PATHS = {"/", "/unit", "/check", "/out"}
+PUBLIC_SHELL_DETAIL = re.compile(r"/(?:resident|out/session)/[^/]+")
 PAGE_ROUTES = {"/", "/demo/session", *SHELL_ROUTES}
 PAGE_CSP = (
     "default-src 'self'; script-src 'self'; style-src 'self'; "
@@ -114,13 +117,22 @@ def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None, psw=No
             and ack_token_well_formed(ack_token)
             and request.headers.get("sec-fetch-mode") == "navigate"
             and request.headers.get("sec-fetch-dest") == "document")
+        # Public hosted HTML contains no credentials or patient records. Let a judge follow
+        # an external link to it; bootstrap/API requests retain the same-origin guards.
+        public_shell_navigation = (
+            bool(extra_hosts) and request.method == "GET"
+            and request.headers.get("sec-fetch-mode") == "navigate"
+            and request.headers.get("sec-fetch-dest") == "document"
+            and (request.url.path in PUBLIC_SHELL_PATHS
+                 or PUBLIC_SHELL_DETAIL.fullmatch(request.url.path) is not None))
         # Behind a TLS proxy the client address is the visitor's, so hosted mode relies on
         # the Host allowlist; without extra hosts the client must still be loopback.
         if ((not extra_hosts and (not request.client or request.client.host not in LOOPBACK))
                 or host not in allowed
-                or (origin and origin != f"{request.url.scheme}://{request.url.netloc}")
+                or (origin and origin != f"{request.url.scheme}://{request.url.netloc}"
+                    and not public_shell_navigation)
                 or (request.headers.get("sec-fetch-site") == "cross-site"
-                    and not public_ack_navigation)):
+                    and not (public_ack_navigation or public_shell_navigation))):
             return JSONResponse({"error": {"message": "Local workspace only"}}, status_code=403)
         response = await call_next(request)
         response.headers["Cache-Control"] = "no-store"
