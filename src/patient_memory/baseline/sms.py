@@ -120,7 +120,8 @@ def last_location(conn, patient_id: UUID, session_id: UUID) -> tuple[float, floa
 
 
 def prepare_sms(conn, cfg, session, contact_index: int, level: int, trigger: str, at: datetime,
-                location: tuple[float, float] | None = None) -> OutboundSms | None:
+                location: tuple[float, float] | None = None,
+                *, sent_at: datetime | None = None) -> OutboundSms | None:
     """Insert one pending SMS escalation row for the session's current episode.
 
     `session` is the locked `safety_sessions` row (the scheduler has already set its episode).
@@ -141,12 +142,13 @@ def prepare_sms(conn, cfg, session, contact_index: int, level: int, trigger: str
     # Expiry: the configured lifetime, never past the session's latest possible deletion time.
     row = conn.execute(
         "INSERT INTO escalation_events(tenant_id,patient_id,id,session_id,episode,level,trigger,"
-        "channel,contact_index,delivery,message,ack_token_hash,ack_expires_at) "
+        "channel,contact_index,delivery,message,ack_token_hash,ack_expires_at,sent_at) "
         "VALUES(%s,%s,%s,%s,%s,%s,%s,'sms',%s,'pending',%s,%s,"
         "LEAST(clock_timestamp() + make_interval(mins => %s), "
-        "%s::timestamptz + interval '24 hours')) ON CONFLICT DO NOTHING RETURNING id",
+        "%s::timestamptz + interval '24 hours'),coalesce(%s,clock_timestamp())) "
+        "ON CONFLICT DO NOTHING RETURNING id",
         (session["tenant_id"], pid, event_id, sid, session["episode"], level, trigger,
-         contact_index, record, token.digest, cfg.ack_ttl_min, session["ends_at"])).fetchone()
+         contact_index, record, token.digest, cfg.ack_ttl_min, session["ends_at"], sent_at)).fetchone()
     if not row:
         return None
     return OutboundSms(event_id, session["tenant_id"], pid, sid, contact_index, level,

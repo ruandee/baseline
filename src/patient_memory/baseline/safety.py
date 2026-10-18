@@ -10,7 +10,6 @@ The ladder never dials anyone and never diagnoses. Level 4's text (BL-27) tells 
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Literal, Protocol
 from uuid import UUID, uuid4
 
 from patient_memory.ingestion import lock_patient
@@ -136,85 +135,13 @@ def checkin_update(status: str, usable: bool, is_baseline: bool, change_status: 
 
 
 # ---------------------------------------------------------------------------------------------
-# Sender interface (implemented by BL-27, #29)
+# Delivery integration (BL-27). Imports are lazy because SMS rendering shares session helpers.
 # ---------------------------------------------------------------------------------------------
 
-@dataclass(frozen=True)
-class Location:
-    lat: float
-    lon: float
-    accuracy_m: float | None
 
-
-@dataclass(frozen=True)
-class OutboundEvent:
-    """One `escalation_events` row (channel 'sms', delivery 'pending') to deliver."""
-    event_id: UUID
-    tenant_id: UUID
-    patient_id: UUID
-    session_id: UUID
-    episode: int
-    level: int
-    trigger: str
-    contact_index: int
-    contact_name: str
-    phone_e164: str
-    display_name: str
-    missed_at: datetime  # the missed check's due time, or the triggering check's time
-    last_location: Location | None
-    sent_at: datetime
-    ack_expires_max: datetime
-
-
-@dataclass(frozen=True)
-class Delivery:
-    status: Literal["logged", "sent", "failed"]
-    message: str | None = None          # text as sent, ack link replaced by "[ack link]"
-    ack_token_hash: bytes | None = None  # sha256 of the token; the raw token is never returned
-    ack_expires_at: datetime | None = None
-
-
-class Sender(Protocol):
-    """Offline preparation only, under the patient/session locks. No network or database calls.
-
-    BL-27 must replace this adapter with prepare/commit/deliver before enabling real delivery.
-    The scheduler inserts returned immutable message/hash fields once, never updates them.
-    """
-
-    def send(self, event: OutboundEvent) -> Delivery: ...
-
-
-def mask(phone: str) -> str:
-    return phone[:1] + "*" * max(len(phone) - 5, 0) + phone[-4:]
-
-
-class LogSender:
-    """Default until BL-27: logs the step without the phone number or location; no ack token."""
-
-    def send(self, event: OutboundEvent) -> Delivery:
-        log.info("kaze escalation session=%s episode=%s level=%s contact=%s phone=%s trigger=%s",
-                 event.session_id, event.episode, event.level, event.contact_index,
-                 mask(event.phone_e164), event.trigger)
-        return Delivery("logged", message=f"[stub] level {event.level} text to contact "
-                                          f"{event.contact_index}")
-
-
-def sender_from_settings(cfg) -> Sender:
-    """BL-27 returns its Twilio sender (or log fallback) here."""
-    return LogSender()
-
-
-def checked_delivery(result, event: OutboundEvent) -> Delivery:
-    """Reject anything the escalation_events constraints or the ack contract would not accept."""
-    if not isinstance(result, Delivery) or result.status not in ("logged", "sent", "failed"):
-        return Delivery("failed")
-    token, expires = result.ack_token_hash, result.ack_expires_at
-    if (token is None) != (expires is None):
-        return Delivery("failed", result.message)
-    if token is not None and (not isinstance(token, bytes) or len(token) != 32
-                              or expires > event.ack_expires_max or expires <= event.sent_at):
-        return Delivery("failed", result.message)
-    return result
+def sender_from_settings(cfg):
+    from patient_memory.baseline.sms import sender_for
+    return sender_for(cfg)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -234,16 +161,9 @@ def _speech(conn, pid: UUID, sid: UUID, explainers: list[str]) -> tuple[bool, da
     return speech_trigger(row["change_status"], explainers), row["ts"]
 
 
-def _last_location(conn, pid: UUID, sid: UUID) -> Location | None:
-    row = conn.execute(
-        "SELECT lat,lon,accuracy_m FROM voice_checks WHERE patient_id=%s AND session_id=%s "
-        "AND lat IS NOT NULL ORDER BY ts DESC LIMIT 1", (pid, sid)).fetchone()
-    return Location(row["lat"], row["lon"], row["accuracy_m"]) if row else None
-
-
 def advance(conn, pid: UUID, sid: UUID, now: datetime | None, timing: Timing,
-            sender: Sender) -> Step | None:
-    """One session, one transaction: lock, plan, record, send. Lock order matches check
+            cfg, outbox: list) -> Step | None:
+    """One session, one transaction: lock, plan, record and prepare. Lock order matches check
     admission's patient lock and `pm_acknowledge_escalation`'s session row lock."""
     lock_patient(conn, pid)
     row = conn.execute("SELECT * FROM safety_sessions WHERE patient_id=%s AND id=%s FOR UPDATE",
@@ -287,35 +207,23 @@ def advance(conn, pid: UUID, sid: UUID, now: datetime | None, timing: Timing,
             "id,channel,contact_index,sent_at,delivery) VALUES(%s,%s,%s,%s,%s,%s,%s,'nudge',NULL,"
             "%s,'logged') ON CONFLICT DO NOTHING", (*base, uuid4(), now))
         return step
-    location = _last_location(conn, pid, sid)
+    from patient_memory.baseline import sms
+    location = sms.last_location(conn, pid, sid)
     missed_at = speech_at if step.trigger == "speech_change" and speech_at else row["next_due_at"]
+    current = {**row, "status": step.status, "episode": step.episode, "ladder_level": step.level}
     for index in step.contacts:
-        event_id = uuid4()
-        contact = contacts[index]
-        event = OutboundEvent(
-            event_id=event_id, tenant_id=row["tenant_id"], patient_id=pid, session_id=sid,
-            episode=step.episode, level=step.level, trigger=step.trigger, contact_index=index,
-            contact_name=contact["name"], phone_e164=contact["phone_e164"],
-            display_name=row["display_name"], missed_at=missed_at, last_location=location,
-            sent_at=now, ack_expires_max=row["ends_at"] + ACK_TTL_BOUND)
-        try:
-            delivery = checked_delivery(sender.send(event), event)
-        except Exception:  # a sender failure is recorded, never allowed to stall other sessions
-            log.exception("kaze sender failed for session %s level %s", sid, step.level)
-            delivery = Delivery("failed")
-        conn.execute(
-            "INSERT INTO escalation_events(tenant_id,patient_id,session_id,episode,level,trigger,"
-            "id,channel,contact_index,sent_at,delivery,message,ack_token_hash,ack_expires_at) "
-            "VALUES(%s,%s,%s,%s,%s,%s,%s,'sms',%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
-            (*base, event_id, index, now, delivery.status, delivery.message,
-             delivery.ack_token_hash, delivery.ack_expires_at))
+        outbound = sms.prepare_sms(conn, cfg, current, index, step.level, step.trigger,
+                                   missed_at, location, sent_at=now)
+        if outbound is not None:
+            outbox.append(outbound)
     return step
 
 
-def run_pass(cfg, identity, sender: Sender | None = None, now: datetime | None = None,
+def run_pass(cfg, identity, sender=None, now: datetime | None = None,
              timing: Timing | None = None) -> list[tuple[UUID, Step]]:
     """Advance every open session visible to `identity` (the kaze-service principal). Each
     session commits separately; a failing session is logged and retried next pass."""
+    from patient_memory.baseline import sms
     sender = sender or sender_from_settings(cfg)
     timing = timing or timing_for(cfg)
     with transaction(cfg, identity) as conn:
@@ -324,12 +232,18 @@ def run_pass(cfg, identity, sender: Sender | None = None, now: datetime | None =
             "AND next_due_at IS NOT NULL ORDER BY next_due_at").fetchall()
     steps = []
     for r in due:
+        outbox = []
         try:
             with transaction(cfg, identity) as conn:
-                step = advance(conn, r["patient_id"], r["id"], now, timing, sender)
+                step = advance(conn, r["patient_id"], r["id"], now, timing, cfg, outbox)
         except Exception:
             log.exception("kaze scheduler failed for session %s", r["id"])
             continue
+        for message in outbox:  # prepare transaction has committed and released every lock
+            try:
+                sms.send(cfg, identity, message, sender)
+            except Exception:
+                log.exception("KAZE delivery recording failed event=%s", message.event_id)
         if step:
             steps.append((r["id"], step))
     return steps
