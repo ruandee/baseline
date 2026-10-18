@@ -170,3 +170,14 @@ def test_note_export_preview_is_served_and_only_reads(sandbox):
     source = (ROOT / 'frontend' / 'note-export.js').read_text(encoding='utf-8')
     assert '/note' in source and 'Nothing is sent' in source
     assert 'method' not in source and 'fetch(' not in source  # only h.api GET calls
+
+
+def test_three_day_demo_asset_is_served_without_granting_patient_access(sandbox):
+    client = workspace_client(sandbox)
+    page = client.get('/check?mode=live&demo=days')
+    assert page.status_code == 200
+    assert page.text.index('demo-days.js') < page.text.index('baseline.js')
+    asset = client.get('/assets/demo-days.js')
+    assert asset.status_code == 200
+    assert "script-src 'self'" in page.headers['content-security-policy']
+    assert client.get(f'/v1/patients/{sandbox[1]}/overview').status_code == 401
