@@ -163,8 +163,17 @@ Use the printed live/runner URLs to keep new recordings outside the scripted ide
 
 API and the resident worker are stopped before reset to prevent concurrent admissions. The
 separate safety worker continues its tenant's retention work and is recreated with the rebuilt
-image at startup. If validation or strict
-outcome checks fail, they remain stopped; inspect the safe error and ignored reset report, resolve
-the discrepancy and rerun. Do not wipe volumes, bypass fixture validation, or restart a partial
-reset as though it passed. Same explicit-anchor reruns preserve data counts and are idempotent.
+image at startup. Once migration and private token preparation have succeeded, a refused or failed
+reset attempts the normal readiness-checked service restart and still exits with the original
+reset failure status. A successful recovery means services restarted, not that the fixture reset
+passed. Inspect the safe error and ignored reset report, resolve the discrepancy and rerun; the
+strict guard remains authoritative. Do not wipe volumes or bypass fixture validation. Same
+explicit-anchor reruns preserve data counts and are idempotent.
+
+If service recovery fails, the wrapper reports its separate status and says availability is
+unconfirmed; the command still returns the original reset error. Inspect Compose service status
+and readiness locally before deciding on another restart. Failures before the reset command
+(including migration or private token preparation) do **not** automatically restart services:
+inspect and resolve the schema/configuration failure first. Do not blindly start an API against
+a failed migration or describe a partially completed reset as successful.
 Live phone audio, public DNS/certificates and host latency are still separate acceptance gates.
