@@ -202,13 +202,32 @@ test('priority cards keep server order and link to records without inventing cli
                  `/resident/${eligible(FIXTURE)[i].patient_id}`);
     assert.match(card.textContent, /source records inside/);
     assert(!card.textContent.includes('dentures'), 'overview does not have source-level context');
+    const overBudget = eligible(FIXTURE)[i].latest_verdict === 'escalate'
+      && eligible(FIXTURE)[i].over_budget;
+    assert.equal(card.textContent.includes('shift interruption budget has been reached'),
+                 Boolean(overBudget));
   });
-  assert.match(cards.find((c) => c.textContent.includes('over budget')).textContent,
-               /shift interruption budget has been reached/);
   await page.tick();
   assert.deepEqual(priorityIds(), eligible(reversed).map((r) => r.patient_id));
   assert.equal(page.main.querySelector('[data-unit=roster]').getAttribute('open'), undefined);
   assert.equal(renderedRows(page.main).length, FIXTURE.residents.length);
+});
+
+test('over-budget escalation warning follows its own row and clears after a new response', async () => {
+  const resident = {...FIXTURE.residents[0], latest_verdict: 'escalate', over_budget: true};
+  const data = {...FIXTURE, residents: [resident]};
+  const refreshed = {...data, residents: [{...resident, over_budget: false}]};
+  const page = harness({responses: [data, refreshed]});
+  await page.settle();
+  const card = () => page.main.querySelector('[data-unit=priority]').children[0];
+  assert.match(card().textContent, /Escalate \(over budget\)/);
+  assert.match(card().textContent, /shift interruption budget has been reached/);
+  assert.equal(card().getAttribute('data-priority'), resident.patient_id);
+  await page.tick();
+  assert(!card().textContent.includes('over budget'));
+  assert(!card().textContent.includes('shift interruption budget has been reached'));
+  assert.match(card().textContent, /Open the assessment before deciding what to do/);
+  assert.equal(card().getAttribute('data-priority'), resident.patient_id);
 });
 
 test('capture identities use session metadata only and never masquerade as roster priority', async () => {
