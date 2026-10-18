@@ -65,10 +65,10 @@ def test_note_is_a_valid_preliminary_document_reference_with_exact_sbar(sandbox,
     assert facts and checks == [str(result.check_id)]
     for fact in facts:
         assert nurse.get(f"/v1/patients/{sandbox[1]}/evidence/{fact}").status_code == 200
-    cfg, pid, actors, _ = sandbox
-    with transaction(cfg, actors["nurse"]) as conn:
-        assert conn.execute("SELECT count(*) AS n FROM audit WHERE patient_id=%s "
-                            "AND action='note_export'", (pid,)).fetchone()["n"] == 1
+    cfg, pid, _, _ = sandbox
+    with psycopg.connect(cfg.admin_database_url) as conn:
+        assert conn.execute("SELECT count(*) FROM audit WHERE patient_id=%s "
+                            "AND action='note_export'", (pid,)).fetchone()[0] == 1
 
 
 def test_configured_draft_exports_with_its_source(sandbox, monkeypatch):
@@ -128,7 +128,8 @@ def test_superseded_source_and_revoked_access_never_return_old_note(sandbox):
     route = note_path(sandbox, result.assessment["id"])
     nurse = client_for(sandbox)
     assert nurse.get(route).status_code == 200
-    import_note(sandbox, source_payload("Synthetic reassessment of intake.", supersedes=source_id))
+    import_note(sandbox, source_payload("Synthetic reassessment of intake.",
+                                        supersedes_version_id=source_id))
     response = nurse.get(route)
     assert response.status_code == 409 and "Poor intake" not in response.text
     with psycopg.connect(sandbox[0].admin_database_url) as conn:
