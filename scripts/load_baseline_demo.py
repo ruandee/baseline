@@ -17,6 +17,7 @@ from patient_memory.auth import Identity, synthetic_token
 from patient_memory.baseline import engine
 from patient_memory.baseline.assess import assess_check, lock_assessment
 from patient_memory.config import Settings
+from patient_memory.consent import grant_fixture_consent
 from patient_memory.domain import SourceInput
 from patient_memory.ingestion import digest, submit
 from patient_memory.objects import ObjectStore
@@ -136,6 +137,8 @@ def provision(cfg, scope, residents):
                 # Never reactivate an explicitly revoked assignment.
                 conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,%s,true) "
                              "ON CONFLICT DO NOTHING", (scope.tenant_id, pid, actor, role))
+            # Decision 017: explicit synthetic consent; never overrides a later withdrawal.
+            grant_fixture_consent(conn, scope.tenant_id, pid, scope.importer_id)
 
 
 def _preflight(cfg, scope, residents, presentation):
