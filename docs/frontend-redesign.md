@@ -58,3 +58,7 @@ The proposed combined release also contains the previously prepared reset-wrappe
 fix inherited from draft #119: it retains strict reset refusal and original failure status,
 then attempts to restore service after safe earlier preparation. See its dedicated regression
 coverage; no reset or deploy is performed by the frontend review.
+
+A rendered contrast spot check found and corrected low-contrast secondary Notes/Unit labels
+and navigation symbols. This narrow computed-color check does not establish full WCAG
+conformance, keyboard/screen-reader acceptance or successful use by residents.

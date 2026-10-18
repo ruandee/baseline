@@ -153,3 +153,6 @@
 .notes-app dialog { border-radius: 6px; }
 @media(max-width:1200px) { .notes-app .workspace { grid-template-columns: 200px minmax(0,1fr); }.notes-app .assistant { grid-column: 2; border-left: 0; padding-left: 0; } }
 @media(max-width:850px) { .notes-app .workspace { grid-template-columns: minmax(0,1fr); gap: 18px; }.notes-app .assistant { grid-column: auto; }.notes-app .shell { margin: 0; padding-inline: 5%; } }
+
+/* Readable secondary text and navigation symbols on the warm surfaces. */
+.notes-app .connection,.notes-app .arrow,.notes-app .event-dot,.notes-app .suggestion span { color: var(--muted); }
