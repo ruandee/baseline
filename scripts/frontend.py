@@ -95,6 +95,8 @@ def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None, psw=No
     for token in (demo_token, psw_token):
         if token:
             decode_token(token, cfg)  # fail at startup, not as 401s on every page
+    if psw_token and (psw is None or decode_token(psw_token, cfg) != psw):
+        raise ValueError("PSW demo token must match the dedicated PSW identity")
     allowed = LOOPBACK | {h.lower() for h in extra_hosts}
 
     @app.middleware("http")

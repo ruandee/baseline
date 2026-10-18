@@ -24,6 +24,8 @@ def configure(monkeypatch, role="nurse"):
     token = synthetic_token(Identity(uid(f"0/{role}"), uid("tenant-0")), cfg)
     monkeypatch.setenv("PM_FRONTEND_HOSTS", "demo.example.com")
     monkeypatch.setenv("PM_DEMO_TOKEN", token)
+    monkeypatch.setenv("PM_DEMO_PSW_TOKEN", synthetic_token(
+        Identity(uid("0/psw"), uid("tenant-0")), cfg))
     return cfg, token
 
 
@@ -90,6 +92,8 @@ def test_serve_warns_when_demo_token_expires_within_a_day(monkeypatch, caplog):
         token = synthetic_token(Identity(uid("0/nurse"), uid("tenant-0")), cfg)
         monkeypatch.setenv("PM_FRONTEND_HOSTS", "demo.example.com")
         monkeypatch.setenv("PM_DEMO_TOKEN", token)
+        monkeypatch.setenv("PM_DEMO_PSW_TOKEN", synthetic_token(
+            Identity(uid("0/psw"), uid("tenant-0")), cfg))
         caplog.clear()
         with caplog.at_level("WARNING", logger="patient_memory.hosted_demo"):
             app_for(cfg)
@@ -107,3 +111,34 @@ def test_frontend_hosted_mode_refuses_default_secret_before_fixture_writes(monke
     monkeypatch.setenv("PM_JWT_SECRET", frontend.LOCAL_JWT_SECRET)
     with pytest.raises(ValueError, match="deployment-only"):
         frontend.main()
+
+
+def test_hosted_psw_session_uses_only_psw_token_and_rejects_nurse_substitution(monkeypatch):
+    cfg, nurse_token = configure(monkeypatch)
+    client = TestClient(app_for(cfg), base_url="https://demo.example.com")
+    headers = {"X-PM-Demo": "1", "Origin": "https://demo.example.com", "X-PM-Role": "psw"}
+    response = client.get("/demo/session", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["token"] != nurse_token
+    from patient_memory.auth import decode_token
+    assert decode_token(response.json()["token"], cfg).principal_id == uid("0/psw")
+    monkeypatch.setenv("PM_DEMO_PSW_TOKEN", nurse_token)
+    with pytest.raises(ValueError, match="PSW token"):
+        app_for(cfg)
+
+
+def test_json_bootstrap_exposes_only_the_two_demo_roles(monkeypatch, capsys):
+    import json
+
+    import scripts.hosted_demo as hosted
+
+    cfg, _ = configure(monkeypatch)
+    monkeypatch.setattr(hosted, "deployment_settings", lambda: cfg)
+    monkeypatch.setattr(hosted, "seed", lambda cfg: {
+        "nurse": "aaa.bbb.ccc", "psw": "ddd.eee.fff", "admin": "DO_NOT_EXPORT_ADMIN"})
+    monkeypatch.setattr(hosted.ObjectStore, "initialize", lambda self: None)
+    monkeypatch.setattr("sys.argv", ["hosted_demo", "bootstrap", "--json"])
+    hosted.main()
+    out = capsys.readouterr().out
+    assert json.loads(out) == {"nurse": "aaa.bbb.ccc", "psw": "ddd.eee.fff"}
+    assert "DO_NOT_EXPORT_ADMIN" not in out
