@@ -127,13 +127,27 @@ Follow README/operations and the exact CI order before claiming a new integrated
 Do not introduce real patient data before source permissions, hosting, provider handling and
 clinical ownership are decided.
 
+## BL-18 live acceptance (Refs #20)
 
-## BL-25 session privacy review (PR #66, pending merge)
+`tests/contract/test_unit_watchlist_live.py` loads the BL-14 cohort (scenario-snapshots,
+offline) into a sandbox tenant, reads `/v1/watchlist` through the workspace app and demo token
+the page uses, checks that every field `/unit` reads in `frontend/baseline.js` exists in the
+live payload, checks the sort contract (Mrs. K escalate, Mrs. L watch, Mr. T explained, nine
+within-normal by fused z, the patient with no checks last) and then runs
+`tests/js/unit_page.test.mjs` under Node against that captured response. The JS test asserts
+rendered order equals API order (no client re-sort), a 10 s interval, no timer or requests
+while hidden, an immediate refresh and a new 10 s interval when visible again, and a single
+load for a background-opened tab. `tests/unit/test_unit_page_js.py` runs the same JS test on a
+committed schema-shaped fixture; both skip only when Node is missing.
 
-Migration 006 and session arm/status/end/check-in contracts are prepared with forced RLS,
-immutable ended rows, fixed 24-hour deletion and restricted UPDATE columns. Retention deletes
-checks, locations, assessments, contacts, events and the idempotent arm snapshot. Expiry is
-checked before decode and again before storage; late end requests cannot postpone deletion.
-Raw session audio is removed even when debug audio retention is enabled. See decision 018.
-The previous review head 35c7926 passed CI; the final corrective head requires independent
-review and fresh CI. Scheduler/SMS/pages and the six held questions remain outside this change.
+Known gap: `scripts.frontend` mints its token for the eval-corpus workspace tenant, while the
+loader writes the cohort to `uid("tenant-0")`. A default local `/unit` therefore lists the
+workspace patients with no voice checks; it shows the cohort only when `PM_DEMO_TOKEN` is set
+to the loader's `artifacts/baseline-demo/session.json` nurse token (BL-21 reset work).
+
+## BL-25 session model integration
+
+Review fixes cover session expiry before capture and after locking, immutable ended-state retention,
+24-hour deletion including idempotent arm snapshots, constrained runtime grants, and unconditional
+session-audio cleanup. Session-model tests pass locally; final combined service CI remains required.
+Scheduler/SMS/pages and the held ADR 018 policy questions remain separate work.

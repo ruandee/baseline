@@ -4,11 +4,51 @@ A working synthetic-data backend for nursing-note and patient-record memory. Imp
 
 **Status: research prototype using fictional records.** PostgreSQL access controls, evidence spans, temporal queries and failure behavior are tested. Clinical validation and real semantic embeddings are not implemented.
 
+## Baseline (hackathon build)
+
+Baseline adds a 10-second voice check to this backend: it measures speech timing and pitch,
+compares them with the same resident's own history, checks the record for context, and lets a
+fixed rule table pick a verdict (`escalate`, `watch`, `explained`, `within_normal`, `enrolling`).
+Statistics detect change; rules choose the verdict; the language model only tags note context and
+assembles a validated SBAR draft from fixed server-built sentences (BL-12), falling back to the
+template. It is a synthetic-data prototype: it does not
+diagnose, suggest treatment, or claim clinical validation. Spec: [docs/06-baseline.md](docs/06-baseline.md);
+current status: [docs/build-status.md](docs/build-status.md); tracker: issue #38.
+
+What is on `main` today versus still pending (check the tracker before relying on this list):
+
+| Area | On `main` | Pending (not merged) |
+| --- | --- | --- |
+| Speech pipeline and `POST /v1/patients/{id}/checks` | Yes (BL-04, BL-05, BL-07) | Golden-clip tests merged (#51) but skipped until the four real recordings exist (BL-06 open); p95 latency on a host |
+| Change engine, verdicts, assessments, shift budget | Yes (BL-08, BL-11); accepted multifeature-cusum-v2 policy (PR #60, [decision 019](docs/decisions/019-multifeature-cusum-proposal.md)) | |
+| Context tags, note extraction with offline fallback | Yes (BL-09, BL-10) | Live Gemini acceptance |
+| `GET /v1/watchlist`, `GET /v1/patients/{id}/overview` | Yes (BL-13) | |
+| Validated SBAR draft | Yes (BL-12); template in stub/offline mode and for loader-scored history | Live provider acceptance |
+| Frontend `/unit` | Yes (BL-18) | Integrated acceptance with the cohort |
+| Frontend `/check` | Yes (BL-17); uploads to the live API, `?mock=1` uses fixtures | BL-31 (PR #64) |
+| Frontend `/resident/{id}` | Placeholder | BL-19 (PR #55) |
+| 12-resident synthetic cohort loader | Yes (BL-14: `uv run python -m scripts.load_baseline_demo --presentation scenario-snapshots` or `all-history`, optional `--offline`) | Wiring into `/unit` and hosting; normal-temperature display |
+| Demo reset script | No | BL-21 |
+| HTTPS host (Compose + Caddy) | No | BL-20 (PR #54, PR #62) |
+| Vox Advantage adapter | No | BL-32 (PR #65); it is a **mock** contract, there is no real Vox/PointClickCare integration |
+| KAZE safety sessions | No | BL-25 (PR #66) to BL-29; not integrated |
+
+Until BL-19, BL-20 and BL-21 merge and the loader's cohort is wired into the served pages, a clean
+clone cannot reproduce the full Baseline stage demo. What a clean clone can run today is below.
+
 ## Run locally
 
-Prerequisites: Python 3.12?3.14, uv 0.13.1, Docker Desktop/Compose, and Git. Windows: install uv with `python -m pip install --user uv`; use `python -m uv` if uv is outside PATH.
+Prerequisites: Python 3.12-3.14, uv 0.13.1, Docker Desktop/Compose, Git, and `ffmpeg` on PATH
+(voice checks decode uploads with it; CI installs it). Windows: install uv with
+`python -m pip install --user uv`; use `python -m uv` if uv is outside PATH. Configuration is read
+from `PM_*` environment variables or a local `.env` (copy `.env.example`; never commit `.env`).
+The defaults are synthetic-only and use the offline stub provider. On first start the API loads
+the Whisper `base` model through faster-whisper, which downloads it once from Hugging Face; if
+that fails the API still starts and voice checks retry the load.
 
 ```powershell
+git clone https://github.com/ruandee/patient-memory-backend.git
+cd patient-memory-backend
 uv sync --frozen
 docker compose up -d --wait db object-store
 uv run alembic upgrade head
@@ -59,10 +99,15 @@ The loader prints IDs and short-lived synthetic tokens for 12 longitudinal patie
 
 ```powershell
 uv run ruff check .
-uv run pytest tests
+uv run pytest tests/unit                                   # no services needed
+uv run pytest tests/integration tests/contract tests/e2e   # needs db + object-store up and migrated
 uv run python -m evals.run --suite synthetic --provider stub --output artifacts/eval.json
+# Optional, calls your configured model; never part of CI:
 uv run python -m evals.run --suite synthetic --provider configured --max-questions 5 --output artifacts/local-model.json
 ```
+
+This is the same order CI runs (`.github/workflows/checks.yml`). Audio contract tests need
+`ffmpeg`; Whisper-based tests are marked `slow` and deselected by default.
 
 The fixture suite has 60 authored questions. [Evaluation results](docs/evaluation-results.md) preserve the initial retrieval failure and distinguish corrected regression results from untouched held-out estimates. CI runs deterministic tests, DB integration and offline evaluation.
 
@@ -93,6 +138,15 @@ and serves a responsive patient list, filtered timeline, cited questions, source
 inspection, and shift handover summaries. The same FastAPI backend serves the UI
 and API on port 8001; the original API on port 8000 can remain running independently.
 No Node build or external assets are required.
+
+The same server also serves the Baseline shell at `/unit`, `/check` and `/resident/{id}`
+([decision 005](docs/decisions/005-baseline-frontend-location.md)). On `main`, `/unit` reads the
+live watch list; it lists the workspace's fictional patients with no verdict until voice checks
+are recorded for them. The BL-14 loader writes its own synthetic tenant, which is not yet wired into
+the workspace session. `/check` uploads to the live API (`?mock=1` shows fixtures instead);
+`/resident/{id}` renders a placeholder until BL-19 merges. Hosted (off-loopback) mode needs `PM_FRONTEND_HOSTS` and a
+pre-minted `PM_DEMO_TOKEN` signed with a deployment-only `PM_JWT_SECRET`; never host with the
+default secret, which is public in this repository.
 
 The workspace is **local-only and synthetic-only**. It uses an assigned read-only
 nurse identity, an in-memory browser bearer token, and the offline provider. The
