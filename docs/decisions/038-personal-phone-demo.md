@@ -73,6 +73,19 @@ a scripted cohort resident. A requested Watch display uses the original measured
 assessment restored from its private recovery archive, with its original IDs and timestamps;
 no verdict, score, baseline or timestamp is fabricated or rewritten.
 
+The requested presenter phone experience now uses the existing score-free care-aide flow:
+`/check?mode=resident&demo=personal` selects only the assigned live volunteer and submits ordinary
+resident-mode checks as the PSW. Current profile/consent checks remain authoritative and scores
+stay nurse-only. It reuses the phone's live-baseline device key, never marks these as baseline,
+and offers a fresh repeat link after completion. Ambiguous uploads do not auto-resend. The
+care-aide done-today list offers the same explicit demo repeat only for a live volunteer. The
+nurse Voice checks workspace also exposes a scoped care-aide recorder link after readiness.
+Existing personal phone links redirect to this flow; baseline management remains explicitly
+available with `mode=live&demo=personal&enroll=1`. Unit pages containing live volunteers poll
+every two seconds while visible; other unit pages retain ten-second polling. Assign the existing
+PSW to this volunteer only; this does not give that role access to verdicts, history or consent
+mutation. Database rename and assignment changes are scoped, backed up privately and audited.
+
 Release validation: 691 Linux unit tests passed (five optional tests deselected), 384
 service-backed tests passed, Ruff, stub evaluation and image smoke passed; all 180 JavaScript
 scenarios and 36 public HTTPS rollout checks passed. The physical enrollment gate remains open.

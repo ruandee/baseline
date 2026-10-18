@@ -10,7 +10,7 @@ window.renderPersonalDemo = async function(main) {
   }
   const heading = el('h1', person.name);
   const intro = el('section', '', {class: 'workspace-panel'});
-  const phonePath = `/check?mode=live&demo=personal&patient=${encodeURIComponent(person.id)}`;
+  const phonePath = `/check?mode=resident&demo=personal&patient=${encodeURIComponent(person.id)}`;
   const phoneUrl = location.origin + phonePath;
   const link = el('a', 'Open phone recorder', {href: phonePath, class: 'workspace-primary'});
   const address = el('input', '', {type: 'text', readonly: '', 'aria-label': 'Phone recording link'});
@@ -26,14 +26,17 @@ window.renderPersonalDemo = async function(main) {
     el('p', 'Record on your phone. Review the actual measurements here.'),
     el('ol', '', {'data-personal': 'steps'}), address, links, copied);
   ['Confirm your name, English counting setup and voice permission.',
-   'On the phone, choose Enroll rested baseline and record five separate rested takes.',
-   'Choose Start check-ins. Record again as often as needed; every result is measured.']
+   'Before the demo, use baseline setup to save five separate rested takes on this phone.',
+   'Open the care-aide phone recorder. Repeat demo checks are available after each saved recording.']
     .forEach((text) => intro.querySelector('ol').append(el('li', text)));
   const result = el('section', '', {class: 'workspace-panel', 'aria-live': 'polite',
     'aria-label': 'Latest measured voice check', 'data-personal': 'result'});
   const status = el('p', 'Connecting…', {role: 'status', 'data-personal': 'status'});
   const refreshButton = el('button', 'Refresh result', {type: 'button', class: 'workspace-secondary'});
   const setupHost = el('section', '', {class: 'workspace-panel'});
+  intro.append(el('a', 'Manage baseline recordings', {
+    href: `/check?mode=live&demo=personal&enroll=1&patient=${encodeURIComponent(person.id)}`,
+    class: 'workspace-text-link'}));
   main.append(intro, status, refreshButton, result, setupHost);
   let stopped = false, inFlight = false, timer = null, setup = null;
   const dispose = () => {

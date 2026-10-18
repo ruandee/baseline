@@ -30,6 +30,7 @@ function checkParams() {
     : q.get('type') === 'motion' ? 'live' : 'resident';
   return {mode, patient: q.get('patient'), mock: q.get('mock') === '1',
           personalDemo: q.get('demo') === 'personal' && mode === 'live',
+          careAideDemo: q.get('demo') === 'personal' && mode === 'resident',
           fixture: q.get('fixture') || 'change', lang: q.get('lang'),
           device: q.get('device')};
 }
@@ -51,10 +52,11 @@ function checkDeviceId(params, storage = () => window.localStorage) {
   if (params.mode === 'runner') return 'runner-phone';
   try {
     const store = storage();
-    const key = `${DEVICE_KEY}-${params.mode}`;
+    const deviceMode = params.careAideDemo ? 'live' : params.mode;
+    const key = `${DEVICE_KEY}-${deviceMode}`;
     let id = clean(store.getItem(key));
     if (!id) {
-      id = `${params.mode}-device-${Math.random().toString(36).slice(2, 12)}`;
+      id = `${deviceMode}-device-${Math.random().toString(36).slice(2, 12)}`;
       store.setItem(key, id);
     }
     return id;
@@ -256,6 +258,17 @@ function renderResult(host, result, blob) {
 async function renderCheck(main) {
   const params = checkParams();
   if (params.mode === 'resident') {  // BL-31 resident and PSW experience, check-resident.js
+    if (params.careAideDemo) {
+      const person = (state.session.patients || []).find((p) => p.capture_mode === 'live'
+        && p.scripted_cohort !== true && (!params.patient || p.id === params.patient));
+      if (!person || params.mock) {
+        main.replaceChildren(el('h1', 'Voice check unavailable'),
+          el('p', 'Choose the assigned live volunteer. This flow requires a real recording.'));
+        return;
+      }
+      params.patient = person.id;
+      personalDemoDisclosure();
+    }
     if (params.patient) return renderResidentCheck(main, params, params.patient);
     return renderResidentLanding(main, params);
   }

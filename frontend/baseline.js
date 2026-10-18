@@ -246,6 +246,7 @@ function personalDemoDisclosure() {
 }
 
 async function renderUnit(main) {
+  const pollMs = (state.session?.patients || []).some((p) => p.capture_mode === 'live') ? 2000 : POLL_MS;
   if (new URLSearchParams(location.search).get('demo') === 'personal') personalDemoDisclosure();
   if (state.unitStop) state.unitStop();
   main.replaceChildren();
@@ -343,7 +344,7 @@ async function renderUnit(main) {
       renderUnitData(body, data);
       loaded = true;
       notice.hidden = true;
-      freshness.textContent = `Updated ${new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} · refreshes every ${POLL_MS / 1000} seconds while visible`;
+      freshness.textContent = `Updated ${new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} · refreshes every ${pollMs / 1000} seconds while visible`;
     } catch (error) {
       if (stopped) return;
       if ([401, 403, 404].includes(error.status)) {
@@ -383,7 +384,7 @@ async function renderUnit(main) {
     stopTimer();
     if (document.visibilityState === 'visible') {
       refresh();
-      timer = setInterval(refresh, POLL_MS);
+      timer = setInterval(refresh, pollMs);
     }
   }
   document.addEventListener('visibilitychange', onVisibility);
@@ -394,7 +395,7 @@ async function renderUnit(main) {
   };
   retry.addEventListener('click', refresh);
   refresh();  // load once even if the tab opened in the background
-  if (document.visibilityState === 'visible') timer = setInterval(refresh, POLL_MS);
+  if (document.visibilityState === 'visible') timer = setInterval(refresh, pollMs);
 }
 
 async function renderPage(current, renderer) {
@@ -418,7 +419,17 @@ async function render() {
   document.title = `${current.title} | Baseline`;
   const demo = location.search ? new URLSearchParams(location.search).get('demo') : null;
   if (['handoff', 'days', 'legacy-days'].includes(demo) && ['unit', 'check'].includes(current.name)) {
-    location.replace(current.name === 'unit' ? '/unit?demo=personal' : '/check?mode=live&demo=personal');
+    location.replace(current.name === 'unit' ? '/unit?demo=personal' : '/check?mode=resident&demo=personal');
+    return;
+  }
+  const query = new URLSearchParams(location.search);
+  if (current.name === 'check' && demo === 'personal' && query.get('mode') === 'live'
+      && query.get('enroll') !== '1') {
+    const target = new URLSearchParams({mode: 'resident', demo: 'personal'});
+    for (const key of ['patient', 'device', 'mock', 'lang']) {
+      if (query.has(key)) target.set(key, query.get(key));
+    }
+    location.replace(`/check?${target}`);
     return;
   }
   const handoff = (current.name === 'unit' || current.name === 'check')

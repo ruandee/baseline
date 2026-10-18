@@ -261,6 +261,7 @@ test('live volunteers join unit priority with measured verdicts; runner identiti
   assert.match(volunteer.textContent, /Live volunteer/);
   assert.equal(page.main.querySelector('[data-unit=count-watch]').textContent,
                String(data.residents.filter((r) => r.latest_verdict === 'watch').length));
+  assert.deepEqual([...page.intervals.values()].map((interval) => interval.ms), [2000]);
   assert.deepEqual(renderedRows(page.main).map((r) => r.href), data.residents.map((r) => `/resident/${r.patient_id}`));
   assert.equal(page.main.querySelector('[data-unit=count-escalate]').textContent,
                String(data.residents.filter((r) => r.latest_verdict === 'escalate').length - 1));

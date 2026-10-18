@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const {loadPage, until, FakeRecorder} = require('./harness');
 
 const people = [{id: 'volunteer', name: 'Volunteer', capture_mode: 'live', scripted_cohort: false}];
-const url = '/check?mode=live&demo=personal&patient=volunteer&device=demo-phone';
+const url = '/check?mode=live&demo=personal&enroll=1&patient=volunteer&device=demo-phone';
 const posts = (page) => page.calls.filter((c) => c.key === 'POST /v1/patients/volunteer/checks');
 const namedButton = (page, text) => page.main.querySelectorAll('button').find((b) => b.textContent === text);
 
@@ -41,7 +41,8 @@ test('personal nurse screen shows actual overview and a patient-scoped phone lin
     assert(disclosure.textContent.includes('Other residents and records are fictional'));
     assert(page.main.textContent.includes('Within normal'));
     assert(!page.main.textContent.includes('No data'));
-    assert(page.main.querySelectorAll('a').some((a) => a.href === '/check?mode=live&demo=personal&patient=volunteer'));
+    assert(page.main.querySelectorAll('a').some((a) => a.href === '/check?mode=resident&demo=personal&patient=volunteer'));
+    assert(page.main.querySelectorAll('a').some((a) => a.href.includes('mode=live&demo=personal&enroll=1')));
     assert.equal(page.window.mediaCalls, 0);
     assert(!page.calls.some((c) => c.key.startsWith('POST ') || c.key.includes('/demo/handoff')));
   } finally { vm.runInContext('if (state.unitStop) state.unitStop()', page.ctx); }
@@ -51,10 +52,71 @@ test('old demo entry URLs lead to measured mode and discard old room credentials
   for (const path of ['/unit?demo=handoff#room=old&key=old', '/unit?demo=days', '/check?mode=live&demo=legacy-days']) {
     const page = loadPage(path);
     assert.equal(page.window.location.replaced, path.startsWith('/unit')
-      ? '/unit?demo=personal' : '/check?mode=live&demo=personal');
+      ? '/unit?demo=personal' : '/check?mode=resident&demo=personal');
     assert.equal(page.calls.length, 0);
     assert.equal(page.window.mediaCalls, 0);
   }
+});
+
+test('existing personal phone links open the care-aide flow while preserving target and device', () => {
+  const page = loadPage('/check?mode=live&demo=personal&patient=volunteer&device=same-phone');
+  assert.equal(page.window.location.replaced,
+    '/check?mode=resident&demo=personal&patient=volunteer&device=same-phone');
+  assert.equal(page.calls.length, 0);
+  assert.equal(page.window.mediaCalls, 0);
+});
+
+test('care-aide demo records as PSW against the live baseline device and offers a fresh repeat', async () => {
+  const page = loadPage('/check?mode=resident&demo=personal', {patients: people, routes: {
+    'POST /v1/patients/volunteer/checks': () => ({usable: true, assessment: {verdict: 'watch'},
+      features: {speech_rate_wpm: 42}, change: {status: 'change'}}),
+  }});
+  await until(() => page.main.querySelector('.bl-record') && !page.main.querySelector('.bl-record').disabled);
+  page.window.stored.set('bl-device-id-live', 'original-baseline-phone');
+  page.main.querySelector('.bl-record').click();
+  await until(() => FakeRecorder.last && FakeRecorder.last.state === 'recording');
+  page.main.querySelector('.bl-record').click();
+  await until(() => page.main.querySelector('[data-demo-repeat]')?.hidden === false);
+  const sent = posts(page);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].opts.headers.Authorization, 'Bearer psw-t');
+  assert.equal(sent[0].opts.body.get('mode'), 'resident');
+  assert.equal(sent[0].opts.body.get('device_id'), 'original-baseline-phone');
+  assert.equal(sent[0].opts.body.get('is_baseline'), 'false');
+  assert.equal(page.main.querySelector('[data-demo-repeat]').href,
+    '/check?mode=resident&patient=volunteer&demo=personal');
+  assert(page.main.textContent.includes('Thank you'));
+  assert(!page.main.textContent.includes('Watch'));
+  assert(!page.main.textContent.includes('Speech rate'));
+  assert(!page.calls.some((c) => c.key.includes('/overview') || c.key.includes('/consent?')));
+  assert.equal(page.main.querySelector('.bl-back').href, '/check?mode=resident');
+});
+
+test('care-aide demo refuses fictional, missing and mock targets before recording', async () => {
+  for (const [suffix, patients] of [
+    ['', []], ['', [{...people[0], scripted_cohort: true}]], ['&mock=1', people],
+    ['&patient=someone-else', people],
+  ]) {
+    const page = loadPage('/check?mode=resident&demo=personal' + suffix, {patients});
+    await until(() => page.main.textContent.includes('Voice check unavailable'));
+    assert.equal(page.main.querySelector('.bl-record'), null);
+    assert.equal(page.window.mediaCalls, 0);
+    assert.equal(posts(page).length, 0);
+  }
+});
+
+test('care-aide demo never resends a recording after an ambiguous upload', async () => {
+  const page = loadPage('/check?mode=resident&demo=personal', {patients: people, routes: {
+    'POST /v1/patients/volunteer/checks': () => { throw {status: 503}; },
+  }});
+  await until(() => page.main.querySelector('.bl-record') && !page.main.querySelector('.bl-record').disabled);
+  page.main.querySelector('.bl-record').click();
+  await until(() => FakeRecorder.last?.state === 'recording');
+  page.main.querySelector('.bl-record').click();
+  await until(() => page.main.textContent.includes('check whether this recording was saved'));
+  assert.equal(posts(page).length, 1);
+  assert(page.main.querySelector('.bl-retry').hidden);
+  assert(page.main.querySelector('[data-demo-repeat]').hidden);
 });
 
 test('missing volunteer never falls back to a scripted resident', async () => {

@@ -63,6 +63,7 @@ function residentLink(params, patientId) {
   const q = new URLSearchParams({mode: 'resident'});
   if (patientId) q.set('patient', patientId);
   if (params.device) q.set('device', params.device);
+  if (params.careAideDemo && patientId) q.set('demo', 'personal');
   if (params.mock) { q.set('mock', '1'); q.set('fixture', params.fixture); }
   return `/check?${q}`;
 }
@@ -86,12 +87,15 @@ async function renderResidentLanding(main, params) {
     return;
   }
   const items = dueNowItems(residents, state.session.patients);
+  const liveVolunteer = (id) => (state.session.patients || []).some((p) =>
+    p.id === id && p.capture_mode === 'live' && p.scripted_cohort !== true);
   const list = (rows, linked) => {
     const ul = el('ul', '', {class: 'bl-due-list'});
     rows.forEach((item) => {
       const li = el('li', '');
-      const row = linked
-        ? el('a', item.name, {href: residentLink(params, item.patient_id), class: 'bl-due-item'})
+      const repeatDemo = item.status === 'done' && liveVolunteer(item.patient_id);
+      const row = linked || repeatDemo
+        ? el('a', item.name, {href: residentLink({...params, careAideDemo: params.careAideDemo || repeatDemo}, item.patient_id), class: 'bl-due-item'})
         : el('div', item.name, {class: 'bl-due-blocked'});
       if (!linked && item.status === 'consent_needed') {
         row.append(el('span', 'Consent not recorded. Ask the nurse.', {class: 'bl-due-note'}));
@@ -102,6 +106,7 @@ async function renderResidentLanding(main, params) {
           : 'Language not configured. Ask the nurse.', {class: 'bl-due-note'}));
       }
       if (item.observation_helped) row.append(el('span', 'Your observation helped', {class: 'bl-helped'}));
+      if (repeatDemo) row.append(el('span', 'Demo: record another check', {class: 'bl-due-note'}));
       li.append(row);
       ul.append(li);
     });
@@ -182,13 +187,16 @@ async function renderResidentCheck(main, params, patientId) {
     reasons.append(b);
   });
   const back = el('a', 'Back to the list', {href: residentLink(params, null), class: 'bl-back', hidden: ''});
+  const repeat = el('a', 'Record another demo check', {href: residentLink(params, patientId),
+    class: 'workspace-secondary', 'data-demo-repeat': '', hidden: ''});
   const actions = el('div', '', {class: 'bl-resident-actions'});
   actions.append(record, skip);
   const drawing = el('img', '', {src: '/assets/resident-together.svg', alt: '',
     class: 'resident-together', width: '142', height: '95'});
   const purpose = el('p', 'This records your voice for your care team. It is sent when you stop or after half a minute. You can choose Skip today to stop without sending.',
     {class: 'resident-purpose'});
-  card.append(drawing, heading, purpose, text, hear, languageLabel, actions, reasons, listening, message, resend, back);
+  if (params.careAideDemo) card.append(el('p', name ? `Voice check for ${name}` : 'Live volunteer voice check', {class: 'workspace-eyebrow'}));
+  card.append(drawing, heading, purpose, text, hear, languageLabel, actions, reasons, listening, message, resend, repeat, back);
   main.append(card);
 
   const canSpeak = typeof window.speechSynthesis !== 'undefined'
@@ -235,6 +243,7 @@ async function renderResidentCheck(main, params, patientId) {
     listening.hidden = true;
     reasons.hidden = true;
     back.hidden = false;
+    repeat.hidden = !params.careAideDemo || !['thanks', 'accepted'].includes(view);
     say(lines);
     heading.focus();
   };
@@ -293,7 +302,7 @@ async function renderResidentCheck(main, params, patientId) {
       const fixtures = params.fixture.split(',');
       data = params.mock
         ? await mockCheck(fixtures[Math.min(attempt, fixtures.length - 1)])
-        : await uploadCheck(blob, fields, () => {}, {send: async (audio, values) => {
+        : await uploadCheck(blob, fields, () => {}, {...(params.careAideDemo ? {delays: []} : {}), send: async (audio, values) => {
           if (!await validateSetup(op)) {
             const error = new Error('Counting setup no longer admits this attempt.');
             error.status = 409; throw error;
@@ -310,7 +319,11 @@ async function renderResidentCheck(main, params, patientId) {
       }
       if (error.status === 403) { console.error(error); consentBlocked(); return; }
       needHelp(error);
-      resend.hidden = false;  // staff can resend the kept clip; it is not a new attempt
+      resend.hidden = Boolean(params.careAideDemo);
+      if (params.careAideDemo) {
+        kept = null;
+        finish(['Ask the nurse to check whether this recording was saved before starting another check.'], 'help');
+      }
       return;
     }
     if (disposed || flow.done || skipping || op !== operation) return;
@@ -325,7 +338,8 @@ async function renderResidentCheck(main, params, patientId) {
       say([RESIDENT_TEXT.again]);
       record.focus();
     } else {
-      finish([RESIDENT_TEXT.thanks(name), RESIDENT_TEXT.done], step.view);
+      finish([RESIDENT_TEXT.thanks(name), params.careAideDemo
+        ? 'Your check has been sent to the care team.' : RESIDENT_TEXT.done], step.view);
     }
   }
 
