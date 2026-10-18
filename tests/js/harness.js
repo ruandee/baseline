@@ -149,9 +149,20 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, s
   const consentRoutes = Object.fromEntries(session.patients.map((p) => [
     `GET /v1/patients/${p.id}/consent`, () => ({scope: 'voice_check', state: consent[p.id] || 'granted',
                                                decided_by: 'synthetic_fixture'})]));
-  const allRoutes = {'GET /demo/session': () => session, ...consentRoutes,
+  const profiles = Object.fromEntries(session.patients.map((p) => [p.id,
+    {state: 'ready', preferred_locale: 'en', protocol_locale: 'en', prompt_version: 'count20-days-v1',
+      version: `profile-${p.id}`, can_configure: true, can_record_consent: true,
+      voice_consent_state: consent[p.id] || 'granted',
+      first_name: patients ? null : ({p1: 'Alex', p2: 'Jamie', p3: 'Sam'}[p.id] || null)}]));
+  const profileRoutes = Object.fromEntries(session.patients.map((p) => [
+    `GET /v1/patients/${p.id}/check-profile`, () => profiles[p.id]]));
+  const voiceConsentRoutes = Object.fromEntries(session.patients.map((p) => [
+    `GET /v1/patients/${p.id}/consent?scope=voice_check`, () => ({scope: 'voice_check',
+      state: consent[p.id] || 'granted', decided_by: 'synthetic_fixture'})]));
+  const allRoutes = {'GET /demo/session': () => session, ...consentRoutes, ...profileRoutes, ...voiceConsentRoutes,
     'GET /v1/checks/due': () => ({residents: session.patients.map((p) => ({patient_id: p.id,
-      display_name: p.name, status: 'due', consent_state: consent[p.id] || 'granted'}))}), ...routes};
+      display_name: p.name, status: 'due', check_profile: profiles[p.id],
+      consent_state: consent[p.id] || 'granted'}))}), ...routes};
   const fetch = async (p, opts = {}) => {
     const key = `${(opts.method || 'GET').toUpperCase()} ${p}`;
     calls.push({key, opts});
@@ -205,8 +216,8 @@ function loadPage(url, {routes = {}, mic = 'granted', speech = true, patients, s
       }
     });
   };
-for (const file of ['check-resident.js', 'check.js', 'demo-days.js', 'resident-fixtures.js', 'note-export.js', 'signal-panel.js', 'resident.js',
-    ...(kaze ? ['kaze-core.js', 'kaze-capture.js', 'kaze.js'] : []), 'motion-core.js', 'motion-capture.js', 'motion.js', 'baseline.js']) {
+for (const file of ['check-resident.js', 'check-setup.js', 'check.js', 'demo-days.js', 'resident-fixtures.js', 'note-export.js', 'signal-panel.js', 'resident.js',
+    ...(kaze ? ['kaze-core.js', 'kaze-capture.js', 'kaze-consent.js', 'kaze.js'] : []), 'motion-core.js', 'motion-capture.js', 'motion.js', 'baseline.js']) {
     vm.runInContext(fs.readFileSync(path.join(FRONTEND, file), 'utf8'), ctx, {filename: file});
   }
   return {doc, main, window, ctx, calls, spoken, errors};

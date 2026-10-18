@@ -49,6 +49,10 @@ The Dee examples below are not permission to mix two people's recordings.
 1. Use a running authorized demo origin and its dedicated runner/capture patient UUID, outside
    the twelve scripted residents. Keep the care-team session file private; never paste tokens
    in commands, screenshots or Git. Verify that this patient is in `PM_NO_ESCALATE_PATIENTS`.
+   Open `/check?mode=live&patient=<capture-uuid>` as the assigned nurse and use the counting
+   setup panel to explicitly configure the supported `en` protocol. Supply a given name only
+   if the person provides it. Save voice permission as a separate actual decision. The helper
+   requires a ready English profile and current version; it never configures language/name.
 2. Record five independent rested takes on the demo microphone/browser. Read numbers one to
    twenty followed by Monday to Sunday in each. Keep the same microphone distance and quiet
    setting; stop when finished. Each take must be usable and no longer than 30 seconds.
@@ -75,6 +79,9 @@ original AND decoded recordings, stops at the first unusable/error response, and
 receipts with check IDs/usability. It never automatically retries a POST: a timeout can mean a
 check was stored. After a partial failure, inspect the receipt and server before submitting more;
 do not re-submit the whole set blindly. No transcript or raw audio is saved in the receipt.
+Every baseline upload carries the initially admitted profile version and `protocol_locale=en`.
+A profile change stops enrollment with its partial receipt; reload and deliberately review the
+person's setup rather than silently adopting a different profile for the remaining recordings.
 
 Success means five distinct usable check receipts, not a clinical enrollment claim. Confirm the
 latest overview selects enrolled mode and exposes the expected baseline before rehearsal. The

@@ -3,8 +3,10 @@
 `/out` arms a session and records its three usable baseline clips, then check-ins. The form
 collects one or two contacts, a local-clock end time, interval (45 minutes by default), session
 explainers and whether contact escalation is enabled. The server validates all fields and
-enforces stored voice consent independently of the page checkbox. Only explicitly seeded
-synthetic fixture consent is created by setup; rerunning setup never replaces a withdrawal.
+enforces stored voice consent independently of the session acknowledgement checkbox. The
+separate stored-permission fieldset records an explicit grant, decline or withdrawal by the
+safety custodian under decision032. Page load, arm/end and reset never grant permission. Any
+explicit fixture-consent setup is for fictional fixtures only and never replaces a withdrawal.
 
 Run `uv run python -m scripts.kaze_demo` once against the migrated synthetic services. It writes
 short-lived identities to ignored `artifacts/kaze-demo/session.json`, never stdout. Choose one
@@ -22,7 +24,8 @@ more privileged token. `PM_DEMO_TOKEN` remains necessary for the ordinary hosted
 
 The page obtains microphone access only on a tap. Opt-in location is requested separately,
 after recording and only while the session is still open. Denial continues without coordinates.
-The recorder rechecks server state before microphone access and publication and cancels pending
+The recorder rechecks server state and standing permission before microphone access, after
+permission resolves and before publication. A saved permission change immediately cancels pending
 permission, capture and location callbacks on page exit, end or clock expiry. Server admission
 remains authoritative. It never attaches location to a non-session check. Raw session audio is
 removed by the upload handler regardless of debug retention.

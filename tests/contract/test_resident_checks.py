@@ -153,6 +153,10 @@ def test_declined_and_expired_consent_block(sandbox, analyses):
     renewed = client_for(sandbox).post(f"/v1/patients/{pid}/consents", json={
         "status": "granted", "decided_by": "resident", "expires_at": future})
     assert renewed.json()["state"] == "granted"
+    # Renewing permission does not infer a counting language for this new patient.
+    configured = client_for(sandbox).put(f"/v1/patients/{pid}/check-profile",
+                                       json={"preferred_locale": "en"})
+    assert configured.status_code == 200
     assert upload(sandbox, patient=pid).status_code == 200
 
 
@@ -192,7 +196,7 @@ def test_due_list_is_score_free_and_tracks_checks_skips_and_consent(sandbox, ana
     assert set(body) == {"day_start", "residents"}
     [row] = body["residents"]
     assert set(row) == {"patient_id", "display_name", "status", "consent_state",
-                        "last_check_ts", "skipped_today", "observation_helped"}
+                        "last_check_ts", "skipped_today", "observation_helped", "check_profile"}
     assert not SCORE_FIELDS & set(row)
     assert row["status"] == "due" and row["consent_state"] == "granted"
     assert row["observation_helped"] is None, "unknown, never a claimed negative"
