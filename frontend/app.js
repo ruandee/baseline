@@ -28,7 +28,7 @@ function renderRoster() {
   const query = $('patient-search').value.trim().toLowerCase();
   const patients = state.session.patients.filter(p => `${p.name} ${p.reference}`.toLowerCase().includes(query));
   $('patient-count').textContent = patients.length;
-  $('patients').innerHTML = patients.length ? patients.map(p => `<button class="patient-button ${state.patient?.id === p.id ? 'selected' : ''}" data-patient="${escapeHtml(p.id)}" aria-pressed="${state.patient?.id === p.id}"><span class="avatar">${escapeHtml(initials(p.name))}</span><span><b>${escapeHtml(p.name)}</b><small>${escapeHtml(p.reference.toUpperCase())}</small></span>${state.patient?.id === p.id ? '<span class="arrow">›</span>' : ''}</button>`).join('') : '<p class="empty">No residents match your search. Try a name or reference.</p>';
+  $('patients').innerHTML = patients.length ? patients.map(p => `<button class="patient-button ${state.patient?.id === p.id ? 'selected' : ''}" data-patient="${escapeHtml(p.id)}" aria-pressed="${state.patient?.id === p.id}"><span class="avatar">${escapeHtml(initials(p.name))}</span><span><b>${escapeHtml(p.name)}</b><small>${escapeHtml(p.reference ? p.reference.toUpperCase() : 'Reference not provided')}</small></span>${state.patient?.id === p.id ? '<span class="arrow">›</span>' : ''}</button>`).join('') : '<p class="empty">No residents match your search. Try a name or reference.</p>';
 }
 function setTab(name) {
   for (const tab of ['timeline','handover']) {
@@ -42,12 +42,13 @@ function selectPatient(id) {
   const patient = state.session?.patients.find(p => p.id === id);
   if (!patient) return;
   state.patient = patient;
+  $('global-error').hidden=true;
   state.generation++; state.evidenceSequence++; state.events=[]; state.cursor=null; state.filter='all';
   state.questionBusy=false; state.summaryBusy=false; state.timelineBusy=false;
   $('evidence-dialog').close();
   $('patient-name').textContent = state.patient.name;
   $('patient-avatar').textContent = initials(state.patient.name);
-  $('patient-reference').textContent = `${state.patient.reference.toUpperCase()} / Synthetic resident`;
+  $('patient-reference').textContent = `${state.patient.reference ? state.patient.reference.toUpperCase() : 'Reference not provided'} / Synthetic resident`;
   $('scope-name').textContent = state.patient.name + '’s';
   $('question').value=''; $('ask').disabled=false; $('generate-summary').disabled=false;
   $('generate-summary').textContent='Create handover';
@@ -143,10 +144,26 @@ async function boot(){
   bootBusy=true;
   try {
     state.session=await api('/demo/session',{headers:{'X-PM-Demo':'1'}});
+    // Reference and suggested questions are optional roster presentation fields.
+    state.session.patients=state.session.patients.map(p=>({...p,
+      name:typeof p.name==='string' && p.name.trim() ? p.name : 'Name not provided',
+      reference:typeof p.reference==='string' ? p.reference : '',
+      questions:Array.isArray(p.questions) ? p.questions.filter(q=>typeof q==='string') : [],
+    }));
     $('nav-count').textContent=state.session.patients.length;
     $('connection').textContent='Workspace connected';
     $('global-error').hidden=true;
-    if (state.session.patients.length) selectPatient(state.session.patients[0].id);
+    const linkedIds=new URLSearchParams(window.location.search).getAll('patient');
+    const linkedPatient=linkedIds.length===1 && state.session.patients.find(p=>p.id===linkedIds[0]);
+    if (linkedIds.length && !linkedPatient) {
+      renderRoster();
+      $('global-error').hidden=false;
+      $('global-error').innerHTML=notice('The requested resident is unavailable or is not assigned to you. Choose an assigned resident to continue.');
+      $('patient-name').textContent='Resident unavailable';
+      $('patient-reference').textContent='No record has been opened from this link.';
+      $('timeline').innerHTML='<p class="empty">Choose an assigned resident to see their record.</p>';
+    } else if (linkedPatient) selectPatient(linkedPatient.id);
+    else if (state.session.patients.length) selectPatient(state.session.patients[0].id);
     else {
       $('patients').innerHTML='<p class="empty">No residents are assigned to this workspace. Contact your care-team administrator.</p>';
       $('patient-name').textContent='No assigned residents';

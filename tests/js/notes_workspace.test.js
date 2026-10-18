@@ -21,7 +21,7 @@ const timeline = events => ({events,next_cursor:null,memory_revision:4,coverage:
 const answer = text => ({status:'partial',claims:[{text,section:'recent_changes',epistemic_status:'documented',evidence_ids:['e1']}],
   evidence:[{evidence_id:'e1'}],unknowns:[{topic:'sleep',reason:'missing_documentation'}],conflicts:[],
   coverage:{index_complete:true},as_of:'2026-01-02T08:00:00Z',known_at:'2026-01-02T08:00:00Z',memory_revision:4,versions:{model:'stub'}});
-function page(route, people=[patient('p1'),patient('p2')]) {
+function page(route, people=[patient('p1'),patient('p2')], search='') {
   const nodes=new Map(); const get=id=>{if(!nodes.has(id))nodes.set(id,element());return nodes.get(id);};
   const filters=['all','nursing_note','patient_report','observation','medication_event'].map(f=>({...element(),dataset:{filter:f}}));
   const tabs=element(), filterList=element(), listeners={}; const calls=[];
@@ -30,7 +30,7 @@ function page(route, people=[patient('p1'),patient('p2')]) {
   const fetch=async(url,opts={})=>{calls.push({url,opts});let data=await route(url,opts);
     if(data===undefined)data=url==='/demo/session'?session(people):timeline([]);
     return {ok:data.ok!==false,status:data.status||200,json:async()=>data};};
-  vm.runInNewContext(code,{document,fetch,URLSearchParams,Intl,Date,window:{matchMedia:()=>({matches:false})}});
+  vm.runInNewContext(code,{document,fetch,URLSearchParams,Intl,Date,window:{location:{search},matchMedia:()=>({matches:false})}});
   return {get,calls,filters,tabs,filterList,clickRetry(name){
     const target={closest:s=>s==='[data-retry]'?{dataset:{retry:name}}:null};
     (listeners.click||[]).forEach(f=>f({target}));
@@ -107,4 +107,38 @@ test('failed timeline offers scoped retry without replacing clinical unknowns wi
   h.clickRetry('timeline');await tick();
   assert(h.get('timeline').innerHTML.includes('Missing documentation does not establish a negative finding'));
   assert(h.calls.filter(c=>c.url.includes('/timeline')).every(c=>c.url.startsWith('/v1/patients/p1/timeline?')&&c.url.includes('as_of=')));
+});
+
+
+test('authorized deep link selects exactly the linked assigned resident, never the first roster entry',async()=>{
+  const h=page(()=>undefined,undefined,'?patient=p2');await tick();await tick();
+  assert.equal(h.get('patient-name').textContent,'Synthetic p2');
+  assert.equal(h.calls.length,2);
+  assert(h.calls[1].url.startsWith('/v1/patients/p2/timeline?'));
+  assert(!h.calls.some(c=>c.url.includes('/patients/p1/')));
+});
+
+test('unavailable, blank or ambiguous deep link never opens or fetches another resident',async()=>{
+  for(const search of ['?patient=unassigned','?patient=','?patient=p1&patient=p2']){
+    const h=page(()=>undefined,undefined,search);await tick();await tick();
+    assert.equal(h.get('patient-name').textContent,'Resident unavailable');
+    assert.equal(h.get('global-error').hidden,false);
+    assert(h.get('global-error').innerHTML.includes('not assigned to you'));
+    assert.equal(h.calls.length,1,'only the authorized session roster is fetched');
+    h.get('question').value='Can you retrieve this?';
+    h.get('question-form').listeners.submit({preventDefault(){}});
+    h.get('refresh').listeners.click();await tick();
+    assert.equal(h.calls.length,1,'no question or timeline request without explicit authorized selection');
+    h.select('p2');await tick();
+    assert.equal(h.get('global-error').hidden,true);
+    assert(h.calls[1].url.startsWith('/v1/patients/p2/timeline?'));
+  }
+});
+
+test('roster without optional reference/questions stays usable without inventing reference or suggestions',async()=>{
+  const h=page(()=>undefined,[{id:'p1',name:'Synthetic resident'}],'?patient=p1');await tick();await tick();
+  assert.equal(h.get('global-error').hidden,true);
+  assert(h.get('patient-reference').textContent.includes('Reference not provided'));
+  assert.equal(h.get('suggestions').innerHTML,'');
+  assert(h.calls[1].url.startsWith('/v1/patients/p1/timeline?'));
 });
