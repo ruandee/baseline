@@ -78,11 +78,14 @@ def reader_gate(conn, patient_id: UUID):
 
 
 def _row(conn, patient_id: UUID, session_id: UUID, lock=False):
-    row = conn.execute("SELECT *,ends_at<=clock_timestamp() AS past_end FROM safety_sessions "
-                       "WHERE patient_id=%s AND id=%s"
+    row = conn.execute("SELECT * FROM safety_sessions WHERE patient_id=%s AND id=%s"
                        + (" FOR UPDATE" if lock else ""), (patient_id, session_id)).fetchone()
     if not row:
         raise Problem(404, "not_found")
+    # Sample expiry after FOR UPDATE has actually acquired the row lock. A computed SELECT
+    # column can otherwise be evaluated before waiting for a concurrent session mutation.
+    row["past_end"] = conn.execute("SELECT %s<=clock_timestamp() AS past_end",
+                                   (row["ends_at"],)).fetchone()["past_end"]
     return row
 
 

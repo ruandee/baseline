@@ -1,6 +1,8 @@
 """KAZE session tables under the runtime role (decision 018): forced RLS, safety-tenant only,
 session-scoped foreign keys, the public acknowledgement function and 24 h retention."""
 import hashlib
+import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from uuid import UUID, uuid4
 
@@ -9,8 +11,9 @@ import pytest
 from psycopg.types.json import Jsonb
 
 from patient_memory.auth import Identity
-from patient_memory.baseline.sessions import arm, retire
+from patient_memory.baseline.sessions import arm, check_gate, retire
 from patient_memory.domain import SessionArm
+from patient_memory.errors import Problem
 from patient_memory.storage import transaction
 
 TABLES = ["safety_sessions", "safety_contacts", "escalation_events"]
@@ -354,6 +357,39 @@ def test_migration_owner_guard_refuses_runtime_role(kaze_sandbox):
     with pytest.raises(psycopg.errors.RaiseException, match="superuser or BYPASSRLS"):
         with transaction(kaze_sandbox["cfg"], kaze_sandbox["ids"]["service"]) as conn:
             conn.execute(guard)
+
+
+def test_expiry_is_sampled_after_waiting_for_the_session_row_lock(kaze_sandbox, admin):
+    k = kaze_sandbox
+    sid = add_session(admin, k["tenant"], k["patient"], status="active")
+    # End shortly after the reader begins. The competing transaction holds only the session
+    # row (like the end endpoint), not the patient advisory lock.
+    expires = admin.execute("UPDATE safety_sessions SET ends_at=clock_timestamp()+interval '1 second' "
+                            "WHERE id=%s RETURNING ends_at", (sid,)).fetchone()[0]
+    def gate():
+        with transaction(k["cfg"], k["ids"]["person"]) as conn:
+            check_gate(conn, k["patient"], sid, "live", False, lock=True)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        with psycopg.connect(k["cfg"].admin_database_url) as locker:
+            locker.execute("SELECT id FROM safety_sessions WHERE id=%s FOR UPDATE", (sid,))
+            future = pool.submit(gate)
+            try:
+                deadline = time.monotonic() + 3
+                while time.monotonic() < deadline:
+                    blocked = admin.execute("SELECT EXISTS(SELECT FROM pg_stat_activity "
+                                            "WHERE %s=ANY(pg_blocking_pids(pid)))",
+                                            (locker.info.backend_pid,)).fetchone()[0]
+                    if blocked:
+                        break
+                    time.sleep(.01)
+                assert blocked, "the gate must actually wait for the competing session lock"
+                admin.execute("SELECT pg_sleep(greatest(0,extract(epoch FROM "
+                              "(%s::timestamptz-clock_timestamp())))+.02)", (expires,))
+            finally:
+                locker.commit()
+        with pytest.raises(Problem) as ended:
+            future.result(timeout=5)
+        assert ended.value.status == 409 and ended.value.code == "session_ended"
 
 
 def test_ended_is_terminal_and_deletion_cannot_be_postponed(kaze_sandbox, admin):
