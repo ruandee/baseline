@@ -1,5 +1,23 @@
 # Implementation status and remaining gates
 
+Latest runtime: `38fbee2` (2026-10-18), BL-15 phone-to-unit follow-up. The existing live volunteer
+is persisted under the requested name and included in ordinary Unit priority/counts, with a
+live-volunteer label and the actual verdict. Five usable baseline captures are verified on the
+same device and prompt. The user confirmed phone capture and nurse Watch readback. At the user's
+request the intentional rehearsal was first archived reversibly, then restored with original
+capture/assessment IDs and timestamps for the Unit demonstration. No score is forced.
+The phone uses `/check?mode=resident&demo=personal`: the existing score-free care-aide flow,
+fresh demo repeats, and the original baseline device key. The PSW is assigned only to this
+volunteer and remains unable to read verdicts or mutate profile/consent. Voice checks links to
+the scoped care-aide recorder; previous personal phone links redirect there. Unit refreshes every
+two seconds while visible when a live volunteer is assigned. Baseline management uses explicit
+`enroll=1`. Header demo links remain absent. Offline frontend checks and Ruff passed before the
+user requested immediate rollout without waiting for full CI. Hosted readiness, exact changed
+assets, persisted Unit name/Watch verdict, care-aide profile/consent readiness and denial of PSW
+watchlist access were verified after deployment. Stored capture fingerprints were preserved
+through the API-only rollout. A fresh physical recording through this new care-aide link remains
+to be confirmed. PR127 remains draft for that final rehearsal; full CI was not awaited.
+
 BL-15 personal-phone replacement is deployed (decision038): `/unit?demo=personal`
 shows the actual volunteer assessment and provides its phone link. The phone has explicit rested
 baseline/check-in modes and repeated genuine recording. Nurse readback polls every two seconds
@@ -12,8 +30,8 @@ passed. The API is healthy; stored voice-check counts/identity fingerprints and 
 preserved. Private hosting configuration labels the existing live identity and disables external
 escalation for it, retaining all previous no-escalate identities and disabled audio retention.
 This builds on Danny's overnight polish in `4bf714c`, merged and deployed at 13:06 UTC.
-Five real usable baseline takes and physical-phone/nurse rehearsal remain pending; PR127 stays
-draft until that BL-15 acceptance gate is met. The hosted live capture identity had an unconfigured
+At that initial rollout, real baseline takes and physical-phone/nurse rehearsal were pending;
+the follow-up status above supersedes that gate. The hosted live capture identity had an unconfigured
 profile, unknown consent and zero baseline checks at rollout. No recording or permission write
 was performed by the implementation agent.
 
