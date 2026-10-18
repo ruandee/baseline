@@ -153,6 +153,10 @@ def test_declined_and_expired_consent_block(sandbox, analyses):
     renewed = client_for(sandbox).post(f"/v1/patients/{pid}/consents", json={
         "status": "granted", "decided_by": "resident", "expires_at": future})
     assert renewed.json()["state"] == "granted"
+    # Renewing permission does not infer a counting language for this new patient.
+    configured = client_for(sandbox).put(f"/v1/patients/{pid}/check-profile",
+                                       json={"preferred_locale": "en"})
+    assert configured.status_code == 200
     assert upload(sandbox, patient=pid).status_code == 200
 
 
