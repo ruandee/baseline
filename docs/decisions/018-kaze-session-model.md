@@ -239,3 +239,6 @@ postcommit delivery claim, and network I/O outside all transactions/locks. Migra
 only delivery_started_at and acknowledgement expiry hardening; migration 007 remains consent.
 See [decision 023](023-kaze-sms-delivery.md). GET acknowledgement retains the specified mutation
 contract; no scanner/confirmation policy change is introduced.
+BL-26 integration preserves session exclusion in PCC escalation counting after consent/PSW
+scoring integration. Clearing session profile flags must not make those assessments consume
+the resident shift budget. Session assessment responses retain false PCC suppression flags.

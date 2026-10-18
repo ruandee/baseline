@@ -46,3 +46,11 @@ Acceptance remains open: no real text was sent and no verified phone receipt or 
 acknowledgement has been demonstrated. Provider-side message retention and hosting choices need
 an explicit real-delivery review; local 24-hour DB deletion does not claim to erase a carrier or
 recipient's message history.
+
+Hosted acknowledgement links may enter through cross-site document navigation. The workspace
+permits that Fetch Metadata case only for GET with a well-formed acknowledgement token and
+navigate/document metadata. Host, client-address and Origin checks still apply; cross-site
+API requests, subresources and POSTs retain their existing refusal.
+
+Migration 009 updates consent007's narrow scoring aggregate to exclude session assessments,
+matching the ordinary PCC count. Existing migration007 is preserved for deployed databases.

@@ -80,7 +80,9 @@ def test_concurrent_delivery_and_failed_retries_are_at_most_once(kaze_sandbox, a
         return sms.send(k["cfg"], k["ids"]["service"], message, sender)
     with ThreadPoolExecutor(max_workers=2) as pool:
         jobs = [pool.submit(run) for _ in range(2)]
-        assert [job.result(timeout=10) for job in jobs] == ["failed", "failed"]
+        results = [job.result(timeout=10) for job in jobs]
+        # A duplicate may observe the durable pending claim before the first sender finishes.
+        assert "failed" in results and set(results) <= {"pending", "failed"}
     assert sender.calls == [message.event_id]
     assert sms.send(k["cfg"], k["ids"]["service"], message, sender) == "failed"
     assert len(sender.calls) == 1
@@ -199,6 +201,14 @@ def test_uncertain_delivery_remains_pending_and_cannot_retry(kaze_sandbox, admin
         with transaction(k["cfg"], k["ids"]["service"]) as conn:
             conn.execute("UPDATE escalation_events SET delivery_started_at=NULL WHERE id=%s",
                          (message.event_id,))
+    sent_at = admin.execute("SELECT sent_at FROM escalation_events WHERE id=%s",
+                             (message.event_id,)).fetchone()[0]
+    # Uncertainty does not claim acknowledgement or stop the standard next-contact timer.
+    assert run_pass(k["cfg"], k["ids"]["service"], sender,
+                    now=sent_at + timedelta(minutes=10))[0][1].level == 3
+    assert sender.calls == 2
+    assert admin.execute("SELECT delivery FROM escalation_events WHERE id=%s",
+                          (message.event_id,)).fetchone()[0] == "pending"
 
 
 def test_expired_session_cannot_begin_delivery(kaze_sandbox, admin):

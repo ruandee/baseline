@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Patient Memory \u00e2\u20ac\u201d synthetic prototype",
+    "title": "Patient Memory \u2014 synthetic prototype",
     "version": "0.1.0"
   },
   "paths": {

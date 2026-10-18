@@ -146,26 +146,23 @@ loader writes the cohort to `uid("tenant-0")`. A default local `/unit` therefore
 workspace patients with no voice checks; it shows the cohort only when `PM_DEMO_TOKEN` is set
 to the loader's `artifacts/baseline-demo/session.json` nurse token (BL-21 reset work).
 
-## BL-25 session model integration
+## Resident / PSW workflow (BL-31)
 
-Review fixes cover session expiry before capture and after locking, immutable ended-state retention,
-24-hour deletion including idempotent arm snapshots, constrained runtime grants, and unconditional
-session-audio cleanup. Session-model tests pass locally; final combined service CI remains required.
-Scheduler/SMS/pages and the held ADR 018 policy questions remain separate work.
+Migration 007 adds append-only scoped resident/SDM consent and check skips. Unknown, declined,
+withdrawn or expired consent blocks capture with audited 403 consent_required before decode/ASR
+and is checked again under the patient admission lock. PSWs use score-free due/skip/check receipts;
+ordinary PSW transactions cannot retrieve scoring data, records or evidence. Resident capture fixes
+pending-permission refusal, uses stable per-mode devices and retains the one-retry/warm-close flow.
+See decision 017. Real-browser/nontechnical tester acceptance, additional language protocols and
+source-submitter attribution for ?Your observation helped? remain open. This is synthetic only.
 
+KAZE session model, expiry/retention hardening and synthetic engineering tests from decision 018
+are integrated. Migration 007 follows 006; explicit synthetic session fixtures record consent.
+Scheduler, delivery and real-device acceptance remain separate work.
 
-### BL-26/BL-27 stacked branches (pending review)
-
-The KAZE scheduler polls every 15 seconds, uses standard 2.5/5/10/10-minute ladder timings and
-raw session change plus immutable session explainers independently of PCC suppression. Normal
-usable check-ins reset the timer. BL-27 prepares immutable messages under lock, then claims each
-delivery once and releases all locks before sender I/O. Migration 008 (after consent 007) adds
-internal delivery_started_at plus fresh-clock public-ack expiry; API GET acknowledgement returns
-minimal HTML without PHI. Defaults are redacted offline logging, no live token/coordinate outbox.
-Timeout/crash uncertainty remains pending; failed events are not resent, and sent means provider
-acceptance only. Tests use stubs/mock HTTP. Real verified-phone receipt/public ack acceptance
-remain unrun, dependencies #27/#28 are pending review/merge, and issue #29 must remain open.
-The six held ADR018 product questions remain undecided; see decision 023 for delivery mechanics.
-
-Mock Vox ingestion with separate standing consent and VAD speech-duration gating is integrated;
-see decision 016. Real Vox/audio/UI acceptance and prompt-switching decisions remain separate.
+BL-32 Vox mock adapter integration: care-team authorization, standing `vox_encounter` consent
+before decode and locked publication (403 consent_required), plus exactly one raw true request
+consent part (422 consent_not_given). Resident-only VAD speech must reach8seconds after the
+analysis cap; staff-containing temporary audio is always removed regardless of KEEP_AUDIO.
+Checks remain prompt-scoped; first-change marker uses the displayed prompt. Real speech/Vox
+UI remain unvalidated, and overview prompt switching stays on hold (decision016).

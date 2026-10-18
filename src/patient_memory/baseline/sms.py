@@ -73,8 +73,10 @@ class OutboundSms:
 
 
 class SmsSender(Protocol):
-    """`send` delivers one text and returns `logged`, `sent` (accepted by the provider, not proof
-    of receipt) or `failed`. Implementations should not raise; `deliver` guards anyway."""
+    """Return logged (simulated), sent (accepted), failed, or pending (unknown).
+
+    Provider acceptance is not proof of receipt. Implementations should not raise.
+    """
 
     name: str
 
