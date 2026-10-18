@@ -50,7 +50,7 @@ No real-data integration is authorized by these implemented milestones.
 
 Only care-team roles can write voice checks; unauthorized patients/roles return 404 before audio
 work. Multipart is allowed only on the check route, with a 2 MB whole-body limit; other routes
-remain JSON-only. Upload duration and core `/check` capture are bounded at 30 s (decision 030). Temporary audio is
+remain JSON-only. Upload duration is bounded at 30 s; product capture is 15 s. Temporary audio is
 deleted unless PM_KEEP_AUDIO=true. Unusable clips are stored for audit and receive neither
 change nor assessment. Usable clips run the actual engine/verdict service and return both.
 Whisper startup warming, browser-format contracts and extraction tests are implemented; installing
@@ -117,10 +117,9 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
   6 slow tests were deselected. Its actual DB test requires all 12 canonical labels/actions,
   idempotency, exact evidence, RLS/revocation and contamination rejection. Final integrated CI
   is tracked on PRs #60/#53/#61; no local Docker/DB run is claimed.
-- Dee authorized local golden-recording evaluation: the original suite passed quality, slow-rate
-  and deliberate-pause tests but failed the stairs pitch expectation. Decision 030 explicitly
-  makes stairs exploratory, preserving that failure. Five distinct API-enrolled rested checks
-  and a live readback/rehearsal remain outstanding; the feature loader does not validate real audio.
+- Real golden recordings, slow Whisper/VAD acceptance and runner baseline/backup/race clips
+  remain outstanding. Recordings are on hold. FFmpeg is installed locally; no real audio has
+  been validated by the feature loader.
 - Public HTTPS/DNS/token configuration, LTE Safari/Chrome capture and warm host p95 below 5 s
   remain acceptance work. UI evidence/SBAR readback passes API-captured DOM and lifecycle tests;
   physical-phone readback has not been verified.
@@ -215,28 +214,6 @@ BL-21 reset (merged #79): fixture-only current-time reset verifies all twelve
 canonical outcomes, preserves unrelated recordings/consent, refreshes private nurse/PSW/KAZE
 credentials and configures runner suppression. Hosted reset under one minute remains unverified.
 
-BL-31 resident counting profiles (decision031/migration014, following013): assigned care staff
-explicitly configure a nullable given name and preferred locale using `GET/PUT
-/v1/patients/{id}/check-profile`. Only exact `en` maps to the existing English
-`count20-days-v1` protocol. Missing/unsupported profiles block counting before decode and
-appear as a score-free language-setup state on the PSW due list/direct check page; no English
-fallback or roster-name guessing occurs. Admission rejects profile-version changes during
-processing and appends a protocol snapshot without rewriting historical checks or fixture hashes.
-Known fixture loaders explicitly seed English with no inferred given name, preserving existing
-choices. Volunteer capture people remain unconfigured until the care team deliberately sends,
-for example, `{"preferred_locale":"en","first_name":"Mary Ann"}` to that endpoint; this
-does not grant consent. KAZE session and Vox free-conversation contracts remain unchanged.
-Nurse live/runner capture pages provide explicit profile and standing voice-permission forms,
-so setup needs no terminal. Permission requires the actual decision, decision maker, confirmation
-and SDM reference when applicable. Missing/withdrawn permission keeps Record disabled; the PSW
-view receives no setup form or SDM details.
-Beginning any setup mutation immediately clears readiness and invalidates microphone/recorder
-callbacks; stale preflight reads cannot re-enable capture during a pending write. A fresh tap
-is required after setup returns ready. Resident microphone attempts and both resident/nurse
-uploads, resends and automatic retries recheck current effective consent and profile; PSWs use
-only the score-free consent-state field in the existing profile projection.
-Phone screenshots use synthetic loopback responses with no microphone access; real-device,
-golden-recording and clinical acceptance gates remain open.
 BL-34 motion integration (pending main CI): local-only camera/pose processing uses pinned
 self-hosted assets and uploads bounded client-derived measurements with unknown-by-default
 motion consent. Final migration011 guards require explicit scoring authorization, including
@@ -244,24 +221,6 @@ unset-context denial. Exact source provenance, RLS, purge and projection tests p
 feature head; real Chrome model startup/failure used no camera or remote requests. Physical
 phone/camera and three measurements in under15seconds remain unverified (Refs #36).
 
-BL-06/15/17 live demo revision (decision 030): Dee replaces the remote caller; core browser
-capture permits 30 seconds with manual Stop and the unchanged 30-second server/2 MB body caps.
-The API-only enrollment helper requires five distinct rested takes, current care-team access and
-recorded consent; it preserves receipts and never automatically retries a POST. It does not
-override consent withdrawals. On-stage live mode uses the enrolled capture patient/device to
-show measurements; runner mode remains a receipt view. Breathlessness is deferred. Three golden
-acceptance gates remain; stairs is a quality-checked exploratory report. Actual enrollment and
-physical browser/host/rehearsal acceptance are not claimed by implementation or synthetic CI.
-
-Local revision validation: lint and 578 unit tests passed (five optional slow tests deselected),
-plus the revised three-test real Whisper golden suite passed on Dee's original four recordings.
-The original stairs pitch failure remains in decision 030. Local Compose cannot connect to the
-Docker engine while Windows activation/restart is pending; full service acceptance uses CI and
-does not establish that a particular live deployment or phone has passed rehearsal.
-
-Latest live-demo handoff: actual enrollment is paused in this agent and delegated to a teammate.
-An optional fixed-outcome presentation is documented as a labelled simulation plan only; no
-hardcoded verdict or write into real capture history is implemented.
 BL-35 integration: explicit resting HR/RR observations feed current-revision signal projections
 and isolated synthetic RR-rise acceptance; unknown rest/time/units stay unavailable. ADR028
 records engineering-only vitals parameters and012scoped PSW facts; ordinary evidence remains
@@ -278,9 +237,10 @@ true-or-unknown own-note credit in the score-free due list. Ordinary PSW clinica
 denied; legacy source serialization/reset hashes are preserved. Decision033/migration013 record
 the feedback-only freshness and exact current-citation gates. Exact-head CI remains required.
 
-Live capture integration: explicit English profile/version preflight now precedes baseline decode;
-each helper POST binds that version/locale and preserves partial receipts on409. Canonical PCM
-uniqueness prevents metadata-only duplicate takes. A distinct setup-mutation epoch invalidates
-old nurse upload/retry closures even after regrant or failed saves; reads alone preserve retries.
-Late resident microphone failures after page exit are discarded. Golden/phone/host acceptance
-remains external; no personal audio or live provider call was used for these integration checks.
+## Pending full-product integration
+
+BL-15/31 and BL-28 integration includes explicit English counting profiles, consent and capture
+mutation cancellation, canonical PCM baseline uniqueness, and version-bound live enrollment.
+Accepted ADR030 records the revised live-voice protocol and preserves the original stairs failure.
+Accepted ADR032 adds only the assigned safety custodian's own voice permission; unknown remains
+the default. Migrations014/015 and final combined CI are pending; no physical acceptance claimed.

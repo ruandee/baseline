@@ -7,7 +7,7 @@ import pytest
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="Node required")
-@pytest.mark.parametrize("filename", ["kaze_capture.test.js", "kaze_pages.test.js"])
+@pytest.mark.parametrize("filename", ["kaze_capture.test.js", "kaze_pages.test.js", "kaze_permission.test.js"])
 def test_kaze_capture_browser_contracts(filename):
     root = Path(__file__).resolve().parents[2]
     result = subprocess.run([shutil.which("node"), "--test", f"tests/js/{filename}"],
