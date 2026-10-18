@@ -295,6 +295,29 @@ def check_in(k, sid, clip, is_baseline, **fields):
         files={"audio": ("clip", clip, "application/octet-stream")})
 
 
+@pytest.mark.parametrize("tags,expected", [([], {}), (["exertion"], {}),
+                                        (["loud_venue"], {"loud_venue": True})])
+def test_noise_tolerance_comes_only_from_authorized_stored_session(
+        kaze_sandbox, monkeypatch, tags, expected):
+    k = kaze_sandbox
+    sid = arm(k, context_tags=tags).json()["id"]
+    calls = []
+
+    def analyze(*args, **kwargs):
+        calls.append(kwargs)
+        return Analysis(False, {**QUALITY, "reasons": ["too_short"]}, BASE, [], [], {})
+
+    monkeypatch.setattr("patient_memory.api.analyze", analyze)
+    # An extra form field cannot request relaxed quality; stored session context wins.
+    response = check_in(k, sid, b"synthetic stub", True, loud_venue="true")
+    assert response.status_code == 200, response.text
+    assert calls == [expected]
+    assert response.json()["usable"] is False
+    # A foreign session never reaches audio analysis, even if the form asks for tolerance.
+    response = check_in(k, str(uuid4()), b"synthetic stub", True, loud_venue="true")
+    assert response.status_code == 404 and calls == [expected]
+
+
 @needs_ffmpeg
 def test_three_baseline_clips_activate_the_session(kaze_sandbox, usable_clip):
     k = kaze_sandbox
