@@ -75,7 +75,29 @@ Record acceptance in #22 before closing:
   patient returning 404.
 - Phone with Wi-Fi disabled: HTTPS microphone permission, ten-second synthetic counting clip,
   result including unusable/error states; actual Safari/mp4 and Chrome/webm verification.
-- Warm upload-to-result latency: BL-07 target is p95 below five seconds.
+- Warm upload-to-result latency: BL-07 target is p95 below five seconds. Measure it with
+  `scripts/measure_checks_latency.py` from an operator laptop, once Whisper has loaded:
+
+  ```sh
+  uv run python -m scripts.measure_checks_latency \
+    --base-url https://YOUR_HOST --session-file PRIVATE_NURSE_SESSION.json \
+    --patient-id DEDICATED_SYNTHETIC_PATIENT_UUID --clips take1.wav take2.webm \
+    --release-sha DEPLOYED_SHA --whisper-model base --host "YOUR_HOST, GCE 4 vCPU/16 GB" \
+    --samples 20 --warmup 2
+  ```
+
+  Every POST stores a scored check, so use a dedicated synthetic patient outside the storyline
+  (granted consent and a ready counting profile), or run only right before a hosted reset. Use a
+  care-team token: a PSW token returns no timings and the tool stops. Clips (under 2 MB) are
+  uploaded as-is, round-robin, so use real phone-format recordings (webm/mp4) for the decode cost
+  to be representative. The warmup defaults to one upload per clip (minimum two). The tool times
+  each POST on the client, reports nearest-rank p50/p95/max over the measured samples (warmup
+  excluded), and never retries. It cannot see the host, so the release SHA, Whisper model and host
+  note are operator-declared. The private result lands in `artifacts/latency/` (gitignored); post
+  the printed summary, which carries the declared SHA, host, model, sample count and p95, in
+  #22/#9. `meets_target_p95` is null for loopback, incomplete or under-20-sample runs, which are
+  labelled `not_acceptance` or carry a warning. The result is evidence for the gate, not its
+  closure.
 - `/unit` against the loaded roster, plus `/resident/{id}` and its evidence readback.
 
 ## Verified deployment snapshot: 2026-10-18 UTC
