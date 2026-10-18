@@ -156,7 +156,7 @@ within-normal by fused z, the patient with no checks last) and then runs
 `tests/js/unit_page.test.mjs` under Node against that captured response. The JS test asserts
 rendered order equals API order (no client re-sort), a 10 s interval, no timer or requests
 while hidden, an immediate refresh and a new 10 s interval when visible again, and a single
-load for a background-opened tab. `tests/unit/test_unit_page_js.py` runs the same JS test on a
+load for a background-opened tab. The batch in `tests/unit/test_frontend_js.py` runs it on a
 committed schema-shaped fixture; both skip only when Node is missing.
 
 Known gap: `scripts.frontend` mints its token for the eval-corpus workspace tenant, while the

@@ -3,7 +3,7 @@ import json
 
 from scripts.load_baseline_demo import DemoScope, load_demo
 from tests.contract.test_frontend import workspace_client
-from tests.unit.test_resident_live_js import run_resident_js
+from tests.js_runner import run_js_suites
 
 
 def test_loaded_resident_citations_and_editable_draft(sandbox, tmp_path):
@@ -47,4 +47,4 @@ def test_loaded_resident_citations_and_editable_draft(sandbox, tmp_path):
     fixture = tmp_path / "resident.json"
     fixture.write_text(json.dumps(dict(overview=overview, evidence=evidence, note=note.json())),
                        encoding="utf-8")
-    run_resident_js(fixture)
+    run_js_suites("resident_live.test.js", fixture_env={"RESIDENT_LIVE_FIXTURE": str(fixture)})
