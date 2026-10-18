@@ -77,7 +77,8 @@ body.care-app {
   .care-app .bl-nav .brand { flex: 1 1 calc(100% - 80px); margin: 0 0 7px; padding: 0; min-height: 40px; }
   .care-app .bl-nav > a:not(.brand) { flex: 1 1 auto; min-height: 44px; padding: 9px 10px; font-size: 12px; }
   .care-app .nav-section-label { display: none; }
-  .care-app .nav-foot { display: none; }
+  .care-app .nav-foot { display: block; flex: 1 1 100%; margin: 3px 0 0; padding: 0 9px; }
+  .care-app .nav-foot p { display: none; }
   .care-app .bl-main { margin: 0; padding: 27px 17px 45px; }
   .care-app .bl-skip-link { left: 12px; }
   .workspace-panel { padding: 20px; }

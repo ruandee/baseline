@@ -3,7 +3,9 @@ const assert = require('node:assert/strict');
 const {loadPage, until, tick} = require('./harness');
 
 const overview = {baseline: {n_checks: 5}, latest_assessment: {
-  change: {status: 'none', per_feature: {speech_rate_wpm: {z: 0, median: 100, scale: 5}}},
+  modality: 'speech', modalities: {speech: {current: true, status: 'none',
+    params: {prompt_version: 'count20-days-v1', baseline_checks: 5},
+    per_feature: {speech_rate_wpm: {z: 0, median: 100, scale: 5}}}},
 }};
 const path = '/check?nurse=1&patient=p1';
 const overviewRoute = {'GET /v1/patients/p1/overview?days=30': () => overview};
@@ -44,6 +46,20 @@ test('unsupported profile blocks recorder and exposes honest setup step', async 
   assert(page.main.textContent.includes('Language is not supported'));
   assert(!page.main.textContent.includes('Open recorder'));
 });
+
+for (const [name, speech] of [
+  ['stale speech', {...overview.latest_assessment.modalities.speech, current: false}],
+  ['another prompt', {...overview.latest_assessment.modalities.speech, params: {prompt_version: 'vox-v1', baseline_checks: 5}}],
+]) {
+  test(`${name} never becomes a current counting comparison`, async () => {
+    const page = loadPage(path, {routes: {'GET /v1/patients/p1/overview?days=30': () => ({
+      baseline: {n_checks: 5}, latest_assessment: {modality: 'motion', modalities: {speech}},
+    })}});
+    await until(() => page.main.textContent.includes('Open recorder'));
+    assert(page.main.textContent.includes('Not established for this counting prompt'));
+    assert(!page.main.textContent.includes('5 prior checks'));
+  });
+}
 
 test('unavailable readiness has a working explicit retry and no recording link', async () => {
   let failed = true;

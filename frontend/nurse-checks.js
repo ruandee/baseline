@@ -71,13 +71,15 @@ window.renderNurseChecks = async function(main, {api, el, session}) {
         : profile.state === 'unsupported' ? 'Language is not supported — recording is blocked'
           : 'Details need confirmation — recording is blocked', profile.state === 'ready' ? 'ready' : 'blocked');
       const assessment = overview.latest_assessment;
-      const baseline = overview.baseline || {};
-      const hasComparison = assessment && ['none', 'provisional', 'change'].includes(assessment.change?.status)
-        && Object.values(assessment.change?.per_feature || {}).some((feature) =>
+      const speech = assessment?.modalities?.speech;
+      const hasComparison = speech?.current === true && profile.prompt_version
+        && speech.params?.prompt_version === profile.prompt_version
+        && ['none', 'provisional', 'change'].includes(speech.status)
+        && Object.values(speech.per_feature || {}).some((feature) =>
           feature && Number.isFinite(feature.median) && Number.isFinite(feature.scale) && Number.isFinite(feature.z));
       item('Personal comparison', hasComparison
-        ? `Available in the latest assessment${Number.isInteger(baseline.n_checks) ? ` · ${baseline.n_checks} prior checks` : ''}`
-        : 'Not established in the latest assessment. A new check may still be enrolling.', hasComparison ? 'ready' : 'unknown');
+        ? `Available in the latest assessment${Number.isInteger(speech.params.baseline_checks) ? ` · ${speech.params.baseline_checks} prior checks` : ''}`
+        : 'Not established for this counting prompt in the latest assessment. A new check may still be enrolling.', hasComparison ? 'ready' : 'unknown');
       details.append(list);
       const actions = el('div', '', {class: 'workspace-actions'});
       actions.append(el('a', ready ? 'Open recorder' : 'Review recording setup', {href: linkFor(id), class: 'workspace-primary'}),
