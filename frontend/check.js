@@ -2,7 +2,7 @@
 // Built against the POST /v1/patients/{id}/checks shape in docs/06-baseline.md; ?mock=1 serves
 // fixtures from check-fixtures.js instead of calling the API.
 const CHECK_PROMPT = 'Count from one to twenty, then say the days of the week, starting with Monday.';
-const CHECK_MAX_S = 15;
+const CHECK_MAX_S = 30;
 const CHECK_RETRY_MS = [1000, 3000, 9000];
 const CHECK_MODES = ['resident', 'runner', 'live'];
 const FEATURES = [
@@ -356,7 +356,7 @@ async function renderCheck(main) {
     };
     tick();
     timer = setInterval(tick, 250);
-    limit = setTimeout(stop, CHECK_MAX_S * 1000);  // auto-stop at 15 s
+    limit = setTimeout(stop, CHECK_MAX_S * 1000);  // manual Stop remains available throughout
   });
   retry.addEventListener('click', () => {
     result.replaceChildren();
