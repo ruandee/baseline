@@ -50,7 +50,7 @@ No real-data integration is authorized by these implemented milestones.
 
 Only care-team roles can write voice checks; unauthorized patients/roles return 404 before audio
 work. Multipart is allowed only on the check route, with a 2 MB whole-body limit; other routes
-remain JSON-only. Upload duration is bounded at 30 s; product capture is 15 s. Temporary audio is
+remain JSON-only. Upload duration and core `/check` capture are bounded at 30 s (decision 027). Temporary audio is
 deleted unless PM_KEEP_AUDIO=true. Unusable clips are stored for audit and receive neither
 change nor assessment. Usable clips run the actual engine/verdict service and return both.
 Whisper startup warming, browser-format contracts and extraction tests are implemented; installing
@@ -117,9 +117,10 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
   6 slow tests were deselected. Its actual DB test requires all 12 canonical labels/actions,
   idempotency, exact evidence, RLS/revocation and contamination rejection. Final integrated CI
   is tracked on PRs #60/#53/#61; no local Docker/DB run is claimed.
-- Real golden recordings, slow Whisper/VAD acceptance and runner baseline/backup/race clips
-  remain outstanding. Recordings are on hold. FFmpeg is installed locally; no real audio has
-  been validated by the feature loader.
+- Dee authorized local golden-recording evaluation: the original suite passed quality, slow-rate
+  and deliberate-pause tests but failed the stairs pitch expectation. Decision 027 explicitly
+  makes stairs exploratory, preserving that failure. Five distinct API-enrolled rested checks
+  and a live readback/rehearsal remain outstanding; the feature loader does not validate real audio.
 - Public HTTPS/DNS/token configuration, LTE Safari/Chrome capture and warm host p95 below 5 s
   remain acceptance work. UI evidence/SBAR readback passes API-captured DOM and lifecycle tests;
   physical-phone readback has not been verified.
@@ -213,3 +214,18 @@ final exact-head CI remains authoritative after hosting/status integration.
 BL-21 reset (pending combined CI): fixture-only current-time reset verifies all twelve
 canonical outcomes, preserves unrelated recordings/consent, refreshes private nurse/PSW/KAZE
 credentials and configures runner suppression. Hosted reset under one minute remains unverified.
+
+BL-06/15/17 live demo revision (decision 027): Dee replaces the remote caller; core browser
+capture permits 30 seconds with manual Stop and the unchanged 30-second server/2 MB body caps.
+The API-only enrollment helper requires five distinct rested takes, current care-team access and
+recorded consent; it preserves receipts and never automatically retries a POST. It does not
+override consent withdrawals. On-stage live mode uses the enrolled capture patient/device to
+show measurements; runner mode remains a receipt view. Breathlessness is deferred. Three golden
+acceptance gates remain; stairs is a quality-checked exploratory report. Actual enrollment and
+physical browser/host/rehearsal acceptance are not claimed by implementation or synthetic CI.
+
+Local revision validation: lint and 578 unit tests passed (five optional slow tests deselected),
+plus the revised three-test real Whisper golden suite passed on Dee's original four recordings.
+The original stairs pitch failure remains in decision 027. Local Compose cannot connect to the
+Docker engine while Windows activation/restart is pending; full service acceptance uses CI and
+does not establish that a particular live deployment or phone has passed rehearsal.
