@@ -24,6 +24,8 @@ Importers can retract or change source visibility, bumping revision and invalida
 
 `POST .../sources/{id}/purge` immediately retracts a source and queues erasure. A worker deletes its S3 object, facts, embeddings, relationships and cached answers, then clears payload/canonical text. Failed object deletion retries after 30 seconds. Non-content IDs, hashes, job state and audit metadata remain. Earlier backups are outside active-store purge: an actual pilot needs a backup expiry/deletion policy.
 
+KAZE safety sessions (decision 018) are deleted 24 h after they end by `pm_retire_safety_sessions()`, together with their checks, locations, assessments, contacts, escalation events and arm idempotency snapshot. Run the worker for the `kaze-demo` tenant as the `kaze-service` principal (`python -m scripts.kaze_demo` prints both IDs); it calls retention at most once a minute. Migrations must run as a superuser or BYPASSRLS role (`PM_ADMIN_DATABASE_URL`): migration 006 refuses otherwise, because its SECURITY DEFINER functions (`pm_safety_tenant`, `pm_acknowledge_escalation`, `pm_retire_safety_sessions`) rely on their owner bypassing forced RLS and scope rows themselves. Do not reassign their ownership to an RLS-bound role.
+
 ## Repair and reconciliation
 
 ```powershell

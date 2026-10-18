@@ -126,3 +126,35 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
 Follow README/operations and the exact CI order before claiming a new integrated milestone done.
 Do not introduce real patient data before source permissions, hosting, provider handling and
 clinical ownership are decided.
+
+## BL-18 live acceptance (Refs #20)
+
+`tests/contract/test_unit_watchlist_live.py` loads the BL-14 cohort (scenario-snapshots,
+offline) into a sandbox tenant, reads `/v1/watchlist` through the workspace app and demo token
+the page uses, checks that every field `/unit` reads in `frontend/baseline.js` exists in the
+live payload, checks the sort contract (Mrs. K escalate, Mrs. L watch, Mr. T explained, nine
+within-normal by fused z, the patient with no checks last) and then runs
+`tests/js/unit_page.test.mjs` under Node against that captured response. The JS test asserts
+rendered order equals API order (no client re-sort), a 10 s interval, no timer or requests
+while hidden, an immediate refresh and a new 10 s interval when visible again, and a single
+load for a background-opened tab. `tests/unit/test_unit_page_js.py` runs the same JS test on a
+committed schema-shaped fixture; both skip only when Node is missing.
+
+Known gap: `scripts.frontend` mints its token for the eval-corpus workspace tenant, while the
+loader writes the cohort to `uid("tenant-0")`. A default local `/unit` therefore lists the
+workspace patients with no voice checks; it shows the cohort only when `PM_DEMO_TOKEN` is set
+to the loader's `artifacts/baseline-demo/session.json` nurse token (BL-21 reset work).
+
+## Resident / PSW workflow (BL-31)
+
+Migration 007 adds append-only scoped resident/SDM consent and check skips. Unknown, declined,
+withdrawn or expired consent blocks capture with audited 403 consent_required before decode/ASR
+and is checked again under the patient admission lock. PSWs use score-free due/skip/check receipts;
+ordinary PSW transactions cannot retrieve scoring data, records or evidence. Resident capture fixes
+pending-permission refusal, uses stable per-mode devices and retains the one-retry/warm-close flow.
+See decision 017. Real-browser/nontechnical tester acceptance, additional language protocols and
+source-submitter attribution for ?Your observation helped? remain open. This is synthetic only.
+
+KAZE session model, expiry/retention hardening and synthetic engineering tests from decision 018
+are integrated. Migration 007 follows 006; explicit synthetic session fixtures record consent.
+Scheduler, delivery and real-device acceptance remain separate work.

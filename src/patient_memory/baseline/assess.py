@@ -15,7 +15,7 @@ from patient_memory.baseline.verdict import (
 )
 from patient_memory.config import Settings
 from patient_memory.ingestion import lock_patient
-from patient_memory.storage import patient_access
+from patient_memory.storage import check_writer_access
 
 
 def lock_assessment(conn, tenant_id: UUID, patient_id: UUID):
@@ -51,6 +51,10 @@ def valid_tags(conn, patient_id: UUID, at: datetime) -> list[dict]:
 
 def escalations_used(conn, now: datetime, cfg: Settings) -> int:
     start, end = shift_bounds(now, cfg.shift_timezone)
+    if conn.execute("SELECT nullif(current_setting('pm.check_scoring_patient',true),'') AS p"
+                    ).fetchone()["p"]:
+        return conn.execute("SELECT pm_check_escalations(%s,%s) AS n", (start, end)
+                            ).fetchone()["n"]
     # Counted by when the clip was recorded, so history loaded in bulk never uses today's budget.
     return conn.execute(
         "SELECT count(*) AS n FROM assessments a JOIN voice_checks v ON v.tenant_id=a.tenant_id "
@@ -60,12 +64,15 @@ def escalations_used(conn, now: datetime, cfg: Settings) -> int:
     ).fetchone()["n"]
 
 
-def _history(conn, patient_id: UUID, before: datetime, prompt_version: str) -> list[Check]:
+def _history(conn, patient_id: UUID, before: datetime, prompt_version: str,
+             session_id: UUID | None = None) -> list[Check]:
+    # A KAZE session is compared only with its own arm-time baseline; checks outside a session
+    # never use session clips (decision 018).
     rows = conn.execute(
         "SELECT id,ts,device_id,prompt_version,is_baseline,usable,speech_rate_wpm,pause_ratio,"
         "mean_pause_s,f0_median_hz FROM voice_checks WHERE patient_id=%s AND usable AND ts<%s "
-        "AND prompt_version=%s ORDER BY ts DESC",
-        (patient_id, before, prompt_version)).fetchall()
+        "AND prompt_version=%s AND session_id IS NOT DISTINCT FROM %s ORDER BY ts DESC",
+        (patient_id, before, prompt_version, session_id)).fetchall()
     return [Check(str(r["id"]), r["ts"], r["device_id"], r["prompt_version"], r["is_baseline"],
                   r["usable"], {n: r[n] for n in FEATURES}) for r in rows]
 
@@ -80,12 +87,13 @@ def change_payload(assessment, mode: str) -> dict:
 
 def assess_check(conn, cfg: Settings, patient_id: UUID, tenant_id: UUID, check_id: UUID,
                  ts: datetime, device_id: str, prompt_version: str, is_baseline: bool,
-                 features: dict, display_name: str) -> tuple[dict, dict]:
+                 features: dict, display_name: str,
+                 session_id: UUID | None = None) -> tuple[dict, dict]:
     """Returns the (change, assessment) payloads of POST /checks and stores the assessment row."""
-    patient_access(conn, patient_id)
+    check_writer_access(conn, patient_id)
     lock_assessment(conn, tenant_id, patient_id)
-    patient_access(conn, patient_id)
-    history = _history(conn, patient_id, ts, prompt_version)
+    check_writer_access(conn, patient_id)
+    history = _history(conn, patient_id, ts, prompt_version, session_id)
     mode = "enrolled" if sum(c.is_baseline for c in history) >= MIN_BASELINE else "rolling"
     check = Check(str(check_id), ts, device_id, prompt_version, is_baseline, True, dict(features))
     result = evaluate(check, history, mode, cfg)

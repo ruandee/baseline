@@ -6,6 +6,7 @@ import pytest
 
 from patient_memory.auth import Identity
 from patient_memory.config import Settings
+from patient_memory.consent import grant_fixture_consent
 from patient_memory.objects import ObjectStore
 
 
@@ -35,7 +36,7 @@ def db_clock_in_step():
 def sandbox(db_clock_in_step):
     cfg = Settings()
     tenant, patient = uuid4(), uuid4()
-    actors = {role: uuid4() for role in ["admin", "importer", "nurse", "patient"]}
+    actors = {role: uuid4() for role in ["admin", "importer", "nurse", "patient", "psw"]}
     with psycopg.connect(cfg.admin_database_url) as conn:
         conn.execute("INSERT INTO tenants VALUES(%s,'synthetic-test')", (tenant,))
         for role, actor in actors.items():
@@ -43,9 +44,39 @@ def sandbox(db_clock_in_step):
                          (actor, tenant, "synthetic-" + role, role == "admin"))
         conn.execute("INSERT INTO patients(id,tenant_id,external_id) VALUES(%s,%s,'synthetic-test')",
                      (patient, tenant))
-        for role in ["importer", "nurse", "patient"]:
+        for role in ["importer", "nurse", "patient", "psw"]:
             conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,%s,true)",
                          (tenant, patient, actors[role], role))
+        # Decision 017: checks need recorded consent. Granted deliberately for the fixture.
+        grant_fixture_consent(conn, tenant, patient, actors["importer"])
     objects = ObjectStore(cfg)
     objects.initialize()
     return cfg, patient, {role: Identity(actor, tenant) for role, actor in actors.items()}, objects
+
+
+@pytest.fixture
+def kaze_sandbox(db_clock_in_step):
+    """A safety-mode tenant (decision 018): two people, each importer on their own row, the
+    kaze-service principal as nurse on both, and an unassigned administrator."""
+    cfg = Settings()
+    tenant = uuid4()
+    ids = {name: uuid4() for name in ["person", "other", "service", "admin"]}
+    with psycopg.connect(cfg.admin_database_url) as conn:
+        conn.execute("INSERT INTO tenants(id,name,safety_mode) VALUES(%s,'synthetic-kaze',true)",
+                     (tenant,))
+        for name, actor in ids.items():
+            conn.execute("INSERT INTO principals(id,tenant_id,name,administrator) VALUES(%s,%s,%s,%s)",
+                         (actor, tenant, "synthetic-" + name, name == "admin"))
+        for name in ["person", "other"]:
+            conn.execute("INSERT INTO patients(id,tenant_id,external_id) VALUES(%s,%s,%s)",
+                         (ids[name], tenant, "synthetic-kaze-" + name))
+            conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,'importer',true)",
+                         (tenant, ids[name], ids[name]))
+            conn.execute("INSERT INTO assignments VALUES(%s,%s,%s,'nurse',true)",
+                         (tenant, ids[name], ids["service"]))
+            grant_fixture_consent(conn, tenant, ids[name], ids[name])
+    objects = ObjectStore(cfg)
+    objects.initialize()
+    return {"cfg": cfg, "tenant": tenant, "patient": ids["person"], "other_patient": ids["other"],
+            "ids": {name: Identity(actor, tenant) for name, actor in ids.items()},
+            "objects": objects}

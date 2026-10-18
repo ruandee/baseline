@@ -28,7 +28,30 @@ function checkParams() {
   const q = new URLSearchParams(location.search);
   const mode = CHECK_MODES.includes(q.get('mode')) ? q.get('mode') : 'resident';
   return {mode, patient: q.get('patient'), mock: q.get('mock') === '1',
-          fixture: q.get('fixture') || 'change'};
+          fixture: q.get('fixture') || 'change', lang: q.get('lang') || 'en',
+          device: q.get('device')};
+}
+
+// The engine prefers same-device history when picking a baseline, so device_id must be stable:
+// ?device= wins, runner mode defaults to 'runner-phone' (docs/06-baseline.md), otherwise a
+// random id remembered by this browser. Storage can be blocked; fall back to 'check-page'.
+const DEVICE_KEY = 'bl-device-id';
+function checkDeviceId(params, storage = () => window.localStorage) {
+  const clean = (v) => (typeof v === 'string' ? v.replace(/[^\w.-]/g, '').slice(0, 64) : '');
+  if (clean(params.device)) return clean(params.device);
+  if (params.mode === 'runner') return 'runner-phone';
+  try {
+    const store = storage();
+    const key = `${DEVICE_KEY}-${params.mode}`;
+    let id = clean(store.getItem(key));
+    if (!id) {
+      id = `${params.mode}-device-${Math.random().toString(36).slice(2, 12)}`;
+      store.setItem(key, id);
+    }
+    return id;
+  } catch (error) {
+    return 'check-page';
+  }
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -148,7 +171,9 @@ function timeline(result) {
 
 function changeOf(result) {
   const change = result.change || {};
-  return {status: change.status, count: change.baseline_count, perFeature: change.per_feature || {}};
+  const params = change.params || {};  // engine contract: params.baseline_checks / min_baseline
+  return {status: change.status, count: params.baseline_checks, of: params.min_baseline,
+          perFeature: change.per_feature || {}};
 }
 
 function featureCell(feature, result) {
@@ -166,18 +191,30 @@ function featureCell(feature, result) {
   } else {
     const n = change.count;
     cell.append(el('div', change.status === 'enrolling'
-      ? `building baseline${Number.isInteger(n) ? ` ${n} of 3` : ''}` : 'no baseline yet',
+      ? `building baseline${Number.isInteger(n) ? ` ${n} of ${change.of || 3}` : ''}`
+      : 'no baseline yet',
       {class: 'bl-delta bl-muted'}));
   }
   return cell;
 }
 
 function checkVerdict(result) {
-  const verdict = result.assessment ? result.assessment.verdict
-    : (changeOf(result).status === 'enrolling' ? 'enrolling' : 'within_normal');
   const box = el('div', '', {class: 'bl-verdict'});
-  box.append(chip(VERDICT_LABELS[verdict] || verdict, verdict));
-  (result.assessment ? result.assessment.reasons : []).forEach((r) =>
+  const assessment = result.assessment;
+  if (!assessment || !assessment.verdict) {  // missing is unknown, never "within normal"
+    box.append(chip('Verdict unavailable', 'unknown'));
+    return box;
+  }
+  // Same rule as the unit page: an over-budget escalation is a watch-list item, not interruptive.
+  box.append(assessment.verdict === 'escalate' && assessment.over_budget
+    ? chip('Escalate (over budget)', 'watch')
+    : chip(VERDICT_LABELS[assessment.verdict] || assessment.verdict, assessment.verdict));
+  if (assessment.suggested_action && assessment.suggested_action !== 'none'
+      && assessment.suggested_action_label) {
+    box.append(' ', el('span', `Suggested: ${assessment.suggested_action_label}`,
+                       {class: 'bl-action'}));
+  }
+  (assessment.reasons || []).forEach((r) =>
     box.append(' ', el('span', `${r.kind}: ${r.label}`, {class: 'bl-muted'})));
   return box;
 }
@@ -208,6 +245,10 @@ function renderResult(host, result, blob) {
 
 async function renderCheck(main) {
   const params = checkParams();
+  if (params.mode === 'resident') {  // BL-31 resident and PSW experience, check-resident.js
+    if (params.patient) return renderResidentCheck(main, params, params.patient);
+    return renderResidentLanding(main, params);
+  }
   const patientId = params.patient || (state.session.patients[0] && state.session.patients[0].id);
   main.replaceChildren();
   const card = el('section', '', {class: 'bl-check-card'});
@@ -247,7 +288,7 @@ async function renderCheck(main) {
   async function submit(blob) {
     retry.hidden = true;
     button.disabled = true;
-    const fields = {patient_id: patientId, mode: params.mode, device_id: 'check-page',
+    const fields = {patient_id: patientId, mode: params.mode, device_id: checkDeviceId(params),
                     device_ts: new Date().toISOString(),
                     is_baseline: baselineBox.checked ? 'true' : 'false'};
     try {
