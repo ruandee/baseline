@@ -304,7 +304,7 @@ async function renderCheck(main) {
     demo.append(el('h2', 'Your personal voice demo'),
       el('p', 'Real recordings and real measurements. Each saved check remains in this volunteer history.'),
       demoBaseline, demoChecks, demoProgress,
-      el('a', 'Open nurse overview on the other screen', {href: '/unit?demo=personal', target: '_blank', rel: 'noopener'}));
+      el('a', 'Open nurse overview on the other screen', {href: '/unit?demo=personal'}));
     main.prepend(demo);
   }
 

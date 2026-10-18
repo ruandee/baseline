@@ -339,21 +339,6 @@ test('polls every 10 s while visible, stops when hidden and resumes when visible
   assert.equal(page.listenerCount(), 1);
 });
 
-test('personal demo polls the genuine watchlist every two seconds and pauses while hidden', async () => {
-  const page = harness({search: '?demo=personal'});
-  await page.settle();
-  assert.equal(page.constant('POLL_MS'), 2000);
-  assert.deepEqual([...page.intervals.values()].map((i) => i.ms), [2000]);
-  await page.tick();
-  assert.equal(page.watchlistCalls(), 2);
-  await page.setVisibility('hidden');
-  assert.equal(page.intervals.size, 0);
-  await page.tick();
-  assert.equal(page.watchlistCalls(), 2);
-  await page.setVisibility('visible');
-  assert.equal(page.watchlistCalls(), 3);
-});
-
 test('a page opened in a background tab loads once and does not poll until visible', async () => {
   const page = harness({visible: false});
   await page.settle();

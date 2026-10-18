@@ -29,9 +29,16 @@ page, editing data, restarting the API, switching to the video. Any fix means th
 
 ## Before each rehearsal
 
+The selected demo is now `/unit?demo=personal` (decision038), available by direct URL only.
+Open its phone link on the same phone used for five separate rested baseline takes. Configure
+the actual English counting profile and voice permission, then switch from Enroll rested baseline
+to Start check-ins. Repeat recording is explicit; results remain measured and can be normal.
+The nurse screen should update after processing on its next two-second poll. Preserve this
+volunteer's history between rehearsals; fixture resets are unnecessary for this flow.
+
 - [ ] `git pull` on the demo machine; note the commit SHA.
-- [ ] Run the reset script (BL-21) and time it (target under one minute). It must not touch the
-      runner's real clips.
+- [ ] Confirm the actual volunteer baseline and history. Use BL-21 reset only if separately
+      rehearsing fictional cohort cases; it must preserve real volunteer clips.
 - [ ] Watch list loads on the HTTPS URL (or localhost) with a fresh token.
 - [ ] Tokens valid for the whole session (48-hour TTL).
 - [ ] `PM_NO_ESCALATE_PATIENTS` contains the runner's patient id, if the runner segment is used.

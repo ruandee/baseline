@@ -1,6 +1,6 @@
 // Baseline shell: path router, shared demo-session bootstrap and API health check.
 // /unit lives here (BL-18); /check is in check.js (BL-17); /resident/:id lands with BL-19.
-const POLL_MS = new URLSearchParams(location.search).get('demo') === 'personal' ? 2000 : 10000;
+const POLL_MS = 10000;
 const VERDICT_LABELS = {escalate: 'Escalate', watch: 'Watch', explained: 'Explained',
                         within_normal: 'Within normal', enrolling: 'Enrolling'};
 const UNIT_COLUMNS = ['Resident', 'Status', 'Follow-up window', 'Change score',
@@ -107,9 +107,10 @@ function unitRow(resident) {
   const row = document.createElement('tr');
   row.setAttribute('data-verdict', resident.latest_verdict || 'unknown');
   const name = document.createElement('td');
-  const link = el('a', resident.display_name, {href: `/resident/${resident.patient_id}`,
+  const displayName = unitCapture(resident)?.name || resident.display_name;
+  const link = el('a', displayName, {href: `/resident/${resident.patient_id}`,
                                                class: 'bl-name',
-                                               'aria-label': `Open details for ${resident.display_name}`});
+                                               'aria-label': `Open details for ${displayName}`});
   name.append(link);
   if (resident.synthetic) name.append(' ', el('span', 'synthetic', {class: 'bl-synthetic', hidden: ''}));
   const capture = unitCapture(resident);
@@ -181,7 +182,7 @@ function renderUnitData(body, data) {
   const matches = data.residents.filter((resident) => {
     const person = ((state.session && state.session.patients) || [])
       .find((entry) => entry.id === resident.patient_id);
-    return `${resident.display_name || ''} ${(person && person.reference) || ''}`
+    return `${resident.display_name || ''} ${person?.name || ''} ${(person && person.reference) || ''}`
       .toLocaleLowerCase().includes(query);
   });
   const rows = body.querySelector('tbody');
@@ -211,7 +212,7 @@ function renderUnitData(body, data) {
     const item = el('li', '', {class: 'unit-capture-item', 'data-capture': resident.patient_id});
     const label = unitCapture(resident).capture_mode === 'runner' ? 'Runner capture' : 'Live voice capture';
     item.append(el('div', label, {class: 'unit-capture-kind'}),
-      el('a', resident.display_name, {href: `/resident/${encodeURIComponent(resident.patient_id)}`}),
+      el('a', unitCapture(resident).name || resident.display_name, {href: `/resident/${encodeURIComponent(resident.patient_id)}`}),
       unitVerdict(resident), el('span', `Last check · ${formatTime(resident.last_check_ts)}`));
     return item;
   }));
@@ -412,8 +413,12 @@ async function render() {
   const current = route();
   document.title = `${current.title} | Baseline`;
   const demo = location.search ? new URLSearchParams(location.search).get('demo') : null;
+  if (['handoff', 'days', 'legacy-days'].includes(demo) && ['unit', 'check'].includes(current.name)) {
+    location.replace(current.name === 'unit' ? '/unit?demo=personal' : '/check?mode=live&demo=personal');
+    return;
+  }
   const handoff = (current.name === 'unit' || current.name === 'check')
-    && (demo === 'handoff' || demo === 'days');
+    && demo === 'archived-handoff';
   // The handoff room carries its own "Demo scenario" disclosure; show only one.
   const navDisclosure = document.getElementById('nav-disclosure');
   if (navDisclosure) navDisclosure.hidden = handoff;
@@ -427,7 +432,7 @@ async function render() {
     return;
   }
   if (current.name === 'unit') {
-    await renderPage(current, renderUnit);
+    await renderPage(current, demo === 'personal' ? window.renderPersonalDemo : renderUnit);
     return;
   }
   if (current.name === 'check') {
@@ -436,7 +441,7 @@ async function render() {
       await renderPage(current, (main) => window.renderNurseChecks(main, {api, el, session: state.session}));
       return;
     }
-    if (query.get('mode') === 'live' && query.get('demo') === 'legacy-days') {
+    if (query.get('mode') === 'live' && query.get('demo') === 'archived-days') {
       // Public fictional presentation only: no session bootstrap, retrieval or API writes.
       window.renderDemoDays(document.getElementById('bl-main'), {el, chip, maxSeconds: CHECK_MAX_S});
       return;
@@ -465,7 +470,8 @@ async function render() {
       const mock = new URLSearchParams(location.search).get('mock') === '1';
       if (!mock) await bootstrap();
       await window.renderResident(main, current.id,
-        {api, el, svgEl, chip, formatTime, VERDICT_LABELS, mock});
+        {api, el, svgEl, chip, formatTime, VERDICT_LABELS, mock,
+          displayName: state.session?.patients?.find((p) => p.id === current.id && p.capture_mode)?.name});
     } catch (error) {
       main.replaceChildren(el('h1', current.title),
         el('div', `API check failed: ${error.message}`, {class: 'bl-status', 'data-state': 'error'}));

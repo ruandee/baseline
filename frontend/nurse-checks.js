@@ -84,10 +84,6 @@ window.renderNurseChecks = async function(main, {api, el, session}) {
       const actions = el('div', '', {class: 'workspace-actions'});
       actions.append(el('a', ready ? 'Open recorder' : 'Review recording setup', {href: linkFor(id), class: 'workspace-primary'}),
         el('a', 'View history and evidence', {href: `/resident/${encodeURIComponent(id)}`, class: 'workspace-secondary'}));
-      if (person.capture_mode === 'live' && person.scripted_cohort !== true) {
-        actions.append(el('a', 'Personal demo: baseline and repeat checks',
-          {href: linkFor(id) + '&demo=personal', class: 'workspace-secondary'}));
-      }
       details.append(el('p', ready
         ? 'The recorder checks current permission again. If there is not enough comparable history, the result will say so.'
         : 'Review the actual permission decision and profile on the next screen. Opening setup does not start the microphone or grant permission.',

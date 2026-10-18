@@ -3,7 +3,7 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const {loadPage, until, tick, FakeRecorder} = require('./harness');
 
-const start = () => loadPage('/check?mode=live&demo=legacy-days');
+const start = () => loadPage('/check?mode=live&demo=archived-days');
 const q = (page, selector) => page.main.querySelector(selector);
 function loadClip(page, duration = 24.94) {
   const input = q(page, '.bl-demo-file');
@@ -56,7 +56,7 @@ test('an overlong clip reveals no result and cannot advance the simulated day', 
 });
 
 test('resident mode does not accidentally enter the scored fictional presentation', async () => {
-  const page = loadPage('/check?mode=resident&demo=legacy-days&patient=p1');
+  const page = loadPage('/check?mode=resident&demo=archived-days&patient=p1');
   await until(() => q(page, '.bl-record'));
   assert.equal(q(page, '.bl-demo-banner'), null);
   assert(page.calls.some((call) => call.key === 'GET /demo/session'));

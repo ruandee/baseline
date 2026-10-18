@@ -1,8 +1,11 @@
-# Demo timeline: phone-to-nurse presentation
+# Archived demo timeline: authored phone-to-nurse presentation
+
+The current selected demo is the measured personal-baseline flow in decision038:
+`/unit?demo=personal`. This historical script is retained for the explicitly archived scenario.
 
 For the 4:00 judging slot. The live demo target is about 2:00, leaving time for the opening and Q&A.
 The flow is [decision 036](decisions/036-phone-to-nurse-demo-handoff.md), opened at
-`/unit?demo=handoff`. Everything the nurse screen shows after a recording is an **authored
+`/unit?demo=archived-handoff`. Everything the nurse screen shows after a recording is an **authored
 scenario**; the audio is real but is never analyzed. Say so (see the disclosure wording below).
 
 ## Beats
@@ -45,7 +48,7 @@ receipts are shared. No voice analysis, clinical history writes or external aler
 | Link expired or room replaced | "This demo link expired or is invalid. Ask the nurse for a new link." | Nurse taps **Start a new rehearsal** (this deletes the room and creates new links), then re-send both links. |
 | Scenario step already used | "This scenario step is complete or out of order. Check the nurse screen." | The runner submits once and Dee twice per room. Start a new rehearsal. |
 | Nurse screen loses the network | "Reconnecting…" while it polls; "Connection failed. Try again." if Reset or Apply context was tapped | Wait for "Connected"; the room is kept on the server. Retap the button if it failed. |
-| Live recording fails entirely | n/a | **Open risk: no backup video exists yet** (shot list only, issue #25). Record one before judging. A possible stand-in is the one-tab flow at `/check?mode=live&demo=legacy-days`, which can load a prerecorded clip from the presenter's laptop (audio is kept out of Git). It has **not been rehearsed as a fallback**, and it tells a three-day scripted storyline, not the two-resident flow, so the narration changes. |
+| Live recording fails entirely | n/a | **Open risk: no backup video exists yet** (shot list only, issue #25). Record one before judging. A possible stand-in is the one-tab flow at `/check?mode=live&demo=archived-days`, which can load a prerecorded clip from the presenter's laptop (audio is kept out of Git). It has **not been rehearsed as a fallback**, and it tells a three-day scripted storyline, not the two-resident flow, so the narration changes. |
 
 Rooms last two hours and are lost on a server restart, so start a fresh room right before presenting.
 
@@ -69,7 +72,7 @@ and real phone audio were **not** exercised. This does not replace a rehearsal o
 | Interrupted submission | Found and fixed. The phone showed the browser's raw "Failed to fetch"; it now shows the retry message (commit "BL-17: show the retry message when the network drops during check-in", test in `tests/js/demo_handoff.test.js`). The recording was kept and the retry reused the same request ID. The same change briefly put the phone wording on the nurse screen; a later BL-17 commit gives the nurse screen "Reconnecting…" and its own test. |
 | Second run on the rebased branch (separate session, same tester) | Pass. Fresh room at 1440 and 390 px with a WebAudio tone: runner Watch, then Explained after context, then Dee Watch, then Escalate with the 4AT section open. Screenshots are local only. Same limits: no real microphone prompt or physical phone. |
 | Room expiry (two hours) | Not waited. Covered by `tests/unit/test_demo_handoff.py` and `tests/js/demo_handoff.test.js`. |
-| "Switch to another day" shows three routes | Not applicable. That is the superseded one-tab flow (decision 036); it remains at `demo=legacy-days` and was not run. |
+| "Switch to another day" shows three routes | Not applicable. That is the superseded one-tab flow (decision 036); it remains at `demo=archived-days` and was not run. |
 
 The first run above predates the visual-polish CSS (button hover and disabled colors, resident
 table at 390 px); the independent re-run covers it.

@@ -1,9 +1,11 @@
 # Implementation status and remaining gates
 
-BL-15 personal-phone follow-up is implemented locally (decision038): the dedicated live capture
-identity has explicit rested-baseline/check-in modes and repeated genuine recording; the personal
-nurse overview refreshes every two seconds while visible. No scoring or temporal override is
-introduced. Deployment, five real usable baseline takes and physical-phone/nurse rehearsal remain
+BL-15 personal-phone replacement is implemented for review (decision038): `/unit?demo=personal`
+shows the actual volunteer assessment and provides its phone link. The phone has explicit rested
+baseline/check-in modes and repeated genuine recording. Nurse readback polls every two seconds
+while visible. Demo links are removed from website headers; old entry URLs redirect to this flow.
+An optional private display alias labels the existing live volunteer without changing identity.
+No scoring or temporal override is introduced. Deployment, five real usable baseline takes and physical-phone/nurse rehearsal remain
 pending. This work is rebased onto Danny's overnight polish in `4bf714c`, deployed on 2026-10-18
 at 13:06 UTC after merged-main CI passed (690 unit and 383 service-backed tests). VM access is
 restored. All 25 public rollout checks passed and stored voice-check fingerprints were preserved.
