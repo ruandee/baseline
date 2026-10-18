@@ -1,5 +1,9 @@
 # Implementation status and remaining gates
 
+BL-17 follow-up: live checks display eligible prior baseline checks from the engine contract
+and report measured engine/verdict elapsed milliseconds. This does not change scoring policy;
+real phone/audio and hosted latency acceptance remain open.
+
 This is the current runtime handoff after the explicitly approved policy/scenario adoption
 (PRs #60 and #61), built on the backend MVP and reviewed Baseline core. Implementation and
 synthetic engineering checks do not establish clinical validation or real-data pilot readiness.
@@ -166,6 +170,18 @@ consent part (422 consent_not_given). Resident-only VAD speech must reach8second
 analysis cap; staff-containing temporary audio is always removed regardless of KEEP_AUDIO.
 Checks remain prompt-scoped; first-change marker uses the displayed prompt. Real speech/Vox
 UI remain unvalidated, and overview prompt switching stays on hold (decision016).
+
+BL-19 resident integration (review branch): live authorized overview, four speech charts,
+clickable source evidence, server-labelled action handoff button, and structured engine
+parameters. Recorded temperature includes source/time (Mrs. K 37.1 Celsius); no absence or
+normal-range inference. The available stored SBAR mounts BL-33 exact preliminary export and
+local human-edited, unverified preview. API-captured cohort/DOM and lifecycle tests are added;
+DB-backed CI and real phone/host acceptance remain gates until their actual results.
+
+BL-19 follow-up makes every check citation interactive with matching assessment/check identity
+and refreshed authorization. All reason, observation and SBAR citation buttons are exercised,
+including withheld readback after assessment change/revocation. Headless Chrome renders desktop
+and phone-width synthetic fixtures; this does not claim physical-phone or live-audio acceptance.
 
 ### BL-21 reset branch (pending review and combined CI)
 
