@@ -264,3 +264,40 @@ def test_log_sender_keeps_no_live_tokens_by_default():
                                       httpx.Response(201, json={"sid": "SM1", "status": "queued"})])
 def test_twilio_unconfirmed_success_is_pending(response):
     assert twilio(lambda _: response).send(outbound()) == "pending"
+
+
+@pytest.fixture
+def hosted_ack(monkeypatch):
+    from patient_memory.auth import Identity, synthetic_token
+    from scripts.frontend import workspace_app
+
+    cfg = Settings(jwt_secret="deployment-only-test-secret-32-characters")
+    reader = Identity(uuid4(), uuid4())
+    calls = []
+    monkeypatch.setattr(ack, "acknowledge", lambda cfg, token: calls.append(token) or "acknowledged")
+    app = workspace_app(cfg, reader, [], extra_hosts=("demo.example",),
+                        demo_token=synthetic_token(reader, cfg))
+    return TestClient(app, base_url="https://demo.example", client=("192.0.2.1", 1234)), calls
+
+
+def test_hosted_ack_accepts_external_document_navigation_only(hosted_ack):
+    client, calls = hosted_ack
+    token = ack.new_token().token
+    navigation = {"Sec-Fetch-Site": "cross-site", "Sec-Fetch-Mode": "navigate",
+                  "Sec-Fetch-Dest": "document"}
+    response = client.get(f"/ack/{token}", headers=navigation)
+    assert response.status_code == 200 and calls == [token]
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.headers["Referrer-Policy"] == "no-referrer"
+    assert response.headers["Content-Security-Policy"] == ack.HEADERS["Content-Security-Policy"]
+    for headers in [{**navigation, "Host": "evil.example"},
+                    {**navigation, "Origin": "https://evil.example"},
+                    {**navigation, "Sec-Fetch-Mode": "cors"},
+                    {**navigation, "Sec-Fetch-Dest": "image"},
+                    {"Sec-Fetch-Site": "cross-site"}]:
+        assert client.get(f"/ack/{token}", headers=headers).status_code == 403
+    assert client.post(f"/ack/{token}", headers=navigation).status_code == 403
+    assert client.get("/ack/not-a-token", headers=navigation).status_code == 403
+    assert client.get("/demo/session", headers={**navigation, "X-PM-Demo": "1"}).status_code == 403
+    assert client.get("/v1/watchlist", headers=navigation).status_code == 403
+    assert calls == [token]
