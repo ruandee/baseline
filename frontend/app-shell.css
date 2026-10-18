@@ -137,6 +137,8 @@ body.care-app {
 .care-app [data-demo-role=phone] .bl-handoff-content > button { display: block; width: 100%; margin-top: 14px; min-height: 60px; border-radius: 8px; font-size: 19px; font-weight: 700; }
 .care-app [data-demo-role=phone] .bl-handoff-record { background: #356d94; border-color: #356d94; color: #fff; }
 .care-app [data-demo-role=phone] .bl-handoff-submit:not(:disabled) { background: var(--green); color: #fff; }
+.care-app [data-demo-role=phone] .bl-handoff-record:hover:not(:disabled) { background: #2a5a7c; border-color: #2a5a7c; color: #fff; }
+.care-app [data-demo-role=phone] .bl-handoff-submit:hover:not(:disabled) { background: #1b5443; color: #fff; }
 .care-app .bl-demo-banner,.care-app .bl-demo-result:not(:empty),.care-app .bl-demo-timeline li { border-radius: 4px; box-shadow: none; }
 @media(max-width:760px) {
  .care-app .bl-handoff-content > section[aria-label] { grid-template-columns: minmax(0,1fr); gap: 14px; }
