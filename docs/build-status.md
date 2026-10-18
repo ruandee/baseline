@@ -204,9 +204,19 @@ explicit contact-free bootstrap and private safety-person credentials. Consent r
 unless explicitly granted for fixtures; existing withdrawals remain preserved. Public-phone and
 real-SMS acceptance remain open.
 
-BL-30 registry review adds scoped modalities and fresh immutable-capture reprojection without
-restoring invalidated decisions, flat speech compatibility and source-safe first-change markers.
-Decision025/migration010 and exact-head CI track acceptance.
+BL-30 registry review adds scoped modalities, explicit missing/stale states, corroboration and
+legacy speech compatibility. New captures reproject eligible immutable modalities at current
+revision without restoring invalidated decisions; first-change markers reject stale/session
+snapshots. Only speech is registered in this base. Decision025/migration010 track the contract;
+final exact-head CI remains authoritative after hosting/status integration.
+
+BL-34 motion-check implementation adds a separately consented numeric-only endpoint, immutable
+plain-table captures and exact client-derived observation facts under forced RLS. Current-revision
+registry projections preserve source invalidation and PSW responses contain no measurements or
+scores. The browser runs pinned self-hosted pose assets in a local worker; no video/landmarks
+are uploaded. Synthetic geometry/cancellation tests do not satisfy real camera or under 15-second
+judge acceptance. Exact integrated CI remains required before merge.
+
 BL-35 review adds explicit resting HR/RR observations, an isolated synthetic Mrs. K RR-rise
 example and nurse source readback. Unknown rest/time/units stay unavailable; engineering-only
 vitals parameters are documented in decision028. Speech/canonical cohort are unchanged.012

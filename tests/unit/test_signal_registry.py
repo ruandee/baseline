@@ -134,7 +134,7 @@ def test_two_provisional_modalities_within_a_day_are_corroborated_and_read_as_ch
     assert decide(combined.status, combined.fused, []).action == "recheck_1h"
     payload = combined_payload(combined)
     assert payload["corroborated"] is True
-    assert {"speech", "probe"} <= set(payload["modalities"])
+    assert set(payload["modalities"]) == set(REGISTRY)
     assert set(payload["modalities"]["probe"]["per_feature"]) == {
         "probe_time_s", "probe_sway", "probe_cadence_spm"}
 

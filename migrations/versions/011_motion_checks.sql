@@ -126,3 +126,20 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION pm_publish_motion_source(uuid,uuid,text,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION pm_publish_motion_source(uuid,uuid,text,text) TO pm_runtime;
+
+-- Source purge must remove the duplicate raw capture, not only its fact projection.
+CREATE FUNCTION pm_purge_motion_projection() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+BEGIN
+ IF OLD.purged_at IS NULL AND NEW.purged_at IS NOT NULL THEN
+  DELETE FROM public.assessments a USING public.motion_checks m
+   WHERE m.tenant_id=NEW.tenant_id AND m.patient_id=NEW.patient_id AND m.source_id=NEW.id
+   AND a.tenant_id=m.tenant_id AND a.patient_id=m.patient_id AND a.check_id=m.id;
+  DELETE FROM public.motion_checks WHERE tenant_id=NEW.tenant_id
+   AND patient_id=NEW.patient_id AND source_id=NEW.id;
+ END IF;
+ RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION pm_purge_motion_projection() FROM PUBLIC;
+CREATE TRIGGER motion_source_purge AFTER UPDATE OF purged_at ON sources
+ FOR EACH ROW EXECUTE FUNCTION pm_purge_motion_projection();
