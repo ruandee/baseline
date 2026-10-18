@@ -117,10 +117,9 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
   6 slow tests were deselected. Its actual DB test requires all 12 canonical labels/actions,
   idempotency, exact evidence, RLS/revocation and contamination rejection. Final integrated CI
   is tracked on PRs #60/#53/#61; no local Docker/DB run is claimed.
-- PR #94 records a separately approved live-voice protocol revision and reports a local real
-  Whisper golden run. Its review and CI remain pending; the original stairs-direction failure
-  is retained. Actual hosted baseline enrollment, physical-device capture and rehearsals remain
-  outstanding. The feature loader itself does not validate real audio.
+- Real golden recordings, slow Whisper/VAD acceptance and runner baseline/backup/race clips
+  remain outstanding. Recordings are on hold. FFmpeg is installed locally; no real audio has
+  been validated by the feature loader.
 - Public HTTPS/DNS/token configuration, LTE Safari/Chrome capture and warm host p95 below 5 s
   remain acceptance work. UI evidence/SBAR readback passes API-captured DOM and lifecycle tests;
   physical-phone readback has not been verified.
@@ -129,7 +128,7 @@ token go only to ignored artifacts/baseline-demo; tokens are never printed or co
 - KAZE sessions, scheduler, SMS/acknowledgement and pages are merged (#66/#69/#72/#71/#80);
   hosted worker/bootstrap #76 is merged. Real two-phone SMS/ack acceptance remains open.
   Vox mock and consent/PSW flows are merged; real/nontechnical user acceptance remains open.
-  Registry #78, motion #91 and vitals #84 are merged. Submission, backup video and two
+  Registry #78 is merged; motion and vitals remain in integration. Submission, backup video and two
   rehearsals are tracked separately; implemented code alone does not close those gates.
 
 Follow README/operations and the exact CI order before claiming a new integrated milestone done.
@@ -208,14 +207,14 @@ real-SMS acceptance remain open.
 BL-30 registry (merged #78) adds scoped modalities, explicit missing/stale states, corroboration and
 legacy speech compatibility. New captures reproject eligible immutable modalities at current
 revision without restoring invalidated decisions; first-change markers reject stale/session
-snapshots. Speech, motion and vitals are registered on main. Decision025/migration010 track the contract;
+snapshots. Only speech is registered in this base. Decision025/migration010 track the contract;
 final exact-head CI remains authoritative after hosting/status integration.
 
 BL-21 reset (merged #79): fixture-only current-time reset verifies all twelve
 canonical outcomes, preserves unrelated recordings/consent, refreshes private nurse/PSW/KAZE
 credentials and configures runner suppression. Hosted reset under one minute remains unverified.
 
-BL-34 motion integration (merged #91 at d3d7ed0): local-only camera/pose processing uses pinned
+BL-34 motion integration (pending main CI): local-only camera/pose processing uses pinned
 self-hosted assets and uploads bounded client-derived measurements with unknown-by-default
 motion consent. Final migration011 guards require explicit scoring authorization, including
 unset-context denial. Exact source provenance, RLS, purge and projection tests passed on the
@@ -233,10 +232,14 @@ context and existing actions. Source lifecycle/expiry and permissions are rechec
 Motion remains explicitly client-derived/unverified; missing provenance withholds the whole draft.
 No model, threshold/action policy change, clinical sign-off or writeback is introduced.
 
+BL-31 attribution follow-up adds importer-asserted, patient-scoped immutable note authorship and
+true-or-unknown own-note credit in the score-free due list. Ordinary PSW clinical retrieval stays
+denied; legacy source serialization/reset hashes are preserved. Decision033/migration013 record
+the feedback-only freshness and exact current-citation gates. Exact-head CI remains required.
 
 ## Acceptance audit against all Baseline tickets
 
-Snapshot: main `ed7758d`, reviewed 2026-10-18 UTC, with pending PR #94 noted separately.
+Snapshot: main `aa391d6`, reviewed 2026-10-18 UTC, with pending PR #94 noted separately.
 The acceptance text comes from
 `baseline-tickets.json` and `06-baseline.md`; adopted decisions supersede the original frontend
 location, unsafe hypertables and approved change-policy/scenario assumptions. A green synthetic
@@ -276,7 +279,7 @@ remaining branches land.
 | BL-28 | Arm/enroll/capture/cancel/countdown/timeline engineering tests | Full two-phone arm/miss/text/ack loop unrun (#30) |
 | BL-29 | KAZE script/prize notes remain preparation material | Two rehearsals and actual Devpost KAZE selection unverified (#31) |
 | BL-30 | Unchanged original speech tests and persisted two-modality corroboration/lifecycle tests; #78 merged | Specified registry gate accepted; #32 closed |
-| BL-31 | Consent, score-free PSW/resident, one-retry and warm-close flows merged | Explicit note attribution #92 and per-resident profiles in progress; nontechnical tester/physical accessibility acceptance unrun (#33) |
+| BL-31 | Consent, score-free PSW/resident, one-retry and warm-close flows merged | Explicit note attribution #92 merged; per-resident profiles and capture fixes in progress; nontechnical tester/physical accessibility acceptance unrun (#33) |
 | BL-32 | Mock encounter segmentation, voiced-duration, strict request/stored consent and audio-cleanup tests | Consenting teammate-voiced fixture/real Vox UI acceptance unrun; no real EHR integration (#34) |
 | BL-33 | Preliminary DocumentReference shape/text/provenance tests and actual API-to-button preview | Specified export/preview gate accepted; #35 closed; no real sign-off queue/writeback claimed |
 | BL-34 | Main motion capture/provenance/RLS tests, real Chrome model startup/failure and phone-width layout | Physical chair-to-three-measurements in under15s unverified (#36); client-derived numbers remain unverified |

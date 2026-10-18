@@ -2,7 +2,15 @@ from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, FiniteFloat, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    FiniteFloat,
+    model_serializer,
+    model_validator,
+)
 
 
 def now():
@@ -41,7 +49,8 @@ class SourceInput(Contract):
     external_version_id: str = Field(min_length=1, max_length=128)
     source_system: str = Field(min_length=1, max_length=128)
     kind: Literal["nursing_note", "patient_report", "observation", "medication_event"]
-    author_role: Literal["nurse", "patient", "system"]
+    author_role: Literal["nurse", "psw", "patient", "system"]
+    author_principal_id: UUID | None = None
     visibility: Literal["care_team", "patient_and_care_team"] = "care_team"
     recorded_at: AwareDatetime
     effective_from: AwareDatetime | None = None
@@ -49,6 +58,14 @@ class SourceInput(Contract):
     supersedes_version_id: UUID | None = None
     text: str | None = Field(default=None, min_length=1)
     records: list[Record] | None = Field(default=None, min_length=1, max_length=1000)
+
+    @model_serializer(mode="wrap")
+    def legacy_compatible_payload(self, handler):
+        payload = handler(self)
+        # Source bytes and fixture/reset hashes predate this optional attribution field.
+        if self.author_principal_id is None:
+            payload.pop("author_principal_id", None)
+        return payload
 
     @model_validator(mode="after")
     def valid_content(self):
@@ -59,8 +76,13 @@ class SourceInput(Contract):
         if self.effective_from and self.effective_to and self.effective_to < self.effective_from:
             raise ValueError("Inverted effective interval")
         expected = {"nursing_note": "nurse", "patient_report": "patient"}.get(self.kind, "system")
-        if self.author_role != expected:
+        allowed = {"nurse", "psw"} if self.kind == "nursing_note" else {expected}
+        if self.author_role not in allowed:
             raise ValueError("Source kind and author role disagree")
+        if self.author_principal_id is not None and self.kind != "nursing_note":
+            raise ValueError("Explicit authorship is supported only for care notes")
+        if self.author_role == "psw" and self.author_principal_id is None:
+            raise ValueError("PSW authorship requires an explicit principal")
         if self.kind == "medication_event" and any(not r.event_type for r in self.records or []):
             raise ValueError("Medication events require event_type")
         return self
@@ -380,8 +402,8 @@ class DueResident(Contract):
     consent_state: ConsentState
     last_check_ts: AwareDatetime | None
     skipped_today: bool
-    # Unknown (null), never false: sources do not record who submitted a note yet.
-    observation_helped: None = None
+    # Positive feedback only; missing attribution or a current eligible citation stays unknown.
+    observation_helped: Literal[True] | None = None
 
 
 class DueList(Contract):
