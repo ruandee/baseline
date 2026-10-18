@@ -31,7 +31,7 @@ class Sentence(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     section: Literal["S", "B", "A", "R"]
     text: str = Field(min_length=1, max_length=1500)
-    evidence_ids: list[str] = Field(max_length=64)
+    evidence_ids: list[str] = Field(max_length=33)
 
 
 class Draft(BaseModel):

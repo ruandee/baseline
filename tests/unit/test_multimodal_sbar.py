@@ -91,3 +91,54 @@ def run_multimodal_js(fixture=None):
 
 def test_multimodal_capture_citation_ui():
     run_multimodal_js()
+
+
+def test_full_three_modality_ten_capture_baselines_keep_every_citation_in_export():
+    from patient_memory.baseline.engine import (
+        Check,
+        ModalityResult,
+        combine,
+        combined_payload,
+        evaluate,
+    )
+    from patient_memory.baseline.note import build_document_reference
+    from patient_memory.config import Settings
+    from patient_memory.motion import PROTOCOL  # register actual motion adapter
+    from tests.unit.test_note_export import row
+
+    now = datetime.now(UTC)
+    values = {
+        "motion": ({"sit_to_stand_s": 1.2, "trunk_sway": .04, "step_cadence_spm": 60.},
+                   {"sit_to_stand_s": 2.5, "trunk_sway": .12, "step_cadence_spm": 45.}),
+        "vitals": ({"resting_rr_bpm": 16., "resting_hr_bpm": 70.},
+                   {"resting_rr_bpm": 26., "resting_hr_bpm": 100.}),
+        "speech": ({"speech_rate_wpm": 160., "pause_ratio": .2, "mean_pause_s": .4, "f0_median_hz": 100.},
+                   {"speech_rate_wpm": 100., "pause_ratio": .4, "mean_pause_s": .8, "f0_median_hz": 130.}),
+    }
+    results, expected = [], set()
+    for modality, (baseline, changed) in values.items():
+        def capture(at, measurements):
+            cid = str(uuid4())
+            evidence = ("check:"+cid,) if modality == "speech" else tuple(str(uuid4()) for _ in measurements)
+            return Check(cid, at, "synthetic", PROTOCOL if modality == "motion" else modality,
+                         False, True, measurements, modality, evidence)
+        history = [capture(now-timedelta(days=11-i), baseline) for i in range(10)]
+        history.append(capture(now-timedelta(hours=1), changed))
+        current = capture(now, changed)
+        result = evaluate(current, history, "rolling", Settings())
+        assert result.status == "change" and len(result.baseline_ids) == 10
+        baseline_evidence = [eid for prior in history if prior.id in result.baseline_ids
+                             for eid in prior.evidence_ids]
+        result.params["baseline_evidence_ids"] = baseline_evidence
+        expected.update([*current.evidence_ids, *baseline_evidence])
+        results.append(ModalityResult(modality, now, result, current.id, current.evidence_ids))
+    modalities = combined_payload(combine(results, now))["modalities"]
+    context = {"label": "Patient reports tiredness", "evidence_id": str(uuid4())}
+    draft = multimodal_template("Synthetic", Decision("escalate", "4at_now"), modalities, [context], True)
+    sbar = StoredSbar.model_validate(draft)
+    assert [len(s.evidence_ids) for s in sbar.sentences if s.section == "S"] == [33, 11, 22]
+    assert len(expected) == 66
+    expected.add(context["evidence_id"])
+    assert {eid for s in sbar.sentences for eid in s.evidence_ids} == expected
+    note = build_document_reference(row(allowed_checks={eid[6:] for eid in expected if eid.startswith("check:")}), sbar)
+    assert len(note["context"]["related"]) == 67
