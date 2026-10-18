@@ -70,7 +70,7 @@ exist the module skips and says which are missing.
 mkdir -p data/raw/golden
 ffmpeg -hide_banner -f avfoundation -list_devices true -i "" 2>&1 | grep -A9 "audio devices"
 ffmpeg -hide_banner -y -f avfoundation -i ":<mic index>" -t 25 -ac 1 data/raw/golden/normal.wav
-uv run pytest -m slow tests/unit/test_golden_clips.py -v
+uv run pytest -m slow tests/unit/test_golden_clips.py -v -rA
 ```
 
 Use the same microphone for all four, and pick it from the list: on this Mac index 0 is "Microsoft
@@ -78,10 +78,13 @@ Teams Audio", not the microphone. Say "Count from one to twenty, then say the da
 starting with Monday." each time: `slow` at about two thirds of the normal pace, `pausey` with a
 stop of about a second after every fourth number and between the days, `stairs` straight after
 climbing stairs. Press `q` when you finish the days: the command allows up to 25 s because a slow or
-pausey take runs well past the 15 s the product records, and the pipeline refuses anything over 30 s.
+pausey take can run past 15 s. Core browser capture now permits 30 s (decision 027), and the pipeline refuses anything over 30 s.
 Keep one file per name (the test fails with a clear message on a stale second take). If a real clip fails the quality gate
 or the direction check, the test prints the measured features: report them rather than loosening
-the thresholds.
+the thresholds. Decision 027 revises the stairs expectation to exploratory: its measurements are
+reported without requiring a pitch rise. The original 3-pass/1-fail result is preserved there.
+All four clips still need to pass quality. For Dee's API enrollment and live demo, follow
+[live-voice-demo.md](live-voice-demo.md); enrollment requires five distinct rested recordings.
 
 ## Current limits
 
