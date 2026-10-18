@@ -43,6 +43,7 @@ approved timing plan; this change does not invent one.
 
 Acceptance still requires real phone microphone/geolocation behavior, the two-phone actual SMS
 and acknowledgement loop, retention verification and two rehearsals. Real recordings remain on
-hold. Synthetic fake-clock/mic tests are not real-audio acceptance. Loud-venue arm context is
-stored, but the separately specified SNR relaxation is not implemented here; the page asks users
-to step somewhere quiet. ADR018 questions and Vox prompt-switching decisions remain on hold.
+hold. Synthetic fake-clock/mic tests are not real-audio acceptance. Loud-venue arm context
+lowers only the backend SNR threshold by 3 dB after session authorization; other quality gates
+remain unchanged. The open session view asks users to step outside to answer somewhere quiet.
+ADR018 questions and Vox prompt-switching decisions remain on hold.

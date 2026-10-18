@@ -72,18 +72,19 @@ def decode_upload(upload: Path, work: Path, timer: Timer, max_seconds: float) ->
 
 
 def analyze(upload: Path, work: Path,
-            transcribe: Callable[[np.ndarray], list[asr.Word]] = asr.transcribe) -> Analysis:
+            transcribe: Callable[[np.ndarray], list[asr.Word]] = asr.transcribe, *,
+            loud_venue: bool = False) -> Analysis:
     """Run one recording through normalize, VAD, ASR, prosody and the quality gate.
 
     `work` is scratch space for the decoded wav; the caller owns both paths and deletes them.
     """
     timer = Timer()
     audio = decode_upload(upload, work, timer, MAX_DURATION_S)
-    return analyze_pcm(audio, transcribe, timer)
+    return analyze_pcm(audio, transcribe, timer, loud_venue=loud_venue)
 
 
 def analyze_pcm(audio: np.ndarray, transcribe: Callable[[np.ndarray], list[asr.Word]],
-                timer: Timer, on_script: bool = True) -> Analysis:
+                timer: Timer, on_script: bool = True, *, loud_venue: bool = False) -> Analysis:
     """VAD, ASR, prosody and the quality gate on decoded 16 kHz mono audio.
 
     `on_script=False` is for free conversation, which has no prompt to stay on.
@@ -94,7 +95,7 @@ def analyze_pcm(audio: np.ndarray, transcribe: Callable[[np.ndarray], list[asr.W
     # Whisper invents words for silence, so with no voiced run there is nothing to transcribe.
     words = timer("asr", lambda: transcribe(audio) if runs else [])
     f0 = timer("prosody", f0_or_none, audio)
-    gate = assess(audio, words, runs, on_script=on_script)
+    gate = assess(audio, words, runs, on_script=on_script, loud_venue=loud_venue)
     timing = timing_features(words, pauses, span)
     snr = snr_db(audio, runs)
     return Analysis(
