@@ -112,6 +112,9 @@ function unitRow(resident) {
                                                'aria-label': `Open details for ${resident.display_name}`});
   name.append(link);
   if (resident.synthetic) name.append(' ', el('span', 'synthetic', {class: 'bl-synthetic'}));
+  const capture = unitCapture(resident);
+  if (capture) name.append(el('span', `${capture.capture_mode} capture identity`,
+                              {class: 'unit-identity-label'}));
   let column = 1;
   const cell = (...children) => {
     const td = document.createElement('td');
@@ -119,7 +122,7 @@ function unitRow(resident) {
     td.append(...children);
     return td;
   };
-  row.append(name, cell(verdictChip(resident)), cell(windowChip(resident.watch_window)),
+  row.append(name, cell(unitVerdict(resident)), cell(windowChip(resident.watch_window)),
              cell(el('span', typeof resident.fused_z === 'number' ? resident.fused_z.toFixed(1) : '—')),
              cell(sparkline(resident.sparkline || [])),
              cell(el('span', formatTime(resident.last_check_ts))));
@@ -127,6 +130,37 @@ function unitRow(resident) {
     if (event.target !== link) link.click();
   });
   return row;
+}
+
+function unitCapture(resident) {
+  return ((state.session && state.session.patients) || []).find((person) =>
+    person.id === resident.patient_id && ['live', 'runner'].includes(person.capture_mode));
+}
+
+function unitVerdict(resident) {
+  return resident.latest_verdict ? verdictChip(resident) : chip('Assessment unavailable', 'unknown');
+}
+
+function unitPriorityCard(resident) {
+  const card = el('article', '', {class: 'unit-priority-card',
+    'data-priority': resident.patient_id, 'data-verdict': resident.latest_verdict});
+  const heading = el('div', '', {class: 'unit-card-heading'});
+  heading.append(el('h3', resident.display_name), unitVerdict(resident));
+  const description = {
+    escalate: resident.over_budget
+      ? 'Flagged for review; the shift interruption budget has been reached.'
+      : 'Flagged for nurse review. Open the assessment before deciding what to do.',
+    watch: 'A change is being watched. Review the assessment and follow-up window.',
+    explained: 'Explaining context was recorded. Review its source; this does not rule out other concerns.',
+  };
+  card.append(heading, el('p', description[resident.latest_verdict], {class: 'unit-card-description'}));
+  const meta = el('div', '', {class: 'unit-card-meta'});
+  meta.append(el('span', `Last check · ${formatTime(resident.last_check_ts)}`));
+  if (resident.watch_window && resident.watch_window.open) meta.append(windowChip(resident.watch_window));
+  card.append(meta, el('a', 'Open resident →', {href: `/resident/${encodeURIComponent(resident.patient_id)}`,
+    class: 'unit-open', 'aria-label': `Open ${resident.display_name}: assessment and source records`}),
+  el('p', 'Measurements, context and source records inside', {class: 'unit-card-footnote'}));
+  return card;
 }
 
 function unitHeader(shift) {
@@ -144,10 +178,33 @@ function renderUnitData(body, data) {
   headerText.textContent = unitHeader(data.shift);
   const rows = body.querySelector('tbody');
   rows.replaceChildren(...data.residents.map(unitRow));
+  const roster = data.residents.filter((resident) => !unitCapture(resident));
+  const priority = roster.filter((resident) => ['escalate', 'watch', 'explained'].includes(resident.latest_verdict));
+  const incomplete = roster.filter((resident) => !['escalate', 'watch', 'explained', 'within_normal'].includes(resident.latest_verdict));
+  body.querySelector('[data-unit=priority]').replaceChildren(...priority.map(unitPriorityCard));
+  body.querySelector('[data-unit=quiet]').hidden = priority.length > 0 || !roster.length;
+  body.querySelector('[data-unit=priority-note]').textContent = priority.length
+    ? `${priority.length} residents to review · listed in server review order`
+    : roster.length ? 'No review flags in the current response' : 'No roster residents in the current response';
+  body.querySelector('[data-unit=incomplete]').textContent = incomplete.length
+    ? `${incomplete.length} residents have an unavailable assessment or are still enrolling. This is not a normal finding.` : '';
+  const captures = data.residents.filter(unitCapture);
+  const captureList = body.querySelector('[data-unit=capture-list]');
+  captureList.replaceChildren(...captures.map((resident) => {
+    const item = el('li', '', {class: 'unit-capture-item', 'data-capture': resident.patient_id});
+    const label = unitCapture(resident).capture_mode === 'runner' ? 'Runner capture' : 'Live voice capture';
+    item.append(el('div', label, {class: 'unit-capture-kind'}),
+      el('a', resident.display_name, {href: `/resident/${encodeURIComponent(resident.patient_id)}`}),
+      unitVerdict(resident), el('span', `Last check · ${formatTime(resident.last_check_ts)}`));
+    return item;
+  }));
+  body.querySelector('[data-unit=captures]').hidden = captures.length === 0;
+  body.querySelector('[data-unit=roster-label]').textContent = `All visible residents and capture identities (${data.residents.length})`;
+  body.querySelector('[data-unit=roster]').hidden = data.residents.length === 0;
   body.querySelector('[data-unit=empty]').hidden = data.residents.length > 0;
   ['escalate', 'watch', 'explained'].forEach((verdict) => {
     body.querySelector(`[data-unit=count-${verdict}]`).textContent =
-      String(data.residents.filter((resident) => resident.latest_verdict === verdict).length);
+      String(roster.filter((resident) => resident.latest_verdict === verdict).length);
   });
   body.querySelector('[data-unit=count-total]').textContent = String(data.residents.length);
 }
@@ -169,8 +226,8 @@ async function renderUnit(main) {
   const heading = el('div', '', {class: 'bl-page-heading'});
   const introduction = el('div', '');
   introduction.append(el('p', 'CARE TEAM', {class: 'bl-eyebrow'}),
-    el('h1', 'Your unit, at a glance'),
-    el('p', 'See who needs a closer look. Open a resident to understand the change.',
+    el('h1', 'Unit overview'),
+    el('p', 'Start with the people who need a closer look. Read the evidence before deciding on a next step.',
        {class: 'bl-intro'}));
   heading.append(introduction, el('a', 'Start voice checks',
     {href: '/check?mode=resident', class: 'bl-primary-link'}));
@@ -178,7 +235,7 @@ async function renderUnit(main) {
   [['escalate', 'Needs review', 'Flagged for nurse review'],
    ['watch', 'On watch', 'A change to follow up'],
    ['explained', 'Context available', 'An explanation to consider'],
-   ['total', 'Residents', 'Visible to your care team']].forEach(([key, label, hint]) => {
+   ['total', 'Visible people', 'Roster and capture identities']].forEach(([key, label, hint]) => {
     const card = el('div', '', {class: 'bl-stat', 'data-summary': key});
     card.append(el('span', label, {class: 'bl-stat-label'}),
       el('strong', '\u2014', {'data-unit': `count-${key}`}),
@@ -186,13 +243,28 @@ async function renderUnit(main) {
     summary.append(card);
   });
   const listHeading = el('div', '', {class: 'bl-list-heading'});
-  listHeading.append(el('h2', 'Resident watchlist'),
-    el('p', 'Listed in review order. Measurements and source records are inside.',
-       {class: 'bl-muted'}));
-  body.append(heading, summary, listHeading,
-              el('p', 'Loading…', {class: 'bl-shift', 'data-unit': 'shift'}),
-              notice, table,
-              el('p', 'No residents are visible to this account.', {'data-unit': 'empty', hidden: ''}));
+  listHeading.append(el('h2', 'Needs a closer look'),
+    el('p', 'Loading the latest review list…', {'data-unit': 'priority-note', class: 'bl-muted'}));
+  const roster = el('details', '', {class: 'unit-roster', 'data-unit': 'roster', hidden: ''});
+  roster.append(el('summary', 'All visible residents and capture identities', {'data-unit': 'roster-label'}),
+    el('p', 'The full list follows the server’s review order. No flag does not establish that a resident is well.',
+       {class: 'unit-roster-note'}), table);
+  const captures = el('section', '', {'data-unit': 'captures', class: 'unit-captures', hidden: ''});
+  captures.append(el('h2', 'Separate capture identities'),
+    el('p', 'Live and runner recording identities are shown separately from the resident roster. Their assessments are not scripted cohort cases.'),
+    el('ul', '', {'data-unit': 'capture-list'}));
+  const retry = el('button', 'Refresh overview', {type: 'button', class: 'unit-refresh', 'data-unit': 'retry'});
+  const updates = el('div', '', {class: 'unit-update-bar'});
+  const freshness = el('span', 'Loading current assessments…', {'data-unit': 'freshness', role: 'status'});
+  updates.append(freshness, retry);
+  body.append(heading, updates, notice, summary,
+    el('p', 'Loading shift information…', {class: 'bl-shift', 'data-unit': 'shift'}), listHeading,
+    el('div', '', {class: 'unit-priority-list', 'data-unit': 'priority'}),
+    el('p', 'No residents are flagged for review. Assessments may still be incomplete; open the full roster to check.',
+      {class: 'unit-quiet', 'data-unit': 'quiet', hidden: ''}),
+    el('p', '', {class: 'unit-incomplete', 'data-unit': 'incomplete'}), captures, roster,
+    el('p', 'No residents are visible to this account. Check the selected account or try refreshing.',
+      {class: 'unit-quiet', 'data-unit': 'empty', hidden: ''}));
   main.append(body);
 
   let timer = null;
@@ -202,6 +274,7 @@ async function renderUnit(main) {
   async function refresh() {
     if (inFlight || stopped) return;
     inFlight = true;
+    retry.disabled = true;
     try {
       let data;
       try {
@@ -215,13 +288,33 @@ async function renderUnit(main) {
       renderUnitData(body, data);
       loaded = true;
       notice.hidden = true;
+      freshness.textContent = `Updated ${new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} · refreshes every 10 seconds while visible`;
     } catch (error) {
+      if (stopped) return;
+      if ([401, 403, 404].includes(error.status)) {
+        // A denied refresh must not keep displaying a formerly authorized roster.
+        body.querySelector('tbody').replaceChildren();
+        body.querySelector('[data-unit=priority]').replaceChildren();
+        body.querySelector('[data-unit=capture-list]').replaceChildren();
+        ['roster', 'captures', 'quiet', 'empty'].forEach((key) => {
+          body.querySelector(`[data-unit=${key}]`).hidden = true;
+        });
+        ['escalate', 'watch', 'explained', 'total'].forEach((key) => {
+          body.querySelector(`[data-unit=count-${key}]`).textContent = '—';
+        });
+        body.querySelector('[data-unit=incomplete]').textContent = '';
+        body.querySelector('[data-unit=shift]').textContent = 'Shift information unavailable';
+        loaded = false;
+      }
       notice.textContent = loaded
         ? `Could not refresh the watch list (${error.message}). The rows shown may be out of date.`
         : `Could not load the watch list (${error.message}).`;
       notice.hidden = false;
+      freshness.textContent = loaded ? 'Update failed · the displayed assessments may be out of date' : 'Overview unavailable · try refreshing';
+      if (!loaded) body.querySelector('[data-unit=priority-note]').textContent = 'Assessments could not be loaded. No normal finding can be inferred.';
     } finally {
       inFlight = false;
+      if (!stopped) retry.disabled = false;
     }
   }
   function stopTimer() {
@@ -241,6 +334,7 @@ async function renderUnit(main) {
     stopTimer();
     document.removeEventListener('visibilitychange', onVisibility);
   };
+  retry.addEventListener('click', refresh);
   refresh();  // load once even if the tab opened in the background
   if (document.visibilityState === 'visible') timer = setInterval(refresh, POLL_MS);
 }

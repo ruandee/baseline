@@ -64,7 +64,7 @@ class FakeNode {
   querySelectorAll(selector) { return [...this.walk()].filter((n) => n.matches(selector)); }
 }
 
-function harness({visible = true, responses = [FIXTURE]} = {}) {
+function harness({visible = true, responses = [FIXTURE], patients = []} = {}) {
   const main = new FakeNode('main');
   const root = new FakeNode('body');
   root.append(main);
@@ -87,12 +87,14 @@ function harness({visible = true, responses = [FIXTURE]} = {}) {
   const fetch = async (path, options = {}) => {
     calls.push({path, headers: options.headers || {}});
     if (path === '/demo/session') {
-      return {ok: true, status: 200, json: async () => ({token: 'synthetic-token', patients: []})};
+      return {ok: true, status: 200, json: async () => ({token: 'synthetic-token', patients})};
     }
     if (path === '/v1/watchlist') {
-      const body = responses[Math.min(served, responses.length - 1)];
+      const entry = responses[Math.min(served, responses.length - 1)];
       served += 1;
-      return {ok: true, status: 200, json: async () => structuredClone(body)};
+      const body = typeof entry === 'function' ? await entry() : entry;
+      return {ok: !body.errorStatus, status: body.errorStatus || 200,
+        json: async () => structuredClone(body)};
     }
     return {ok: false, status: 404, json: async () => ({})};
   };
@@ -142,7 +144,7 @@ test('rendered rows follow the API order exactly, with labelled verdicts', async
   assert.deepEqual(rows.map((r) => r.name), FIXTURE.residents.map((r) => r.display_name));
   const labels = page.constant('VERDICT_LABELS');
   FIXTURE.residents.forEach((resident, i) => {
-    const expected = resident.latest_verdict === null ? 'No data'
+    const expected = resident.latest_verdict === null ? 'Assessment unavailable'
       : resident.latest_verdict === 'escalate' && resident.over_budget ? 'Escalate (over budget)'
         : labels[resident.latest_verdict];
     assert.ok(expected, `no label for verdict ${resident.latest_verdict}`);
@@ -183,6 +185,113 @@ test('summary counts follow the current visible roster when polling replaces it'
   assert.equal(page.main.querySelector('[data-unit=count-total]').textContent,
                String(reduced.residents.length));
   assert.equal(renderedRows(page.main).length, reduced.residents.length);
+});
+
+test('priority cards keep server order and link to records without inventing clinical context', async () => {
+  const reversed = {...FIXTURE, residents: [...FIXTURE.residents].reverse()};
+  const page = harness({responses: [FIXTURE, reversed]});
+  await page.settle();
+  const priorityIds = () => page.main.querySelector('[data-unit=priority]').children
+    .map((card) => card.getAttribute('data-priority'));
+  const eligible = (data) => data.residents.filter((r) =>
+    ['escalate', 'watch', 'explained'].includes(r.latest_verdict));
+  assert.deepEqual(priorityIds(), eligible(FIXTURE).map((r) => r.patient_id));
+  const cards = page.main.querySelector('[data-unit=priority]').children;
+  cards.forEach((card, i) => {
+    assert.equal(card.querySelector('a').getAttribute('href'),
+                 `/resident/${eligible(FIXTURE)[i].patient_id}`);
+    assert.match(card.textContent, /source records inside/);
+    assert(!card.textContent.includes('dentures'), 'overview does not have source-level context');
+  });
+  assert.match(cards.find((c) => c.textContent.includes('over budget')).textContent,
+               /shift interruption budget has been reached/);
+  await page.tick();
+  assert.deepEqual(priorityIds(), eligible(reversed).map((r) => r.patient_id));
+  assert.equal(page.main.querySelector('[data-unit=roster]').getAttribute('open'), undefined);
+  assert.equal(renderedRows(page.main).length, FIXTURE.residents.length);
+});
+
+test('capture identities use session metadata only and never masquerade as roster priority', async () => {
+  const capture = {...FIXTURE.residents[0], patient_id: 'arbitrary-capture-id', display_name: 'Person A'};
+  const namedRunner = {...FIXTURE.residents[0], patient_id: 'ordinary-resident', display_name: 'Runner Capture'};
+  const data = {...FIXTURE, residents: [capture, namedRunner, ...FIXTURE.residents]};
+  const page = harness({responses: [data], patients: [{id: capture.patient_id, capture_mode: 'live'}]});
+  await page.settle();
+  const ids = page.main.querySelector('[data-unit=priority]').children.map((c) => c.getAttribute('data-priority'));
+  assert(!ids.includes(capture.patient_id));
+  assert(ids.includes(namedRunner.patient_id), 'a display name must not determine identity type');
+  const list = page.main.querySelector('[data-unit=capture-list]');
+  assert.equal(list.children.length, 1);
+  assert.equal(list.children[0].getAttribute('data-capture'), capture.patient_id);
+  assert.match(list.textContent, /Live voice capture/);
+  assert.deepEqual(renderedRows(page.main).map((r) => r.href), data.residents.map((r) => `/resident/${r.patient_id}`));
+  assert.equal(page.main.querySelector('[data-unit=count-escalate]').textContent,
+               String(data.residents.filter((r) => r.latest_verdict === 'escalate').length - 1));
+});
+
+test('no priority flags keeps unknown and enrolling explicit instead of implying normal', async () => {
+  const data = {...FIXTURE, residents: FIXTURE.residents.filter((r) =>
+    !['escalate', 'watch', 'explained'].includes(r.latest_verdict))};
+  const page = harness({responses: [data]});
+  await page.settle();
+  assert.equal(page.main.querySelector('[data-unit=priority]').children.length, 0);
+  assert.equal(page.main.querySelector('[data-unit=quiet]').hidden, false);
+  assert.match(page.main.querySelector('[data-unit=quiet]').textContent, /Assessments may still be incomplete/);
+  assert.match(page.main.querySelector('[data-unit=incomplete]').textContent, /not a normal finding/);
+  const unknown = page.main.querySelector('tbody').children.find((row) => row.getAttribute('data-verdict') === 'unknown');
+  assert.equal(unknown.children[1].children[0].getAttribute('data-verdict'), 'unknown');
+  assert.match(unknown.textContent, /Assessment unavailable/);
+  assert.equal(renderedRows(page.main).length, data.residents.length);
+});
+
+test('first-load failure offers retry without zero counts or a fabricated empty roster', async () => {
+  const page = harness({responses: [{errorStatus: 503}, FIXTURE]});
+  await page.settle();
+  assert.equal(page.main.querySelector('[data-unit=error]').hidden, false);
+  assert.equal(page.main.querySelector('[data-unit=empty]').hidden, true);
+  assert.equal(page.main.querySelector('[data-unit=count-total]').textContent, '—');
+  assert.match(page.main.querySelector('[data-unit=priority-note]').textContent, /No normal finding/);
+  await page.main.querySelector('[data-unit=retry]').listeners.click[0]();
+  await page.settle();
+  assert.equal(page.main.querySelector('[data-unit=error]').hidden, true);
+  assert.equal(renderedRows(page.main).length, FIXTURE.residents.length);
+});
+
+test('pending initial load shows loading rather than an empty or normal conclusion', async () => {
+  let release;
+  const page = harness({responses: [() => new Promise((resolve) => { release = resolve; })]});
+  await page.settle();
+  assert.match(page.main.querySelector('[data-unit=freshness]').textContent, /Loading/);
+  assert.equal(page.main.querySelector('[data-unit=quiet]').hidden, true);
+  assert.equal(page.main.querySelector('[data-unit=empty]').hidden, true);
+  assert.equal(page.main.querySelector('[data-unit=count-total]').textContent, '—');
+  release(FIXTURE);
+  await page.settle();
+  assert.equal(renderedRows(page.main).length, FIXTURE.residents.length);
+});
+
+test('failed refresh marks retained rows stale, but authorization denial removes prior records', async () => {
+  const page = harness({responses: [FIXTURE, {errorStatus: 503}, {errorStatus: 403}]});
+  await page.settle();
+  await page.tick();
+  assert.equal(renderedRows(page.main).length, FIXTURE.residents.length);
+  assert.match(page.main.querySelector('[data-unit=freshness]').textContent, /out of date/);
+  await page.tick();
+  assert.equal(renderedRows(page.main).length, 0);
+  assert.equal(page.main.querySelector('[data-unit=priority]').children.length, 0);
+  assert.equal(page.main.querySelector('[data-unit=roster]').hidden, true);
+  assert.equal(page.main.querySelector('[data-unit=count-total]').textContent, '—');
+});
+
+test('an empty authorized response is explicit and can recover on the next refresh', async () => {
+  const page = harness({responses: [{...FIXTURE, residents: []}, FIXTURE]});
+  await page.settle();
+  assert.equal(page.main.querySelector('[data-unit=empty]').hidden, false);
+  assert.equal(page.main.querySelector('[data-unit=count-total]').textContent, '0');
+  assert.equal(page.main.querySelector('[data-unit=roster]').hidden, true);
+  await page.tick();
+  assert.equal(page.main.querySelector('[data-unit=empty]').hidden, true);
+  assert.equal(page.main.querySelector('[data-unit=roster]').hidden, false);
 });
 
 test('polls every 10 s while visible, stops when hidden and resumes when visible', async () => {
