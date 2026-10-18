@@ -25,6 +25,7 @@ from patient_memory.config import Settings
 from patient_memory.consent import grant_fixture_consent
 from patient_memory.objects import ObjectStore
 from patient_memory.storage import transaction
+from scripts.demo_handoff import register as register_handoff
 
 ROOT = Path(__file__).resolve().parents[1]
 NAMES = ["Alex Morgan", "Jamie Chen", "Sam Rivera", "Taylor Brooks", "Jordan Lee",
@@ -95,6 +96,7 @@ def workspace_app(cfg, reader, patients, extra_hosts=(), demo_token=None, psw=No
     if extra_hosts:
         require_deployment_secret(cfg)
     app = create_app(cfg)
+    register_handoff(app, cfg, reader)
     for token in (demo_token, psw_token):
         if token:
             decode_token(token, cfg)  # fail at startup, not as 401s on every page
